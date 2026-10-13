@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
   ArrowRight,
   Camera,
@@ -59,7 +60,16 @@ type IdTela = (typeof telas)[number]["id"];
 export function VitrineEstilo() {
   const [tela, setTela] = useState<IdTela>("inicio");
   return (
-    <>
+    // Nesta vitrine os botões são só desenho: em vez de não fazer nada, avisam isso.
+    <div
+      className="contents"
+      onClickCapture={(e) => {
+        if ((e.target as HTMLElement).closest('a[href="#"]')) {
+          e.preventDefault();
+          toast("Isto é só uma prévia. O botão de verdade fica no Início, depois de entrar.");
+        }
+      }}
+    >
       <nav aria-label="Prévia das telas" className="border-b bg-superficie">
         <div className="mx-auto flex max-w-xl gap-1 overflow-x-auto p-2">
           {telas.map((t) => (
@@ -86,7 +96,7 @@ export function VitrineEstilo() {
       {tela === "pneus" && <TelaPneus />}
       {tela === "pix" && <TelaPix />}
       {tela === "pecas" && <TelaPecas />}
-    </>
+    </div>
   );
 }
 
