@@ -27,7 +27,7 @@ export default async function Inicio() {
           </li>
         ))}
       </ul>
-      <BotaoPrincipal fixo href="/entrar" icone={<LogIn aria-hidden />}>
+      <BotaoPrincipal fixo href="/entrar?criar=1" icone={<LogIn aria-hidden />}>
         Entrar ou criar conta grátis
       </BotaoPrincipal>
     </main>

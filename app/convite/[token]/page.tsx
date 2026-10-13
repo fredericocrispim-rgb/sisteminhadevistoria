@@ -45,7 +45,7 @@ export default async function PaginaConvite({ params }: PageProps<"/convite/[tok
       {ctx ? (
         <BotaoAceitar token={token} />
       ) : (
-        <BotaoPrincipal fixo href={`/entrar?voltar=/convite/${token}`} icone={<LogIn aria-hidden />}>
+        <BotaoPrincipal fixo href={`/entrar?criar=1&voltar=/convite/${token}`} icone={<LogIn aria-hidden />}>
           {t.aceitar}
         </BotaoPrincipal>
       )}
