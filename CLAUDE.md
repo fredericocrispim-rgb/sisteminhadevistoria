@@ -56,6 +56,10 @@ Equipe, Minha oficina, Meu plano, Ajuda. Evite: check-in, upload, dashboard, sin
   libera/bloqueia o acesso. Nada de webhook, cartão ou boleto agora. Quando o produto estiver validado, a cobrança
   automática (Asaas ou outro) entra pela camada `lib/pagamentos`: mantenha os campos de pagamento genéricos
   (ex.: `provedor`, `id_externo`), sem nomes de um provedor específico. Ignore as partes do guia sobre Asaas até lá.
+  Pix real: chave CNPJ 36365410000183, TUKA SOLUCOES, GOIANIA (gravado na tabela `plataforma`). O código gerado por `lib/pix.ts`
+  é idêntico ao do banco Inter (teste em `lib/pix.test.ts`). Tela da oficina: `/plano`. Confirmação manual: botão
+  "Marcar como pago" no `/admin` (registra fatura paga e soma 30 dias). Fluxo do MVP: oficina testa grátis, Frederico
+  entra em contato pelo WhatsApp (botão no `/admin`) e confere o Pix no extrato.
 - Mobile-first com câmera; também funciona no computador.
 - Tudo em português do Brasil; datas dd/mm/aaaa; fuso America/Sao_Paulo; valores em R$.
 - Stack: Next.js 16 (App Router) + TypeScript + Tailwind 4 + shadcn/ui (base-ui) + Supabase (região São Paulo). Zod e React Hook Form. Vitest.

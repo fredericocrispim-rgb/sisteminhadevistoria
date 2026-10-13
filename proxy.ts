@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /** Páginas que exigem login. */
-const PROTEGIDAS = ["/inicio", "/vistorias", "/patio", "/mais", "/cadastro", "/admin"];
+const PROTEGIDAS = ["/inicio", "/vistorias", "/patio", "/mais", "/plano", "/cadastro", "/admin"];
 
 /**
  * Roda antes de cada página:

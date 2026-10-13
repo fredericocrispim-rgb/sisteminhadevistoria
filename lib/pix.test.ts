@@ -15,7 +15,7 @@ describe("pix", () => {
       valor: 49.9,
       identificador: "OFICINA-01",
     });
-    expect(codigo.startsWith("000201")).toBe(true);
+    expect(codigo.startsWith("000201010211")).toBe(true);
     expect(codigo).toContain("0014br.gov.bcb.pix0118fulano@exemplo.com");
     expect(codigo).toContain("540549.90");
     expect(codigo).toContain("5917FREDERICO CRISPIM");
@@ -29,6 +29,19 @@ describe("pix", () => {
     const codigo = gerarPixCopiaECola({ chave: "12345678000199", nome: "Oficina", cidade: "Recife" });
     expect(codigo).not.toContain("5405");
     expect(codigo).toContain("62070503***");
+  });
+
+  it("gera exatamente o mesmo código que o banco Inter (QR da TUKA SOLUCOES)", () => {
+    const inter =
+      "00020101021126620014br.gov.bcb.pix0114363654100001830222Sisteminha de Vistoria520400005303986540549.905802BR5913TUKA SOLUCOES6007GOIANIA62070503***63042A58";
+    const codigo = gerarPixCopiaECola({
+      chave: "36365410000183",
+      nome: "TUKA SOLUCOES",
+      cidade: "GOIANIA",
+      valor: 49.9,
+      descricao: "Sisteminha de Vistoria",
+    });
+    expect(codigo).toBe(inter);
   });
 
   it("formata reais", () => {

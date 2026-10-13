@@ -275,17 +275,16 @@ function TelaPneus() {
 
 function TelaPix() {
   const codigo = gerarPixCopiaECola({
-    chave: "exemplo@sisteminhadevistoria.com.br",
-    nome: "Frederico Crispim",
-    cidade: "Sao Paulo",
+    chave: "36365410000183",
+    nome: "TUKA SOLUCOES",
+    cidade: "GOIANIA",
     valor: 49.9,
-    identificador: "AUTOCENTERSILVA",
+    descricao: textos.produto.nome,
   });
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-5">
       <h1 className="text-[1.75rem] font-extrabold">{textos.menu.meuPlano}</h1>
-      <PagarPix codigo={codigo} valor={49.9} descricao="Mensalidade de novembro" />
-      <p className="text-center text-sm text-muted-foreground">Exemplo. A chave Pix de verdade será a sua, cadastrada no painel.</p>
+      <PagarPix codigo={codigo} valor={49.9} descricao="Mensalidade" />
     </main>
   );
 }

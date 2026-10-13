@@ -19,6 +19,8 @@ export type DadosPix = {
   identificador?: string;
   /** Texto curto que aparece para quem paga. */
   descricao?: string;
+  /** QR fixo, que pode ser pago várias vezes (campo 01 = 11), igual ao que o banco Inter gera. Padrão: sim. */
+  reutilizavel?: boolean;
 };
 
 function campo(id: string, valor: string): string {
@@ -59,6 +61,7 @@ export function gerarPixCopiaECola(d: DadosPix): string {
 
   let codigo =
     campo("00", "01") +
+    (d.reutilizavel === false ? "" : campo("01", "11")) +
     campo("26", contaInfo) +
     campo("52", "0000") +
     campo("53", "986") + // Real

@@ -51,7 +51,7 @@ export default async function Inicio() {
       )}
 
       {diasTeste !== null && (
-        <Link href="/mais" className="tocavel flex min-h-toque items-center gap-3 rounded-2xl bg-superficie px-4 py-3">
+        <Link href="/plano" className="tocavel flex min-h-toque items-center gap-3 rounded-2xl bg-superficie px-4 py-3">
           <Clock aria-hidden className="size-7 text-muted-foreground" />
           <span className="flex-1 text-lg font-bold">
             {diasTeste === 0 ? "Teste grátis acaba hoje" : `${diasTeste} ${diasTeste === 1 ? "dia" : "dias"} de teste grátis`}
