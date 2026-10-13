@@ -275,7 +275,7 @@ function TelaPneus() {
 
 function TelaPix() {
   const codigo = gerarPixCopiaECola({
-    chave: "exemplo@vistoriafacil.com.br",
+    chave: "exemplo@sisteminhadevistoria.com.br",
     nome: "Frederico Crispim",
     cidade: "Sao Paulo",
     valor: 49.9,

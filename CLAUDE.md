@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# VistoriaFácil — regras do projeto
+# Sisteminha de Vistoria — regras do projeto
 
 SaaS de vistoria digital de veículos que substitui a ficha de papel (FOR 044) usada por oficinas,
 funilarias, autocentros, guinchos e associações na CHEGADA e na ENTREGA do veículo.
@@ -36,6 +36,7 @@ Quem usa são mecânicos, muitos com pouca instrução: QUANTO MAIS SIMPLES, MEL
 - Fundo branco, blocos em cinza claro (`bg-superficie`), sem bordas desnecessárias, cantos bem arredondados (rounded-2xl/3xl).
 - Botão principal 64 px (`min-h-toque-grande`), demais toques no mínimo 56 px (`min-h-toque`). Fonte base 18 px; títulos grandes e grossos (font-extrabold).
 - Componentes em `components/vf/` (importe de `@/components/vf`). Veja as telas de exemplo em `/estilo`. Não crie botões/campos soltos.
+- MARCA: nome "Sisteminha de Vistoria"; logotipo = círculo azul com 4 quadradinhos (3 claros, 1 verde): componente `LogoProduto` e `app/icon.svg`. Cores da marca: azul #2563eb e verde #22b573 (`marca-azul`, `marca-verde`). O verde dos botões com texto branco é mais escuro (#13865a) para dar contraste.
 - Cores: `oficina` (cor da oficina, padrão azul), `acao` (verde), `perigo` (vermelho: SÓ erro/avaria), `atencao` (amarelo); versões `-clara` para fundos. Tokens em `app/globals.css`.
 - Modo sol: classe `.sol` no `<html>`, ligado por `BotaoModoSol`.
 - Mobile-first; testar sempre em 360 px. Formatação de placa/telefone/km em `lib/formatos.ts`; Pix em `lib/pix.ts` (com testes).
@@ -80,5 +81,5 @@ Depois, faça o commit da etapa (mensagem em português).
 - Migrações em `supabase/migrations/` (nunca alterar o banco à mão). Testar primeiro no projeto "vistoria-teste".
 - Clientes: `lib/supabase/cliente.ts` (navegador), `servidor.ts` (servidor com login), `admin.ts` (chave secreta, só servidor).
 - Chaves novas do Supabase: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sb_publishable_) e `SUPABASE_SECRET_KEY` (sb_secret_).
-- Vistoria concluída é travada por gatilho no banco; fotos/pneus/itens/avarias também. Correção só por `vistoria_adendos`.
+- Vistoria concluída é travada por gatilho no banco; fotos/pneus/itens/avarias também. Correção só por `vistoria_adendos`. Código de autenticidade: SV-XXXX-XXXX.
 - Fotos: bucket privado `vistorias/{empresa_id}/{vistoria_id}/...`; logos: bucket público `marcas/{empresa_id}/...`.

@@ -7,7 +7,7 @@
 
 export const textos = {
   produto: {
-    nome: "VistoriaFácil",
+    nome: "Sisteminha de Vistoria",
     slogan: "Vistoria do carro com fotos e assinatura, enviada no WhatsApp em 3 minutos.",
   },
 
@@ -225,7 +225,7 @@ export const textos = {
       criarConvite: "Criar convite",
       enviarWhatsapp: "Mandar no WhatsApp",
       mensagem: (nome: string, oficina: string, link: string) =>
-        `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no VistoriaFácil. Toque no link para entrar: ${link}`,
+        `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no Sisteminha de Vistoria. Toque no link para entrar: ${link}`,
       pular: "Pular por agora",
     },
     pronto: {

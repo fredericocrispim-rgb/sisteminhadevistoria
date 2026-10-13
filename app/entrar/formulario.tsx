@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ClipboardCheck, LogIn, Mail } from "lucide-react";
-import { BotaoPrincipal, BotaoSecundario, Campo } from "@/components/vf";
+import { ArrowLeft, ArrowRight, LogIn, Mail } from "lucide-react";
+import { BotaoPrincipal, BotaoSecundario, Campo, LogoProduto } from "@/components/vf";
 import { criarClienteNavegador } from "@/lib/supabase/cliente";
 import { textos } from "@/lib/textos";
 
@@ -66,11 +66,8 @@ export function FormularioEntrar({ destino }: { destino: string }) {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="grid size-12 place-items-center rounded-2xl bg-oficina text-oficina-texto">
-          <ClipboardCheck aria-hidden className="size-7" />
-        </div>
-        <span className="text-xl font-extrabold">{textos.produto.nome}</span>
+      <div className="mb-8">
+        <LogoProduto comNome />
       </div>
 
       {etapa === "email" ? (

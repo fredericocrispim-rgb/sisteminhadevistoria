@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /*
-  Padrão visual do VistoriaFácil.
+  Padrão visual do Sisteminha de Vistoria.
   Moderno e enxuto: fundo branco, blocos em cinza bem claro, sem bordas desnecessárias,
   botões e ícones grandes, pouco texto.
   - --cor-oficina: cor principal (vem do cadastro da oficina; padrão azul).
@@ -35,6 +35,8 @@
 
   /* Cores do app (use estas nas telas) */
   --color-superficie: var(--cor-superficie);
+  --color-marca-azul: var(--cor-marca-azul);
+  --color-marca-verde: var(--cor-marca-verde);
   --color-oficina: var(--cor-oficina);
   --color-oficina-clara: var(--cor-oficina-clara);
   --color-oficina-texto: var(--cor-oficina-texto);
@@ -64,12 +66,14 @@
   --fonte-sistema: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --cor-superficie: #f1f3f6;
-  --cor-oficina: #1d4ed8;
-  --cor-oficina-clara: #e8eefc;
+  --cor-marca-azul: #2563eb;
+  --cor-marca-verde: #22b573;
+  --cor-oficina: #2563eb;
+  --cor-oficina-clara: #eaf1fe;
   --cor-oficina-texto: #ffffff;
-  --cor-acao: #15803d;
-  --cor-acao-escura: #116932;
-  --cor-acao-clara: #e7f6ec;
+  --cor-acao: #13865a;
+  --cor-acao-escura: #0e7a52;
+  --cor-acao-clara: #e6f7ef;
   --cor-acao-texto: #ffffff;
   --cor-perigo: #c81e1e;
   --cor-perigo-clara: #fdecec;
@@ -106,8 +110,8 @@
   --cor-superficie: #e6e9ee;
   --border: #000000;
   --input: #000000;
-  --cor-oficina: #1e3a8a;
-  --cor-acao: #0f5f2c;
+  --cor-oficina: #1d4ed8;
+  --cor-acao: #0b6544;
   --cor-perigo: #991b1b;
 }
 

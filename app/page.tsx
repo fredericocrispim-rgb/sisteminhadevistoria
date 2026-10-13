@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { Camera, ClipboardCheck, LogIn, PenLine, Send } from "lucide-react";
-import { BotaoPrincipal } from "@/components/vf";
+import { Camera, LogIn, PenLine, Send } from "lucide-react";
+import { BotaoPrincipal, LogoProduto } from "@/components/vf";
 import { obterContexto } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
 
@@ -16,12 +16,7 @@ export default async function Inicio() {
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-4 pt-10">
-      <div className="flex items-center gap-3">
-        <div className="grid size-14 place-items-center rounded-2xl bg-oficina text-oficina-texto">
-          <ClipboardCheck aria-hidden className="size-8" />
-        </div>
-        <span className="text-2xl font-extrabold">{textos.produto.nome}</span>
-      </div>
+      <LogoProduto comNome className="size-14" />
       <h1 className="text-[2.25rem] leading-tight font-extrabold">Chega de ficha de papel.</h1>
       <p className="text-xl text-muted-foreground">{textos.produto.slogan}</p>
       <ul className="flex flex-col gap-3">

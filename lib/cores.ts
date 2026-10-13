@@ -65,7 +65,7 @@ export function corDominante(pixels: Uint8ClampedArray): string | null {
 
 /** 8 cores prontas para a oficina escolher (todas com texto branco legível). */
 export const CORES_PRONTAS = [
-  "#1d4ed8", // azul
+  "#2563eb", // azul (cor da marca)
   "#0f2f57", // azul-marinho
   "#0e7490", // petróleo
   "#15803d", // verde
