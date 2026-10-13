@@ -73,3 +73,12 @@ Depois, faça o commit da etapa (mensagem em português).
 ## Comandos
 - `npm run dev` → http://localhost:3000
 - `npm run build` / `npm run lint` / `npm test`
+- `npm run banco:testar` → confere as chaves do `.env.local` e se o banco existe
+- `npm run banco:entrar` / `banco:conectar` / `banco:aplicar` → login na CLI do Supabase, ligar ao projeto e aplicar as migrações de `supabase/migrations`
+
+## Banco de dados (Prompt 03)
+- Migrações em `supabase/migrations/` (nunca alterar o banco à mão). Testar primeiro no projeto "vistoria-teste".
+- Clientes: `lib/supabase/cliente.ts` (navegador), `servidor.ts` (servidor com login), `admin.ts` (chave secreta, só servidor).
+- Chaves novas do Supabase: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sb_publishable_) e `SUPABASE_SECRET_KEY` (sb_secret_).
+- Vistoria concluída é travada por gatilho no banco; fotos/pneus/itens/avarias também. Correção só por `vistoria_adendos`.
+- Fotos: bucket privado `vistorias/{empresa_id}/{vistoria_id}/...`; logos: bucket público `marcas/{empresa_id}/...`.
