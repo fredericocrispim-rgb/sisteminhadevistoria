@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  cnpjValido,
+  cpfValido,
+  formatarCep,
+  formatarCpfCnpj,
   formatarKm,
   formatarPlaca,
   formatarTelefone,
@@ -53,5 +57,24 @@ describe("km", () => {
     expect(formatarKm("abc")).toBe("");
     expect(kmParaNumero("45.320")).toBe(45320);
     expect(kmParaNumero("")).toBeNull();
+  });
+});
+
+describe("cpf e cnpj", () => {
+  it("valida CPF", () => {
+    expect(cpfValido("529.982.247-25")).toBe(true);
+    expect(cpfValido("529.982.247-24")).toBe(false);
+    expect(cpfValido("111.111.111-11")).toBe(false);
+  });
+  it("valida CNPJ", () => {
+    expect(cnpjValido("11.222.333/0001-81")).toBe(true);
+    expect(cnpjValido("11.222.333/0001-80")).toBe(false);
+    expect(cnpjValido("00.000.000/0000-00")).toBe(false);
+  });
+  it("formata enquanto digita", () => {
+    expect(formatarCpfCnpj("52998224725")).toBe("529.982.247-25");
+    expect(formatarCpfCnpj("11222333000181")).toBe("11.222.333/0001-81");
+    expect(formatarCpfCnpj("1122")).toBe("112.2");
+    expect(formatarCep("01310100")).toBe("01310-100");
   });
 });

@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Cache Components desligado de propósito: quase todas as telas dependem do login,
+  // e o modo clássico (renderiza a cada acesso) é mais simples de manter.
   turbopack: {
     rules: {
       "*.css": {

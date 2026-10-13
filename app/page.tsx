@@ -1,23 +1,40 @@
-import { ClipboardCheck, Palette } from "lucide-react";
-import { BotaoSecundario } from "@/components/vf";
+import { redirect } from "next/navigation";
+import { Camera, ClipboardCheck, LogIn, PenLine, Send } from "lucide-react";
+import { BotaoPrincipal } from "@/components/vf";
+import { obterContexto } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
 
-export default function Inicio() {
+/** Página de entrada. Quem já está logado vai direto para o início do app. */
+export default async function Inicio() {
+  if (await obterContexto()) redirect("/inicio");
+
+  const passos = [
+    { icone: <Camera aria-hidden />, texto: "Fotos guiadas do carro" },
+    { icone: <PenLine aria-hidden />, texto: "Cliente assina no celular" },
+    { icone: <Send aria-hidden />, texto: "Envia no WhatsApp com PDF" },
+  ];
+
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-4 pt-10">
       <div className="flex items-center gap-3">
         <div className="grid size-14 place-items-center rounded-2xl bg-oficina text-oficina-texto">
           <ClipboardCheck aria-hidden className="size-8" />
         </div>
-        <h1 className="text-3xl font-bold">{textos.produto.nome}</h1>
+        <span className="text-2xl font-extrabold">{textos.produto.nome}</span>
       </div>
+      <h1 className="text-[2.25rem] leading-tight font-extrabold">Chega de ficha de papel.</h1>
       <p className="text-xl text-muted-foreground">{textos.produto.slogan}</p>
-      <p className="rounded-xl bg-atencao-fundo px-4 py-3 text-base font-semibold text-atencao-texto">
-        Sistema em construção. Por enquanto, veja o padrão visual das telas.
-      </p>
-      <BotaoSecundario href="/estilo" icone={<Palette aria-hidden />}>
-        Ver o padrão visual
-      </BotaoSecundario>
+      <ul className="flex flex-col gap-3">
+        {passos.map((p) => (
+          <li key={p.texto} className="flex items-center gap-4 rounded-2xl bg-superficie px-4 py-4 text-lg font-bold [&_svg]:size-8 [&_svg]:text-oficina">
+            {p.icone}
+            {p.texto}
+          </li>
+        ))}
+      </ul>
+      <BotaoPrincipal fixo href="/entrar" icone={<LogIn aria-hidden />}>
+        Entrar ou criar conta grátis
+      </BotaoPrincipal>
     </main>
   );
 }

@@ -11,7 +11,8 @@
     "banco:testar": "node --env-file=.env.local scripts/testar-banco.mjs",
     "banco:conectar": "npx supabase@2.120.0 link",
     "banco:aplicar": "npx supabase@2.120.0 db push",
-    "banco:entrar": "npx supabase@2.120.0 login"
+    "banco:entrar": "npx supabase@2.120.0 login",
+    "admin:tornar": "node --env-file=.env.local scripts/tornar-admin.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

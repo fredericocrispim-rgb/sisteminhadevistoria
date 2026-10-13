@@ -83,3 +83,54 @@ export function kmParaNumero(valor: string): number | null {
   const d = valor.replace(/\D/g, "");
   return d ? Number(d) : null;
 }
+
+/* ---------- CPF, CNPJ e CEP ---------- */
+
+export function soNumeros(valor: string): string {
+  return valor.replace(/\D/g, "");
+}
+
+export function cpfValido(valor: string): boolean {
+  const d = soNumeros(valor);
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  const digito = (n: number) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(d[i]) * (n + 1 - i);
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+  return digito(9) === Number(d[9]) && digito(10) === Number(d[10]);
+}
+
+export function cnpjValido(valor: string): boolean {
+  const d = soNumeros(valor);
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const digito = (n: number) => {
+    const pesos = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const soma = pesos.reduce((s, p, i) => s + p * Number(d[i]), 0);
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  return digito(12) === Number(d[12]) && digito(13) === Number(d[13]);
+}
+
+/** Formata enquanto digita: até 11 números vira CPF; mais que isso, CNPJ. */
+export function formatarCpfCnpj(valor: string): string {
+  const d = soNumeros(valor).slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+  }
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+export function formatarCep(valor: string): string {
+  const d = soNumeros(valor).slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}

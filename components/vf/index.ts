@@ -11,3 +11,5 @@ export { EstadoVazio, AvisoSemInternet, Carregando, useSemInternet } from "./est
 export { ConfirmacaoImportante, avisarComDesfazer } from "./confirmacao";
 export { BotaoModoSol } from "./modo-sol";
 export { PagarPix } from "./pagar-pix";
+export { LogoOficina } from "./logo-oficina";
+export { CaixaMarcar } from "./caixa-marcar";
