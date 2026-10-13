@@ -2,28 +2,41 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, LogIn, Mail, MailCheck, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, KeyRound, LogIn, MessageCircle, UserPlus } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, Campo, CampoSenha, LogoProduto, MensagemErroCampo } from "@/components/vf";
 import { criarClienteNavegador } from "@/lib/supabase/cliente";
+import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
+import { criarConta } from "./acoes";
 
 const t = textos.conta;
 const emailValido = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim());
 
-type Modo = "entrar" | "criar" | "esqueci" | "confirme" | "linkEnviado";
+type Modo = "entrar" | "criar" | "esqueci";
 
 function traduzirErro(erro: { status?: number; code?: string; message?: string }): string {
   const c = erro.code ?? "";
   const m = (erro.message ?? "").toLowerCase();
-  if (erro.status === 429 || c.includes("rate_limit")) return t.erros.muitasTentativas;
   if (c === "invalid_credentials" || m.includes("invalid login")) return t.erros.senhaErrada;
-  if (c === "email_not_confirmed" || m.includes("not confirmed")) return t.erros.naoConfirmado;
-  if (c === "user_already_exists" || m.includes("already registered")) return t.erros.jaExiste;
-  if (c === "weak_password" || m.includes("password should")) return t.erros.senhaCurta;
+  if (erro.status === 429 || c.includes("rate_limit")) return t.erros.muitasTentativas;
   return t.erros.falhou;
 }
 
-export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: string; modoInicial: "entrar" | "criar"; aviso?: string }) {
+/**
+ * Entrar com e-mail e senha. Nada de e-mail enviado:
+ * criar conta é feito no servidor (já confirmada); esqueci a senha = falar com o suporte no WhatsApp.
+ */
+export function FormularioEntrar({
+  destino,
+  modoInicial,
+  aviso,
+  whatsappSuporte,
+}: {
+  destino: string;
+  modoInicial: "entrar" | "criar";
+  aviso?: string;
+  whatsappSuporte: string | null;
+}) {
   const router = useRouter();
   const [modo, setModo] = useState<Modo>(modoInicial);
   const [email, setEmail] = useState("");
@@ -35,8 +48,7 @@ export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: str
 
   const emailLimpo = email.trim().toLowerCase();
   const erroEmail = conferir && !emailValido(email) ? t.erros.emailInvalido : undefined;
-  const erroSenha = conferir && modo !== "esqueci" && senha.length < 6 ? t.erros.senhaCurta : undefined;
-  const linkVolta = (para: string) => `${window.location.origin}/auth/confirmar?voltar=${encodeURIComponent(para)}`;
+  const erroSenha = conferir && senha.length < 6 ? t.erros.senhaCurta : undefined;
 
   function trocar(m: Modo) {
     setModo(m);
@@ -45,63 +57,32 @@ export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: str
     setConferir(false);
   }
 
+  async function entrarComSenha() {
+    const { error } = await criarClienteNavegador().auth.signInWithPassword({ email: emailLimpo, password: senha });
+    if (error) {
+      setCarregando(false);
+      setErro(traduzirErro(error));
+      return false;
+    }
+    router.replace(destino);
+    router.refresh();
+    return true;
+  }
+
   async function enviar() {
     setConferir(true);
     setErro(undefined);
     setInfo(undefined);
-    if (!emailValido(email) || (modo !== "esqueci" && senha.length < 6)) return;
+    if (!emailValido(email) || senha.length < 6) return;
     setCarregando(true);
-    const supabase = criarClienteNavegador();
-
-    if (modo === "entrar") {
-      const { error } = await supabase.auth.signInWithPassword({ email: emailLimpo, password: senha });
-      if (error) {
-        setCarregando(false);
-        return setErro(traduzirErro(error));
-      }
-      router.replace(destino);
-      router.refresh();
-      return;
-    }
-
     if (modo === "criar") {
-      const { data, error } = await supabase.auth.signUp({
-        email: emailLimpo,
-        password: senha,
-        options: { emailRedirectTo: linkVolta(destino) },
-      });
-      setCarregando(false);
-      if (error) return setErro(traduzirErro(error));
-      // E-mail que já tinha conta: o Supabase devolve um usuário "vazio"
-      if (data.user && data.user.identities?.length === 0) return setErro(t.erros.jaExiste);
-      if (data.session) {
-        // Confirmação de e-mail desligada: já entra direto
-        router.replace(destino);
-        router.refresh();
-        return;
+      const r = await criarConta({ email: emailLimpo, senha });
+      if (!r.ok) {
+        setCarregando(false);
+        return setErro(r.erro);
       }
-      return setModo("confirme");
     }
-
-    if (modo === "esqueci") {
-      const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo, { redirectTo: linkVolta("/nova-senha") });
-      setCarregando(false);
-      if (error) return setErro(traduzirErro(error));
-      return setModo("linkEnviado");
-    }
-  }
-
-  async function reenviarConfirmacao() {
-    setCarregando(true);
-    setErro(undefined);
-    const { error } = await criarClienteNavegador().auth.resend({
-      type: "signup",
-      email: emailLimpo,
-      options: { emailRedirectTo: linkVolta(destino) },
-    });
-    setCarregando(false);
-    if (error) return setErro(traduzirErro(error));
-    setInfo(t.reenviado);
+    await entrarComSenha();
   }
 
   const cabecalho = (
@@ -110,33 +91,36 @@ export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: str
     </div>
   );
 
-  // Telas de "olhe seu e-mail"
-  if (modo === "confirme" || modo === "linkEnviado") {
+  if (modo === "esqueci") {
+    const mensagem = `Olá! Esqueci minha senha do ${textos.produto.nome}. Meu e-mail é: ${emailLimpo || "(digite aqui)"}`;
     return (
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10 pb-10">
         {cabecalho}
-        <div className="flex flex-col items-center gap-4 text-center">
-          <MailCheck aria-hidden className="size-20 text-oficina" />
-          <h1 className="text-[2rem] leading-tight font-extrabold">{modo === "confirme" ? t.confirmeTitulo : t.linkEnviadoTitulo}</h1>
-          <p className="text-xl break-words text-muted-foreground">
-            {modo === "confirme" ? t.confirmeTexto(emailLimpo) : t.linkEnviadoTexto(emailLimpo)}
-          </p>
-          {info && <p className="font-bold text-acao">{info}</p>}
-          {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
-          {modo === "confirme" && (
-            <BotaoSecundario icone={<Mail aria-hidden />} carregando={carregando} onClick={reenviarConfirmacao}>
-              {t.reenviar}
-            </BotaoSecundario>
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-3">
+            <KeyRound aria-hidden className="size-10 text-oficina" />
+            <h1 className="text-[2rem] leading-tight font-extrabold">{t.esqueciTitulo}</h1>
+          </div>
+          <p className="text-xl text-muted-foreground">Fale com o suporte. Mandamos um link para você criar uma senha nova.</p>
+          {whatsappSuporte ? (
+            <a
+              href={`https://wa.me/${telefoneParaWhatsapp(whatsappSuporte)}?text=${encodeURIComponent(mensagem)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="tocavel inline-flex min-h-toque-grande items-center justify-center gap-3 rounded-2xl bg-[#1f8f4e] px-5 text-xl font-bold text-white [&_svg]:size-7"
+            >
+              <MessageCircle aria-hidden /> Falar no WhatsApp
+            </a>
+          ) : (
+            <p className="rounded-2xl bg-superficie px-4 py-3 text-lg">Peça ao responsável pelo sistema um link de senha nova.</p>
           )}
-          <BotaoSecundario icone={<ArrowLeft aria-hidden />} className="bg-transparent" onClick={() => trocar("entrar")}>
+          <BotaoSecundario icone={<ArrowLeft aria-hidden />} onClick={() => trocar("entrar")}>
             {t.voltarEntrar}
           </BotaoSecundario>
         </div>
       </main>
     );
   }
-
-  const titulo = modo === "entrar" ? t.entrarTitulo : modo === "criar" ? t.criarTitulo : t.esqueciTitulo;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10 pb-10">
@@ -148,10 +132,7 @@ export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: str
           enviar();
         }}
       >
-        <div>
-          <h1 className="text-[2rem] leading-tight font-extrabold">{titulo}</h1>
-          {modo === "esqueci" && <p className="mt-1 text-lg text-muted-foreground">{t.esqueciTexto}</p>}
-        </div>
+        <h1 className="text-[2rem] leading-tight font-extrabold">{modo === "entrar" ? t.entrarTitulo : t.criarTitulo}</h1>
 
         {info && (
           <p className="flex items-center gap-2 rounded-2xl bg-acao-clara px-4 py-3 text-lg font-bold text-acao">
@@ -171,30 +152,23 @@ export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: str
           onValor={setEmail}
           erro={erroEmail}
         />
-
-        {modo !== "esqueci" && (
-          <CampoSenha
-            rotulo={modo === "criar" ? t.novaSenha : t.senha}
-            dica={modo === "criar" ? t.senhaDica : undefined}
-            nova={modo === "criar"}
-            valor={senha}
-            onValor={setSenha}
-            erro={erroSenha}
-          />
-        )}
+        <CampoSenha
+          rotulo={modo === "criar" ? t.novaSenha : t.senha}
+          dica={modo === "criar" ? t.senhaDica : undefined}
+          nova={modo === "criar"}
+          valor={senha}
+          onValor={setSenha}
+          erro={erroSenha}
+        />
 
         {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
 
-        <BotaoPrincipal
-          type="submit"
-          carregando={carregando}
-          icone={modo === "entrar" ? <LogIn aria-hidden /> : modo === "criar" ? <UserPlus aria-hidden /> : <Mail aria-hidden />}
-        >
-          {modo === "entrar" ? t.entrar : modo === "criar" ? t.criar : t.mandarLink}
+        <BotaoPrincipal type="submit" carregando={carregando} icone={modo === "entrar" ? <LogIn aria-hidden /> : <UserPlus aria-hidden />}>
+          {modo === "entrar" ? t.entrar : t.criar}
         </BotaoPrincipal>
 
         <div className="flex flex-col gap-2">
-          {modo === "entrar" && (
+          {modo === "entrar" ? (
             <>
               <BotaoSecundario icone={<UserPlus aria-hidden />} onClick={() => trocar("criar")}>
                 {t.naoTenhoConta}
@@ -203,15 +177,9 @@ export function FormularioEntrar({ destino, modoInicial, aviso }: { destino: str
                 {t.esqueci}
               </BotaoSecundario>
             </>
-          )}
-          {modo === "criar" && (
+          ) : (
             <BotaoSecundario icone={<LogIn aria-hidden />} onClick={() => trocar("entrar")}>
               {t.jaTenhoConta}
-            </BotaoSecundario>
-          )}
-          {modo === "esqueci" && (
-            <BotaoSecundario icone={<ArrowLeft aria-hidden />} onClick={() => trocar("entrar")}>
-              {t.voltarEntrar}
             </BotaoSecundario>
           )}
         </div>

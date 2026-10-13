@@ -8,6 +8,7 @@ import { diasAte } from "@/lib/cadastro";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
 import { marcarComoPago } from "./acoes";
+import { LinkSenha } from "./link-senha";
 
 export const metadata: Metadata = { title: "Administrador", robots: { index: false } };
 
@@ -46,6 +47,7 @@ export default async function Admin() {
       <Link href="/mais" className="inline-flex min-h-toque items-center gap-1.5 self-start text-lg font-bold">
         <ArrowLeft aria-hidden className="size-6" /> Voltar
       </Link>
+      <LinkSenha />
       <h1 className="text-[1.75rem] font-extrabold">Oficinas ({empresas?.length ?? 0})</h1>
       <p className="text-base text-muted-foreground">
         Quando o Pix cair na conta, toque em <strong>Marcar como pago</strong>: libera mais 30 dias.

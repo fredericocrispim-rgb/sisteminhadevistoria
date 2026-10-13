@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -57,4 +58,19 @@ export async function marcarComoPago(formData: FormData) {
   });
 
   revalidatePath("/admin");
+}
+
+/**
+ * "Esqueci minha senha" sem e-mail: o administrador gera um link de uso único
+ * e manda para a pessoa pelo WhatsApp. O link abre a tela de criar senha nova.
+ */
+export async function gerarLinkSenha(_: unknown, formData: FormData): Promise<{ link?: string; erro?: string; email?: string }> {
+  await exigirSuperadmin();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { erro: "E-mail incompleto" };
+  const { data, error } = await criarClienteAdmin().auth.admin.generateLink({ type: "recovery", email });
+  if (error || !data.properties?.hashed_token) return { erro: "Não achei uma conta com esse e-mail", email };
+  const h = await headers();
+  const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  return { email, link: `${base}/auth/confirmar?token_hash=${data.properties.hashed_token}&type=recovery&voltar=/nova-senha` };
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, ImageIcon, LogOut, QrCode, ShieldCheck, Users } from "lucide-react";
+import { ChevronRight, ImageIcon, KeyRound, LogOut, QrCode, ShieldCheck, Users } from "lucide-react";
 import { BotaoModoSol } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
@@ -44,6 +44,10 @@ export default async function Mais() {
           Painel do administrador
         </Item>
       )}
+
+      <Item href="/nova-senha" icone={<KeyRound aria-hidden />}>
+        Trocar minha senha
+      </Item>
 
       <BotaoModoSol />
 
