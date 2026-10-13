@@ -39,6 +39,8 @@ export async function salvarPasso1(dados: z.input<typeof esquemaPasso1>): Promis
   const supabase = await criarClienteServidor();
   const { error } = await supabase.auth.updateUser({ data: { nome: d.nome, whatsapp: d.whatsapp } });
   if (error) return { ok: false, erro: FALHOU };
+  // Renova o login para o nome novo já valer (o login é conferido pelo token, sem ir ao Supabase)
+  await supabase.auth.refreshSession();
 
   const admin = criarClienteAdmin();
   const ip = await ipDoUsuario();

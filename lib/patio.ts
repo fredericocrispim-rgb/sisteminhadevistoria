@@ -13,25 +13,27 @@ export type CarroNoPatio = {
 /** Carros que tiveram CHEGADA concluída e ainda não tiveram ENTREGA. */
 export async function listarPatio(): Promise<CarroNoPatio[]> {
   const supabase = await criarClienteServidor();
-  const { data: entradas } = await supabase
-    .from("vistorias")
-    .select("id, concluida_em, iniciada_em, veiculos (placa, marca, modelo, cor), clientes (nome)")
-    .eq("tipo", "ENTRADA")
-    .in("status", ["concluida", "enviada"])
-    .eq("exemplo", false)
-    .order("concluida_em", { ascending: false })
-    .limit(300);
+  // As duas consultas vão juntas (em paralelo), para a tela abrir mais rápido
+  const [{ data: entradas }, { data: saidas }] = await Promise.all([
+    supabase
+      .from("vistorias")
+      .select("id, concluida_em, iniciada_em, veiculos (placa, marca, modelo, cor), clientes (nome)")
+      .eq("tipo", "ENTRADA")
+      .in("status", ["concluida", "enviada"])
+      .eq("exemplo", false)
+      .order("concluida_em", { ascending: false })
+      .limit(300),
+    supabase
+      .from("vistorias")
+      .select("vistoria_entrada_id")
+      .eq("tipo", "SAIDA")
+      .in("status", ["concluida", "enviada"])
+      .not("vistoria_entrada_id", "is", null)
+      .order("concluida_em", { ascending: false })
+      .limit(1000),
+  ]);
   if (!entradas?.length) return [];
 
-  const { data: saidas } = await supabase
-    .from("vistorias")
-    .select("vistoria_entrada_id")
-    .eq("tipo", "SAIDA")
-    .in("status", ["concluida", "enviada"])
-    .in(
-      "vistoria_entrada_id",
-      entradas.map((e) => e.id),
-    );
   const entregues = new Set((saidas ?? []).map((s) => s.vistoria_entrada_id));
   const agora = Date.now();
 

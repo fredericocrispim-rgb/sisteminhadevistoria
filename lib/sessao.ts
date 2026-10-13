@@ -29,10 +29,15 @@ export type Contexto = {
  */
 export const obterContexto = cache(async (): Promise<Contexto | null> => {
   const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  // getClaims confere a assinatura do login aqui mesmo (chave ES256), sem ir ao Supabase a cada tela
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
+  const user = {
+    id: claims.sub,
+    email: typeof claims.email === "string" ? claims.email : "",
+    user_metadata: (claims.user_metadata ?? {}) as Record<string, unknown>,
+  };
 
   const [{ data: vinculo }, { data: admin }] = await Promise.all([
     supabase
@@ -48,11 +53,11 @@ export const obterContexto = cache(async (): Promise<Contexto | null> => {
     supabase.from("superadmins").select("user_id").eq("user_id", user.id).maybeSingle(),
   ]);
 
-  const meta = user.user_metadata ?? {};
+  const meta = user.user_metadata;
   return {
     usuario: {
       id: user.id,
-      email: user.email ?? "",
+      email: user.email,
       nome: typeof meta.nome === "string" ? meta.nome : null,
       whatsapp: typeof meta.whatsapp === "string" ? meta.whatsapp : null,
     },

@@ -14,7 +14,7 @@ import { textos } from "@/lib/textos";
 export const metadata: Metadata = { title: "Início" };
 
 export default async function Inicio() {
-  const { empresa, papel, usuario } = await exigirOficina();
+  const { empresa, papel, usuario, plano } = await exigirOficina();
   const gestor = papel === "dono" || papel === "gerente";
   const supabaseInicio = await criarClienteServidor();
   const [{ data: rascunho }, patio] = await Promise.all([
@@ -31,14 +31,8 @@ export default async function Inicio() {
   ]);
   const placaRascunho = (rascunho?.veiculos as unknown as { placa: string } | null)?.placa;
 
-  let diasTeste: number | null = null;
-  if (gestor) {
-    const supabase = await criarClienteServidor();
-    const { data } = await supabase.from("assinaturas").select("status, fim_teste").eq("empresa_id", empresa.id).maybeSingle();
-    if (data?.status === "teste" && data.fim_teste) {
-      diasTeste = diasAte(data.fim_teste);
-    }
-  }
+  // A situação do plano já veio junto com o login (sem consulta a mais)
+  const diasTeste = gestor && plano.status === "teste" && plano.fimTeste ? diasAte(plano.fimTeste) : null;
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-3 px-4 pt-4">
