@@ -15,7 +15,6 @@ function somarDias(data: string, dias: number) {
 
 /**
  * Pix conferido no extrato: registra a mensalidade como paga e libera mais 30 dias.
- * Se ainda tinha dias pagos, os 30 dias contam a partir do vencimento atual.
  */
 export async function marcarComoPago(formData: FormData) {
   const ctx = await exigirSuperadmin();
@@ -30,7 +29,13 @@ export async function marcarComoPago(formData: FormData) {
   if (!assinatura) return;
   const plano = planos?.find((p) => p.id === assinatura.plano_id) ?? planos?.[0];
 
-  const base = assinatura.status === "ativa" && assinatura.proximo_vencimento && assinatura.proximo_vencimento > hoje() ? assinatura.proximo_vencimento : hoje();
+  // Mantém o dia de vencimento: se pagou adiantado ou com atraso de até 5 dias, conta a partir do vencimento;
+  // no fim do teste (ou atraso maior), conta a partir de hoje.
+  const limite = somarDias(hoje(), -5);
+  const base =
+    assinatura.status === "ativa" && assinatura.proximo_vencimento && assinatura.proximo_vencimento >= limite
+      ? assinatura.proximo_vencimento
+      : hoje();
   const novoVencimento = somarDias(base, 30);
 
   await admin.from("faturas").insert({

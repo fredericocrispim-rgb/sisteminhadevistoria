@@ -3,7 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { dataPassou } from "@/lib/cadastro";
+import { fasePagamento, hojeBR, type FasePagamento } from "@/lib/cadastro";
 
 export type Papel = "dono" | "gerente" | "vistoriador";
 
@@ -78,15 +78,23 @@ export type SituacaoPlano = {
   status: "teste" | "ativa" | "em_atraso" | "inadimplente" | "cancelada";
   fimTeste: string | null;
   proximoVencimento: string | null;
-  /** Teste acabou ou mensalidade vencida: só a tela de pagamento abre. */
+  /** Data que vale agora: fim do teste ou vencimento da mensalidade. */
+  vencimento: string | null;
+  fase: FasePagamento;
+  diasParaVencer: number;
+  diasAtraso: number;
+  /** Dias de atraso tolerados antes de bloquear (plataforma.dias_carencia). */
+  carencia: number;
+  /** Mais de `carencia` dias de atraso: só a tela de pagamento abre. */
   bloqueado: boolean;
 };
 
 /**
- * Situação do plano da oficina. Regras (fase de validação, Pix manual):
- * - teste: bloqueia quando passa o último dia do teste (7 dias);
- * - ativa: bloqueia quando passa o vencimento + dias de carência;
- * - em atraso / inadimplente / cancelada: bloqueia.
+ * Situação do plano da oficina (Pix manual). O fim do teste de 7 dias funciona como um vencimento:
+ * - faltando 3 dias ou menos: mostra o Pix ao entrar (pode continuar);
+ * - vencido há até 5 dias: mostra o Pix com "Mensalidade em atraso" (pode continuar);
+ * - vencido há mais de 5 dias: bloqueado (só a tela do Pix).
+ * Cancelada / inadimplente (marcado à mão): bloqueado.
  */
 export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPlano> => {
   const admin = criarClienteAdmin(); // vistoriador não lê "assinaturas", mas precisa saber se está bloqueado
@@ -95,23 +103,28 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     admin.from("plataforma").select("dias_carencia").single(),
   ]);
   const status = (a?.status ?? "teste") as SituacaoPlano["status"];
-  let bloqueado = false;
-  if (status === "teste") bloqueado = !a?.fim_teste || dataPassou(a.fim_teste);
-  else if (status === "ativa") {
-    if (a?.proximo_vencimento) {
-      const limite = new Date(`${a.proximo_vencimento}T12:00:00Z`);
-      limite.setUTCDate(limite.getUTCDate() + (plat?.dias_carencia ?? 0));
-      bloqueado = dataPassou(limite.toISOString().slice(0, 10));
-    }
-  } else bloqueado = true;
-  return { status, fimTeste: a?.fim_teste ?? null, proximoVencimento: a?.proximo_vencimento ?? null, bloqueado };
+  const carencia = plat?.dias_carencia ?? 5;
+  const vencimento = (status === "teste" ? a?.fim_teste : a?.proximo_vencimento) ?? null;
+  const r = fasePagamento(vencimento, hojeBR(), carencia);
+  const fase: FasePagamento = status === "cancelada" || status === "inadimplente" ? "bloqueado" : r.fase;
+  return {
+    status,
+    fimTeste: a?.fim_teste ?? null,
+    proximoVencimento: a?.proximo_vencimento ?? null,
+    vencimento,
+    fase,
+    diasParaVencer: r.diasParaVencer,
+    diasAtraso: r.diasAtraso,
+    carencia,
+    bloqueado: fase === "bloqueado",
+  };
 });
 
 type ContextoOficina = Contexto & { empresa: EmpresaResumo; papel: Papel; plano: SituacaoPlano; bloqueado: boolean };
 
 /**
  * Exige login E oficina cadastrada (sem oficina, vai para o cadastro).
- * Se o teste acabou ou a mensalidade venceu, vai direto para a tela de pagamento (/plano),
+ * Com mais de 5 dias de atraso (teste ou mensalidade), vai direto para a tela de pagamento (/plano),
  * a não ser que a página permita (a própria tela de pagamento). O administrador nunca é bloqueado.
  */
 export async function exigirOficina(opcoes?: { permitirBloqueado?: boolean }): Promise<ContextoOficina> {

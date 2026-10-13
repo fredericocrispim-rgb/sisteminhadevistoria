@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeCheck, MessageCircle } from "lucide-react";
 import { LogoOficina } from "@/components/vf";
 import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { diasAte } from "@/lib/cadastro";
+import { fasePagamento, hojeBR } from "@/lib/cadastro";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
 import { marcarComoPago } from "./acoes";
@@ -16,24 +16,33 @@ type Assinatura = { status: string; fim_teste: string | null; proximo_vencimento
 
 const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
 
-function situacao(a: Assinatura | undefined) {
+function situacao(a: Assinatura | undefined, carencia: number) {
   if (!a) return { texto: "—", classe: "bg-background" };
-  if (a.status === "ativa") {
-    return { texto: a.proximo_vencimento ? `Pago até ${dataBR(a.proximo_vencimento)}` : "Pago", classe: "bg-acao-clara text-acao" };
+  if (a.status === "cancelada" || a.status === "inadimplente") return { texto: "Bloqueado", classe: "bg-perigo-clara text-perigo" };
+  const teste = a.status === "teste";
+  const venc = (teste ? a.fim_teste : a.proximo_vencimento) ?? null;
+  const r = fasePagamento(venc, hojeBR(), carencia);
+  const d = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
+  switch (r.fase) {
+    case "em_dia":
+      return teste
+        ? { texto: `Teste: ${d(r.diasParaVencer + 1)}`, classe: "bg-oficina-clara text-oficina" }
+        : { texto: `Pago até ${dataBR(venc!)}`, classe: "bg-acao-clara text-acao" };
+    case "vence_logo":
+      return { texto: `${teste ? "Teste acaba" : "Vence"} ${r.diasParaVencer === 0 ? "hoje" : `em ${d(r.diasParaVencer)}`}`, classe: "bg-oficina-clara text-oficina" };
+    case "atrasado":
+      return { texto: `Atrasado ${d(r.diasAtraso)}`, classe: "bg-atencao-clara text-atencao-texto" };
+    default:
+      return { texto: `Bloqueado (${d(r.diasAtraso)} de atraso)`, classe: "bg-perigo-clara text-perigo" };
   }
-  if (a.status === "teste") {
-    const dias = a.fim_teste ? diasAte(a.fim_teste) : 0;
-    return dias > 0
-      ? { texto: `Teste: ${dias} ${dias === 1 ? "dia" : "dias"}`, classe: "bg-oficina-clara text-oficina" }
-      : { texto: "Teste acabou", classe: "bg-atencao-clara text-atencao-texto" };
-  }
-  return { texto: "Pagamento pendente", classe: "bg-atencao-clara text-atencao-texto" };
 }
 
 /** Painel do administrador (Frederico): oficinas, contato no WhatsApp e confirmação manual do Pix. */
 export default async function Admin() {
   await exigirSuperadmin();
   const admin = criarClienteAdmin();
+  const { data: plat } = await admin.from("plataforma").select("dias_carencia").single();
+  const carencia = plat?.dias_carencia ?? 5;
   const { data: empresas } = await admin
     .from("empresas")
     .select(
@@ -56,7 +65,7 @@ export default async function Admin() {
         {empresas?.map((e) => {
           const bruto = e.assinaturas as unknown as Assinatura[] | Assinatura | null;
           const a = (Array.isArray(bruto) ? bruto[0] : bruto) ?? undefined;
-          const s = situacao(a);
+          const s = situacao(a, carencia);
           const primeiroNome = e.responsavel_nome?.split(" ")[0] ?? "";
           const mensagem = `Olá${primeiroNome ? `, ${primeiroNome}` : ""}! Aqui é o Frederico, do ${textos.produto.nome}. Tudo certo com o teste da ${e.nome_fantasia}?`;
           return (

@@ -91,6 +91,7 @@ Depois, faça o commit da etapa (mensagem em português).
 ## Decisões de 13/10/2026 (Frederico)
 - Cadastro em 2 passos: (1) seu nome, seu WhatsApp, nome da oficina e aceite; (2) logo ("Logo da empresa"). Sem CNPJ/endereço, sem cor, sem equipe.
 - Cores: SEMPRE as do Sisteminha (azul #2563eb). A coluna `empresas.cor_primaria` não é mais usada nas telas nem no PDF.
-- Teste grátis: 7 dias (`plataforma.dias_teste`). Depois disso (ou com mensalidade vencida + carência), `exigirOficina()` manda tudo para `/plano` (tela do Pix) e as ações de vistoria recusam. O superadmin nunca é bloqueado.
+- Teste grátis: 7 dias (`plataforma.dias_teste`). Régua de cobrança (fim do teste = vencimento; vale para cada mensalidade), em `lib/cadastro.ts` `fasePagamento()`:
+  3 dias antes → Pix aparece ao entrar (1x por dia, cookie vf_aviso_pix) com "Continuar para o sistema"; vencido até 5 dias (`plataforma.dias_carencia`) → Pix com "Mensalidade em atraso", ainda usa; mais de 5 dias → bloqueado (`exigirOficina()` manda para `/plano`, ações de vistoria recusam). Superadmin nunca é bloqueado.
 - Login: e-mail + senha, sem nenhum e-mail enviado (conta criada já confirmada no servidor). Esqueci a senha → WhatsApp do suporte + link gerado no /admin.
 - Termos e privacidade não são mais "provisórios".

@@ -20,9 +20,9 @@ async function contextoOficina() {
   return ctx as typeof ctx & { empresa: NonNullable<typeof ctx.empresa> };
 }
 
-const BLOQUEADO = "Seu teste grátis acabou. Abra Meu plano e pague pelo Pix para continuar.";
+const BLOQUEADO = "Acesso bloqueado: mensalidade atrasada há mais de 5 dias. Abra Meu plano e pague pelo Pix.";
 
-/** Teste acabou / mensalidade vencida: não deixa fazer vistoria nova (o administrador nunca é bloqueado). */
+/** Mais de 5 dias de atraso: não deixa fazer vistoria nova (o administrador nunca é bloqueado). */
 async function bloqueado(ctx: NonNullable<Awaited<ReturnType<typeof contextoOficina>>>) {
   return !ctx.superadmin && (await situacaoPlano(ctx.empresa.id)).bloqueado;
 }

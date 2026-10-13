@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { CarFront, ChevronRight, Clock, LogIn, LogOut } from "lucide-react";
+import { AlertTriangle, CarFront, ChevronRight, Clock, LogIn, LogOut } from "lucide-react";
 import { LogoOficina } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
-import { diasAte } from "@/lib/cadastro";
+import { hojeBR } from "@/lib/cadastro";
 import { listarPatio } from "@/lib/patio";
 import { placaParaMostrar } from "@/lib/vistoria";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
@@ -16,6 +18,11 @@ export const metadata: Metadata = { title: "Início" };
 export default async function Inicio() {
   const { empresa, papel, usuario, plano } = await exigirOficina();
   const gestor = papel === "dono" || papel === "gerente";
+
+  // Régua de cobrança: perto de vencer ou em atraso, o Pix aparece ao entrar (uma vez por dia)
+  const avisar = gestor && (plano.fase === "vence_logo" || plano.fase === "atrasado");
+  if (avisar && (await cookies()).get("vf_aviso_pix")?.value !== hojeBR()) redirect("/plano?aviso=1");
+
   const supabaseInicio = await criarClienteServidor();
   const [{ data: rascunho }, patio] = await Promise.all([
     supabaseInicio
@@ -32,7 +39,7 @@ export default async function Inicio() {
   const placaRascunho = (rascunho?.veiculos as unknown as { placa: string } | null)?.placa;
 
   // A situação do plano já veio junto com o login (sem consulta a mais)
-  const diasTeste = gestor && plano.status === "teste" && plano.fimTeste ? diasAte(plano.fimTeste) : null;
+  const diasTeste = gestor && plano.status === "teste" && plano.fase === "em_dia" ? plano.diasParaVencer + 1 : null;
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-3 px-4 pt-4">
@@ -75,6 +82,26 @@ export default async function Inicio() {
             </span>
           </span>
           <ChevronRight aria-hidden className="size-8 text-atencao-texto" />
+        </Link>
+      )}
+
+      {avisar && (
+        <Link
+          href="/plano"
+          className={cn(
+            "tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl px-4 py-3",
+            plano.fase === "atrasado" ? "bg-atencao-clara text-atencao-texto" : "bg-oficina-clara text-oficina",
+          )}
+        >
+          <AlertTriangle aria-hidden className="size-7 shrink-0" />
+          <span className="flex-1 text-lg font-extrabold">
+            {plano.fase === "atrasado"
+              ? `Mensalidade em atraso. Bloqueia em ${Math.max(0, plano.carencia - plano.diasAtraso + 1)} ${plano.carencia - plano.diasAtraso + 1 === 1 ? "dia" : "dias"}`
+              : plano.diasParaVencer === 0
+                ? "Vence hoje. Pague pelo Pix"
+                : `Vence em ${plano.diasParaVencer} ${plano.diasParaVencer === 1 ? "dia" : "dias"}. Pague pelo Pix`}
+          </span>
+          <ChevronRight aria-hidden className="size-7 shrink-0" />
         </Link>
       )}
 
