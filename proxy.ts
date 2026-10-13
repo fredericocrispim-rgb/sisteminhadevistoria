@@ -13,6 +13,13 @@ const PROTEGIDAS = ["/inicio", "/vistorias", "/patio", "/mais", "/plano", "/cada
 export async function proxy(request: NextRequest) {
   let resposta = NextResponse.next({ request });
 
+  // Sem as chaves do Supabase (configuração incompleta), não derruba o site inteiro.
+  // Veja /api/saude para saber qual chave falta.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    console.error("Faltam as chaves do Supabase. Abra /api/saude.");
+    return resposta;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -30,8 +37,13 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const { data } = await supabase.auth.getClaims();
-  const logado = Boolean(data?.claims?.sub);
+  let logado = false;
+  try {
+    const { data } = await supabase.auth.getClaims();
+    logado = Boolean(data?.claims?.sub);
+  } catch (erro) {
+    console.error("Falha ao conferir o login no proxy:", erro);
+  }
   const { pathname, searchParams } = request.nextUrl;
 
   const ref = searchParams.get("ref");
