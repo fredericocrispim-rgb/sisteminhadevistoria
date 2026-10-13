@@ -1,0 +1,137 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+  Padrão visual do VistoriaFácil (Prompt 02).
+  - Fundo claro, texto escuro, contraste alto (legível ao sol).
+  - --cor-oficina: cor principal. Vem do cadastro da oficina; padrão azul-escuro.
+  - Verde = ação principal. Vermelho = só erro/avaria. Amarelo = atenção.
+  - Modo "sol" (classe .sol no <html>): contraste máximo, bordas mais grossas.
+*/
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--fonte-sistema);
+  --font-heading: var(--fonte-sistema);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Cores do app (use estas nas telas) */
+  --color-oficina: var(--cor-oficina);
+  --color-oficina-texto: var(--cor-oficina-texto);
+  --color-acao: var(--cor-acao);
+  --color-acao-escura: var(--cor-acao-escura);
+  --color-acao-texto: var(--cor-acao-texto);
+  --color-perigo: var(--cor-perigo);
+  --color-perigo-fundo: var(--cor-perigo-fundo);
+  --color-atencao: var(--cor-atencao);
+  --color-atencao-fundo: var(--cor-atencao-fundo);
+  --color-atencao-texto: var(--cor-atencao-texto);
+  --color-sucesso-fundo: var(--cor-sucesso-fundo);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  /* Tamanhos mínimos de toque */
+  --spacing-toque: 3.5rem; /* 56 px */
+}
+
+:root {
+  --fonte-sistema: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --cor-oficina: #1e3a5f;
+  --cor-oficina-texto: #ffffff;
+  --cor-acao: #15803d;
+  --cor-acao-escura: #166534;
+  --cor-acao-texto: #ffffff;
+  --cor-perigo: #b91c1c;
+  --cor-perigo-fundo: #fef2f2;
+  --cor-atencao: #d97706;
+  --cor-atencao-fundo: #fffbeb;
+  --cor-atencao-texto: #78350f;
+  --cor-sucesso-fundo: #f0fdf4;
+
+  --background: #f4f6f8;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: var(--cor-oficina);
+  --primary-foreground: var(--cor-oficina-texto);
+  --secondary: #e8ecf1;
+  --secondary-foreground: #0f172a;
+  --muted: #e8ecf1;
+  --muted-foreground: #475569;
+  --accent: #e8ecf1;
+  --accent-foreground: #0f172a;
+  --destructive: var(--cor-perigo);
+  --border: #cbd5e1;
+  --input: #94a3b8;
+  --ring: #2563eb;
+  --radius: 0.75rem;
+  --borda: 1px;
+}
+
+/* Modo alto contraste para sol */
+.sol {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --muted-foreground: #1f2937;
+  --secondary: #ffffff;
+  --muted: #f1f5f9;
+  --border: #000000;
+  --input: #000000;
+  --cor-acao: #0f5f2c;
+  --cor-perigo: #991b1b;
+  --borda: 2px;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-size: 1.0625rem; /* 17 px */
+    line-height: 1.5;
+  }
+  /* Foco sempre visível para quem usa teclado ou leitor de tela */
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
