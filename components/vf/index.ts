@@ -14,3 +14,5 @@ export { PagarPix } from "./pagar-pix";
 export { LogoOficina } from "./logo-oficina";
 export { CaixaMarcar } from "./caixa-marcar";
 export { LogoProduto } from "./logo-produto";
+export { DesenhoCarro, type MarcaAvaria } from "./desenho-carro";
+export { AssinaturaDedo, type AssinaturaRef } from "./assinatura-dedo";

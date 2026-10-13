@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, Clock, LogIn, LogOut } from "lucide-react";
+import { CarFront, ChevronRight, Clock, LogIn, LogOut } from "lucide-react";
 import { LogoOficina } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { diasAte } from "@/lib/cadastro";
+import { listarPatio } from "@/lib/patio";
+import { placaParaMostrar } from "@/lib/vistoria";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
@@ -12,8 +14,22 @@ import { textos } from "@/lib/textos";
 export const metadata: Metadata = { title: "Início" };
 
 export default async function Inicio() {
-  const { empresa, papel } = await exigirOficina();
+  const { empresa, papel, usuario } = await exigirOficina();
   const gestor = papel === "dono" || papel === "gerente";
+  const supabaseInicio = await criarClienteServidor();
+  const [{ data: rascunho }, patio] = await Promise.all([
+    supabaseInicio
+      .from("vistorias")
+      .select("id, tipo, veiculos (placa)")
+      .eq("empresa_id", empresa.id)
+      .eq("status", "rascunho")
+      .eq("criado_por", usuario.id)
+      .order("iniciada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    listarPatio(),
+  ]);
+  const placaRascunho = (rascunho?.veiculos as unknown as { placa: string } | null)?.placa;
 
   let diasTeste: number | null = null;
   if (gestor) {
@@ -37,6 +53,24 @@ export default async function Inicio() {
       <BotaoGigante href="/vistorias/nova?tipo=SAIDA" cor="bg-acao text-acao-texto" icone={<LogOut aria-hidden />}>
         {textos.vistoria.entregaBotao}
       </BotaoGigante>
+
+      {rascunho && (
+        <Link href={`/vistorias/${rascunho.id}`} className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3">
+          <span className="flex-1">
+            <span className="block text-base font-bold text-atencao-texto">Continuar {rascunho.tipo === "ENTRADA" ? "chegada" : "entrega"}</span>
+            <span className="block font-mono text-2xl font-extrabold tracking-wider">{placaRascunho ? placaParaMostrar(placaRascunho) : "Sem placa"}</span>
+          </span>
+          <ChevronRight aria-hidden className="size-8 text-atencao-texto" />
+        </Link>
+      )}
+
+      {patio.length > 0 && (
+        <Link href="/patio" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-superficie px-4">
+          <CarFront aria-hidden className="size-8 text-muted-foreground" />
+          <span className="flex-1 text-xl font-bold">{textos.menu.veiculosNoPatio}</span>
+          <span className="grid min-w-10 place-items-center rounded-full bg-foreground px-3 py-1 text-lg font-extrabold text-background">{patio.length}</span>
+        </Link>
+      )}
 
       {gestor && empresa.cadastro_completo_pct < 100 && (
         <Link href="/cadastro?passo=3" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3">

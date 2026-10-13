@@ -9,6 +9,8 @@ type BaseProps = {
   children: ReactNode;
   carregando?: boolean;
   href?: string;
+  /** Link comum (abre arquivo/rota do servidor, ex.: PDF), sem navegação do Next. */
+  nativo?: boolean;
   className?: string;
 };
 
@@ -27,7 +29,14 @@ const baseBotao =
   "tocavel inline-flex w-full items-center justify-center gap-3 rounded-2xl px-5 font-bold select-none " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-7 [&_svg]:shrink-0";
 
-function BotaoOuLink({ href, className, icone, children, carregando, ...props }: BotaoProps) {
+function BotaoOuLink({ href, nativo, className, icone, children, carregando, ...props }: BotaoProps) {
+  if (href && nativo) {
+    return (
+      <a href={href} className={className}>
+        <Conteudo icone={icone} carregando={carregando}>{children}</Conteudo>
+      </a>
+    );
+  }
   if (href) {
     return (
       <Link href={href} className={className}>
