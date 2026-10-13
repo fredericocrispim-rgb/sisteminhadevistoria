@@ -87,3 +87,10 @@ Depois, faça o commit da etapa (mensagem em português).
 - Chaves novas do Supabase: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (sb_publishable_) e `SUPABASE_SECRET_KEY` (sb_secret_).
 - Vistoria concluída é travada por gatilho no banco; fotos/pneus/itens/avarias também. Correção só por `vistoria_adendos`. Código de autenticidade: SV-XXXX-XXXX.
 - Fotos: bucket privado `vistorias/{empresa_id}/{vistoria_id}/...`; logos: bucket público `marcas/{empresa_id}/...`.
+
+## Decisões de 13/10/2026 (Frederico)
+- Cadastro em 2 passos: (1) seu nome, seu WhatsApp, nome da oficina e aceite; (2) logo ("Logo da empresa"). Sem CNPJ/endereço, sem cor, sem equipe.
+- Cores: SEMPRE as do Sisteminha (azul #2563eb). A coluna `empresas.cor_primaria` não é mais usada nas telas nem no PDF.
+- Teste grátis: 7 dias (`plataforma.dias_teste`). Depois disso (ou com mensalidade vencida + carência), `exigirOficina()` manda tudo para `/plano` (tela do Pix) e as ações de vistoria recusam. O superadmin nunca é bloqueado.
+- Login: e-mail + senha, sem nenhum e-mail enviado (conta criada já confirmada no servidor). Esqueci a senha → WhatsApp do suporte + link gerado no /admin.
+- Termos e privacidade não são mais "provisórios".

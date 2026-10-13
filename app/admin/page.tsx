@@ -37,7 +37,7 @@ export default async function Admin() {
   const { data: empresas } = await admin
     .from("empresas")
     .select(
-      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, cor_primaria, criado_em, assinaturas (status, fim_teste, proximo_vencimento)",
+      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, criado_em, assinaturas (status, fim_teste, proximo_vencimento)",
     )
     .order("criado_em", { ascending: false })
     .limit(200);
@@ -62,7 +62,7 @@ export default async function Admin() {
           return (
             <li key={e.id} className="flex flex-col gap-3 rounded-2xl bg-superficie p-4">
               <div className="flex items-center gap-3">
-                <LogoOficina nome={e.nome_fantasia} url={e.logo_app_url} cor={e.cor_primaria} tamanho="sm" />
+                <LogoOficina nome={e.nome_fantasia} url={e.logo_app_url} tamanho="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-lg font-bold">{e.nome_fantasia}</p>
                   <p className="text-base text-muted-foreground">

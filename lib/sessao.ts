@@ -2,13 +2,14 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { dataPassou } from "@/lib/cadastro";
 
 export type Papel = "dono" | "gerente" | "vistoriador";
 
 export type EmpresaResumo = {
   id: string;
   nome_fantasia: string;
-  cor_primaria: string;
   logo_app_url: string | null;
   cadastro_completo_pct: number;
   whatsapp: string | null;
@@ -37,7 +38,7 @@ export const obterContexto = cache(async (): Promise<Contexto | null> => {
     supabase
       .from("usuarios_empresa")
       .select(
-        "papel, empresas (id, nome_fantasia, cor_primaria, logo_app_url, cadastro_completo_pct, whatsapp, codigo_indicacao)",
+        "papel, empresas (id, nome_fantasia, logo_app_url, cadastro_completo_pct, whatsapp, codigo_indicacao)",
       )
       .eq("user_id", user.id)
       .eq("ativo", true)
@@ -68,11 +69,53 @@ export async function exigirLogin(): Promise<Contexto> {
   return ctx;
 }
 
-/** Exige login E oficina cadastrada. Sem oficina, vai para o cadastro. */
-export async function exigirOficina(): Promise<Contexto & { empresa: EmpresaResumo; papel: Papel }> {
+export type SituacaoPlano = {
+  status: "teste" | "ativa" | "em_atraso" | "inadimplente" | "cancelada";
+  fimTeste: string | null;
+  proximoVencimento: string | null;
+  /** Teste acabou ou mensalidade vencida: só a tela de pagamento abre. */
+  bloqueado: boolean;
+};
+
+/**
+ * Situação do plano da oficina. Regras (fase de validação, Pix manual):
+ * - teste: bloqueia quando passa o último dia do teste (7 dias);
+ * - ativa: bloqueia quando passa o vencimento + dias de carência;
+ * - em atraso / inadimplente / cancelada: bloqueia.
+ */
+export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPlano> => {
+  const admin = criarClienteAdmin(); // vistoriador não lê "assinaturas", mas precisa saber se está bloqueado
+  const [{ data: a }, { data: plat }] = await Promise.all([
+    admin.from("assinaturas").select("status, fim_teste, proximo_vencimento").eq("empresa_id", empresaId).maybeSingle(),
+    admin.from("plataforma").select("dias_carencia").single(),
+  ]);
+  const status = (a?.status ?? "teste") as SituacaoPlano["status"];
+  let bloqueado = false;
+  if (status === "teste") bloqueado = !a?.fim_teste || dataPassou(a.fim_teste);
+  else if (status === "ativa") {
+    if (a?.proximo_vencimento) {
+      const limite = new Date(`${a.proximo_vencimento}T12:00:00Z`);
+      limite.setUTCDate(limite.getUTCDate() + (plat?.dias_carencia ?? 0));
+      bloqueado = dataPassou(limite.toISOString().slice(0, 10));
+    }
+  } else bloqueado = true;
+  return { status, fimTeste: a?.fim_teste ?? null, proximoVencimento: a?.proximo_vencimento ?? null, bloqueado };
+});
+
+type ContextoOficina = Contexto & { empresa: EmpresaResumo; papel: Papel; plano: SituacaoPlano; bloqueado: boolean };
+
+/**
+ * Exige login E oficina cadastrada (sem oficina, vai para o cadastro).
+ * Se o teste acabou ou a mensalidade venceu, vai direto para a tela de pagamento (/plano),
+ * a não ser que a página permita (a própria tela de pagamento). O administrador nunca é bloqueado.
+ */
+export async function exigirOficina(opcoes?: { permitirBloqueado?: boolean }): Promise<ContextoOficina> {
   const ctx = await exigirLogin();
   if (!ctx.empresa || !ctx.papel) redirect("/cadastro");
-  return ctx as Contexto & { empresa: EmpresaResumo; papel: Papel };
+  const plano = await situacaoPlano(ctx.empresa.id);
+  const bloqueado = plano.bloqueado && !ctx.superadmin;
+  if (bloqueado && !opcoes?.permitirBloqueado) redirect("/plano");
+  return { ...(ctx as Contexto & { empresa: EmpresaResumo; papel: Papel }), plano, bloqueado };
 }
 
 export async function exigirSuperadmin(): Promise<Contexto> {

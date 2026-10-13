@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, ImageIcon, KeyRound, LogOut, QrCode, ShieldCheck, Users } from "lucide-react";
+import { ChevronRight, ImageIcon, KeyRound, LogOut, QrCode, ShieldCheck } from "lucide-react";
 import { BotaoModoSol } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
@@ -31,11 +31,8 @@ export default async function Mais() {
           <Item href="/plano" icone={<QrCode aria-hidden />}>
             {textos.menu.meuPlano}
           </Item>
-          <Item href="/cadastro?passo=4" icone={<Users aria-hidden />}>
-            {textos.menu.equipe}
-          </Item>
-          <Item href="/cadastro?passo=3" icone={<ImageIcon aria-hidden />}>
-            Logo e cor
+          <Item href="/cadastro?passo=2" icone={<ImageIcon aria-hidden />}>
+            Logo da empresa
           </Item>
         </>
       )}

@@ -2,17 +2,15 @@
 import { cn } from "@/lib/utils";
 import { iniciais } from "@/lib/cores";
 
-/** Logo da oficina. Sem logo, mostra as iniciais na cor da oficina (monograma). */
+/** Logo da oficina. Sem logo, mostra as iniciais (monograma) no azul do Sisteminha. */
 export function LogoOficina({
   nome,
   url,
-  cor,
   tamanho = "md",
   className,
 }: {
   nome: string;
   url?: string | null;
-  cor?: string;
   tamanho?: "sm" | "md" | "lg";
   className?: string;
 }) {
@@ -24,8 +22,7 @@ export function LogoOficina({
     <div
       aria-label={`Logo ${nome}`}
       role="img"
-      className={cn(medida, "grid shrink-0 place-items-center font-extrabold text-white", className)}
-      style={{ backgroundColor: cor ?? "var(--cor-oficina)" }}
+      className={cn(medida, "grid shrink-0 place-items-center bg-oficina font-extrabold text-oficina-texto", className)}
     >
       {iniciais(nome)}
     </div>

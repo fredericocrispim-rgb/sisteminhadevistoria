@@ -16,12 +16,12 @@ export default async function PaginaConvite({ params }: PageProps<"/convite/[tok
   const { data: convite } = /^[a-f0-9]{36}$/.test(token)
     ? await admin
         .from("convites")
-        .select("nome, papel, cancelado, aceito_em, expira_em, empresas (nome_fantasia, logo_app_url, cor_primaria)")
+        .select("nome, papel, cancelado, aceito_em, expira_em, empresas (nome_fantasia, logo_app_url)")
         .eq("token", token)
         .maybeSingle()
     : { data: null };
 
-  const empresa = convite?.empresas as unknown as { nome_fantasia: string; logo_app_url: string | null; cor_primaria: string } | null;
+  const empresa = convite?.empresas as unknown as { nome_fantasia: string; logo_app_url: string | null } | null;
   const valido = convite && empresa && !convite.cancelado && !convite.aceito_em && new Date(convite.expira_em) > new Date();
 
   if (!valido) {
@@ -37,7 +37,7 @@ export default async function PaginaConvite({ params }: PageProps<"/convite/[tok
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-4 py-10 text-center">
-      <LogoOficina nome={empresa.nome_fantasia} url={empresa.logo_app_url} cor={empresa.cor_primaria} tamanho="lg" />
+      <LogoOficina nome={empresa.nome_fantasia} url={empresa.logo_app_url} tamanho="lg" />
       <h1 className="text-[2rem] leading-tight font-extrabold">
         {t.titulo}, {convite.nome.split(" ")[0]}!
       </h1>

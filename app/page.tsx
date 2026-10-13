@@ -39,7 +39,7 @@ export default async function Inicio() {
         {/* Texto */}
         <section className="flex flex-col gap-6">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-sm font-bold text-acao ring-1 ring-border">
-            <span className="size-2 rounded-full bg-marca-verde" /> 14 dias grátis · sem cartão
+            <span className="size-2 rounded-full bg-marca-verde" /> 7 dias grátis · sem cartão
           </span>
           <h1 className="text-[2.6rem] leading-[1.05] font-extrabold tracking-tight sm:text-6xl">
             Chega de <span className="text-marca-azul">ficha de papel</span>.

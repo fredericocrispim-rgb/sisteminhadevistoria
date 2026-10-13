@@ -16,7 +16,7 @@ export function TelaPronto({ empresa, diasTeste }: { empresa: EmpresaCadastro; d
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-5 px-4 py-10 text-center">
       <div className="relative">
-        <LogoOficina nome={empresa.nome} url={empresa.logo} cor={empresa.cor} tamanho="lg" />
+        <LogoOficina nome={empresa.nome} url={empresa.logo} tamanho="lg" />
         <CheckCircle2 aria-hidden className="absolute -right-3 -bottom-3 size-12 rounded-full bg-background text-acao" />
       </div>
       <h1 className="text-[2rem] font-extrabold">{t.titulo}</h1>

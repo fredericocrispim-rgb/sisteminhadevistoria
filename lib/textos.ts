@@ -206,7 +206,7 @@ export const textos = {
   },
 
   cadastro: {
-    etapas: ["Você", "Sua oficina", "Sua logo", "Sua equipe"],
+    etapas: ["Você e a oficina", "Logo"],
     voce: {
       nome: "Seu nome",
       whatsapp: "Seu WhatsApp",
@@ -244,8 +244,7 @@ export const textos = {
       faixas: ["até 50", "50 a 150", "150 a 500", "mais de 500"],
     },
     logo: {
-      tirarFoto: "Tirar foto da logo",
-      escolher: "Escolher arquivo",
+      escolher: "Logo da empresa",
       semLogo: "Não tenho logo agora",
       trocar: "Trocar logo",
       cor: "Cor da oficina",

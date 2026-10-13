@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- fotos com link temporário do Storage */
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
 import { headers } from "next/headers";
 import { FileText, MessageCircle, XCircle } from "lucide-react";
 import { BotaoPrincipal, DesenhoCarro, EstadoVazio, LogoOficina, LogoProduto } from "@/components/vf";
@@ -42,7 +41,7 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
     agente: (h.get("user-agent") ?? "").slice(0, 200),
   });
 
-  const e = v.empresas as unknown as { nome_fantasia: string; whatsapp: string | null; logo_app_url: string | null; cor_primaria: string };
+  const e = v.empresas as unknown as { nome_fantasia: string; whatsapp: string | null; logo_app_url: string | null };
   const carro = v.veiculos as unknown as { placa: string; marca: string | null; modelo: string | null; cor: string | null };
   const chegada = v.tipo === "ENTRADA";
   const ordem = (c: string) => FOTOS_OBRIGATORIAS.findIndex((f) => f.categoria === c);
@@ -56,10 +55,10 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
   const vistasComAvaria = VISTAS.filter((vi) => avarias?.some((a) => a.vista === vi.id));
 
   return (
-    <div className="flex flex-1 flex-col" style={{ "--cor-oficina": e.cor_primaria } as CSSProperties}>
+    <div className="flex flex-1 flex-col">
       <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-32">
         <header className="flex items-center gap-3">
-          <LogoOficina nome={e.nome_fantasia} url={e.logo_app_url} cor={e.cor_primaria} />
+          <LogoOficina nome={e.nome_fantasia} url={e.logo_app_url} />
           <div>
             <p className="text-xl leading-tight font-extrabold">{e.nome_fantasia}</p>
             <p className="text-base text-muted-foreground">Vistoria de {chegada ? "chegada" : "entrega"}</p>

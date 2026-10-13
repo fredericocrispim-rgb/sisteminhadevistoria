@@ -6,21 +6,25 @@ import { ArrowRight } from "lucide-react";
 import { BotaoPrincipal, CaixaMarcar, Campo, CampoTelefone, MensagemErroCampo } from "@/components/vf";
 import { telefoneValido } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
-import { salvarVoce } from "./acoes";
-import type { UsuarioCadastro } from "./assistente";
+import { salvarPasso1 } from "./acoes";
+import type { EmpresaCadastro, UsuarioCadastro } from "./assistente";
 
 const t = textos.cadastro.voce;
 
+/** Passo 1: seu nome, seu WhatsApp e o nome da oficina. Só isso. */
 export function PassoVoce({
   inicial,
+  oficinaInicial,
   aoTerminar,
 }: {
   inicial: UsuarioCadastro;
-  aoTerminar: (d: { nome: string; whatsapp: string }) => void;
+  oficinaInicial: string;
+  aoTerminar: (empresa: EmpresaCadastro) => void;
 }) {
   const [nome, setNome] = useState(inicial.nome);
   const [whatsapp, setWhatsapp] = useState(inicial.whatsapp);
-  const [aceite, setAceite] = useState(false);
+  const [oficina, setOficina] = useState(oficinaInicial);
+  const [aceite, setAceite] = useState(Boolean(oficinaInicial));
   const [conferir, setConferir] = useState(false);
   const [erro, setErro] = useState<string>();
   const [carregando, setCarregando] = useState(false);
@@ -33,16 +37,17 @@ export function PassoVoce({
         ? textos.erros.telefoneInvalido
         : undefined
     : undefined;
+  const erroOficina = conferir && oficina.trim().length < 2 ? textos.cadastro.oficina.erroNome : undefined;
   const erroAceite = conferir && !aceite;
 
   async function continuar() {
     setConferir(true);
-    if (nome.trim().length < 2 || !telefoneValido(whatsapp) || !aceite) return;
+    if (nome.trim().length < 2 || !telefoneValido(whatsapp) || oficina.trim().length < 2 || !aceite) return;
     setCarregando(true);
-    const r = await salvarVoce({ nome, whatsapp, aceite: true });
+    const r = await salvarPasso1({ nome, whatsapp, oficina, aceite: true });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
-    aoTerminar({ nome: nome.trim(), whatsapp });
+    aoTerminar({ id: r.empresaId, nome: oficina.trim(), logo: null });
   }
 
   return (
@@ -55,7 +60,15 @@ export function PassoVoce({
     >
       <Campo rotulo={t.nome} autoComplete="name" autoCapitalize="words" valor={nome} onValor={setNome} erro={erroNome} />
       <CampoTelefone rotulo={t.whatsapp} valor={whatsapp} onValor={setWhatsapp} erro={erroWhats} />
-      <p className="-mt-3 text-base text-muted-foreground">{inicial.email}</p>
+      <Campo
+        rotulo={textos.cadastro.oficina.nome}
+        dica={textos.cadastro.oficina.nomeDica}
+        autoCapitalize="words"
+        autoComplete="organization"
+        valor={oficina}
+        onValor={setOficina}
+        erro={erroOficina}
+      />
       <div className="flex flex-col gap-2">
         <CaixaMarcar marcado={aceite} onChange={setAceite} erro={erroAceite}>
           {t.aceite}{" "}

@@ -84,7 +84,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
   const { data: v, error } = await admin
     .from("vistorias")
     .select(
-      `*, empresas (nome_fantasia, razao_social, cnpj_cpf, logradouro, numero, bairro, cidade, uf, whatsapp, telefone, site, logo_pdf_url, cor_primaria),
+      `*, empresas (nome_fantasia, razao_social, cnpj_cpf, logradouro, numero, bairro, cidade, uf, whatsapp, telefone, site, logo_pdf_url),
        veiculos (placa, marca, modelo, ano, cor), clientes (nome, whatsapp, cpf_cnpj)`,
     )
     .eq("id", vistoriaId)
@@ -103,7 +103,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
   const e = v.empresas as unknown as Record<string, string | null>;
   const carro = v.veiculos as unknown as { placa: string; marca: string | null; modelo: string | null; ano: number | null; cor: string | null };
   const cliente = v.clientes as unknown as { nome: string; whatsapp: string | null; cpf_cnpj: string | null } | null;
-  const cor = e.cor_primaria ?? "#2563eb";
+  const cor = "#2563eb"; // azul do Sisteminha (todas as oficinas usam as cores do sistema)
   const chegada = v.tipo === "ENTRADA";
 
   // Imagens (logo, fotos, assinaturas)

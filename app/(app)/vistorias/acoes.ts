@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { obterContexto } from "@/lib/sessao";
+import { obterContexto, situacaoPlano } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { placaParaBanco, placaValida, telefoneValido, kmParaNumero } from "@/lib/formatos";
@@ -18,6 +18,13 @@ async function contextoOficina() {
   const ctx = await obterContexto();
   if (!ctx?.empresa) return null;
   return ctx as typeof ctx & { empresa: NonNullable<typeof ctx.empresa> };
+}
+
+const BLOQUEADO = "Seu teste grátis acabou. Abra Meu plano e pague pelo Pix para continuar.";
+
+/** Teste acabou / mensalidade vencida: não deixa fazer vistoria nova (o administrador nunca é bloqueado). */
+async function bloqueado(ctx: NonNullable<Awaited<ReturnType<typeof contextoOficina>>>) {
+  return !ctx.superadmin && (await situacaoPlano(ctx.empresa.id)).bloqueado;
 }
 
 /* ---------- Buscar carro pela placa (preenchimento automático) ---------- */
@@ -74,6 +81,7 @@ const esquemaPasso1 = z.object({
 export async function salvarCarroCliente(dados: z.input<typeof esquemaPasso1>): Promise<Resultado<{ id: string }>> {
   const ctx = await contextoOficina();
   if (!ctx) return { ok: false, erro: FALHOU };
+  if (await bloqueado(ctx)) return { ok: false, erro: BLOQUEADO };
   const v = esquemaPasso1.safeParse(dados);
   if (!v.success) return { ok: false, erro: v.error.issues[0].message };
   const d = v.data;
@@ -206,6 +214,7 @@ const esquemaConcluir = z
 export async function concluirVistoria(dados: z.input<typeof esquemaConcluir>): Promise<Resultado<{ id: string }>> {
   const ctx = await contextoOficina();
   if (!ctx) return { ok: false, erro: FALHOU };
+  if (await bloqueado(ctx)) return { ok: false, erro: BLOQUEADO };
   const v = esquemaConcluir.safeParse(dados);
   if (!v.success) return { ok: false, erro: v.error.issues[0].message };
   const d = v.data;

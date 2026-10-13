@@ -10,7 +10,7 @@ export async function vistoriaPorToken(token: string) {
     .select(
       `id, tipo, numero, status, codigo_autenticidade, concluida_em, km, combustivel, observacoes, pdf_url, link_publico_ativo,
        nome_assinante_cliente, cliente_ausente_justificativa, recebido_por, liberado_por,
-       empresas (nome_fantasia, whatsapp, logo_app_url, cor_primaria),
+       empresas (nome_fantasia, whatsapp, logo_app_url),
        veiculos (placa, marca, modelo, cor), clientes (nome)`,
     )
     .eq("token_publico", token)

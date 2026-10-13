@@ -1,14 +1,14 @@
-import type { CSSProperties } from "react";
 import { exigirOficina } from "@/lib/sessao";
 import { MenuInferior } from "./menu-inferior";
 
-/** Área interna (com login e oficina): aplica a cor da oficina e mostra o menu de baixo. */
+/** Área interna (com login e oficina). Cores: sempre as do Sisteminha. */
 export default async function LayoutApp({ children }: LayoutProps<"/">) {
-  const { empresa } = await exigirOficina();
+  // Aqui não bloqueia (a tela de pagamento também usa este layout); cada página decide.
+  const { bloqueado } = await exigirOficina({ permitirBloqueado: true });
   return (
-    <div className="flex flex-1 flex-col" style={{ "--cor-oficina": empresa.cor_primaria } as CSSProperties}>
+    <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col pb-24">{children}</div>
-      <MenuInferior />
+      {!bloqueado && <MenuInferior />}
     </div>
   );
 }

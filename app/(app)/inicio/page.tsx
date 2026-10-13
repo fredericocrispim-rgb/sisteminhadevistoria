@@ -43,7 +43,7 @@ export default async function Inicio() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-3 px-4 pt-4">
       <header className="flex items-center gap-3 py-1">
-        <LogoOficina nome={empresa.nome_fantasia} url={empresa.logo_app_url} cor={empresa.cor_primaria} />
+        <LogoOficina nome={empresa.nome_fantasia} url={empresa.logo_app_url} />
         <p className="min-w-0 truncate text-xl leading-tight font-extrabold">{empresa.nome_fantasia}</p>
       </header>
 
@@ -73,7 +73,7 @@ export default async function Inicio() {
       )}
 
       {gestor && empresa.cadastro_completo_pct < 100 && (
-        <Link href="/cadastro?passo=3" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3">
+        <Link href="/cadastro?passo=2" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3">
           <span className="flex-1">
             <span className="block text-lg font-extrabold text-atencao-texto">Cadastro {empresa.cadastro_completo_pct}% pronto</span>
             <span className="block text-base font-semibold text-atencao-texto">
