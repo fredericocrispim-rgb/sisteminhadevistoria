@@ -10,3 +10,4 @@ export { AjudaRapida } from "./ajuda-rapida";
 export { EstadoVazio, AvisoSemInternet, Carregando, useSemInternet } from "./estados";
 export { ConfirmacaoImportante, avisarComDesfazer } from "./confirmacao";
 export { BotaoModoSol } from "./modo-sol";
+export { PagarPix } from "./pagar-pix";

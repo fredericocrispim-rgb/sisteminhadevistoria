@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, type KeyboardEvent } from "react";
-import { Fuel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 
@@ -16,7 +15,7 @@ const rotulos: Record<NivelCombustivel, string> = {
   cheio: textos.combustivel.cheio,
 };
 
-/** Medidor de combustível grande e tocável: 5 barras que enchem até o nível tocado. */
+/** Medidor de combustível: 5 colunas que enchem até o nível tocado. */
 export function MedidorCombustivel({
   valor,
   onChange,
@@ -40,22 +39,18 @@ export function MedidorCombustivel({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="flex items-center gap-2 text-lg font-semibold" id="rotulo-combustivel">
-        <Fuel aria-hidden className="size-6" />
+      <span className="text-lg font-bold" id="rotulo-combustivel">
         {textos.campos.combustivel}
-        {valor && <span className="ml-auto rounded-lg bg-muted px-2 text-base">{rotulos[valor]}</span>}
       </span>
       <div
         role="radiogroup"
         aria-labelledby="rotulo-combustivel"
         aria-invalid={erro || undefined}
-        className={cn(
-          "grid grid-cols-5 items-end gap-1.5 rounded-xl border-[length:var(--borda)] bg-card p-2",
-          erro ? "border-2 border-perigo" : "border-input",
-        )}
+        className={cn("grid grid-cols-5 gap-1.5 rounded-2xl bg-superficie p-1.5", erro && "ring-2 ring-perigo")}
       >
         {NIVEIS_COMBUSTIVEL.map((n, i) => {
           const cheio = i <= indice;
+          const marcado = valor === n;
           return (
             <button
               key={n}
@@ -64,22 +59,17 @@ export function MedidorCombustivel({
               }}
               type="button"
               role="radio"
-              aria-checked={valor === n}
+              aria-checked={marcado}
               aria-label={rotulos[n]}
-              tabIndex={valor === n || (indice === -1 && i === 0) ? 0 : -1}
+              tabIndex={marcado || (indice === -1 && i === 0) ? 0 : -1}
               onClick={() => onChange(n)}
               onKeyDown={(e) => teclado(e, i)}
-              className="flex flex-col items-center gap-1 rounded-lg pt-1 hover:bg-muted"
+              className={cn(
+                "tocavel flex h-24 flex-col justify-end overflow-hidden rounded-xl",
+                cheio ? (indice === 0 ? "bg-perigo text-white" : "bg-oficina text-oficina-texto") : "bg-background text-muted-foreground",
+              )}
             >
-              <span
-                aria-hidden
-                className={cn(
-                  "w-full rounded-md border-[length:var(--borda)] transition-colors",
-                  cheio ? (indice === 0 ? "border-perigo bg-perigo" : "border-oficina bg-oficina") : "border-input bg-muted",
-                )}
-                style={{ height: `${2.25 + i * 0.6}rem` }}
-              />
-              <span aria-hidden className={cn("text-sm font-bold", valor === n ? "text-foreground" : "text-muted-foreground")}>
+              <span aria-hidden className={cn("pb-2 text-base font-extrabold", marcado && "text-lg")}>
                 {rotulos[n]}
               </span>
             </button>

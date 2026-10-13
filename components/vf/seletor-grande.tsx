@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type Tom = "bom" | "ruim" | "neutro";
@@ -15,13 +14,13 @@ export type OpcaoSeletor<T extends string> = {
 };
 
 const corMarcado: Record<Tom, string> = {
-  bom: "border-acao bg-acao text-acao-texto",
-  ruim: "border-perigo bg-perigo text-white",
-  neutro: "border-oficina bg-oficina text-oficina-texto",
+  bom: "bg-acao text-acao-texto",
+  ruim: "bg-perigo text-white",
+  neutro: "bg-oficina text-oficina-texto",
 };
 
 /**
- * Opções em botões grandes (ex.: BOM / RUIM / AUSENTE). Nada de caixinhas pequenas.
+ * Opções em botões grandes (ex.: BOM / RUIM). Um toque e pronto.
  * Funciona com toque, teclado (setas) e leitor de tela.
  */
 export function SeletorGrande<T extends string>({
@@ -32,6 +31,7 @@ export function SeletorGrande<T extends string>({
   colunas,
   erro,
   ocultarRotulo,
+  compacto,
 }: {
   rotulo: string;
   opcoes: OpcaoSeletor<T>[];
@@ -40,6 +40,8 @@ export function SeletorGrande<T extends string>({
   colunas?: 2 | 3 | 4 | 5;
   erro?: boolean;
   ocultarRotulo?: boolean;
+  /** Botões de 56 px (para listas); sem isso, 72 px. */
+  compacto?: boolean;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const cols = colunas ?? (opcoes.length <= 3 ? opcoes.length : 2);
@@ -56,13 +58,8 @@ export function SeletorGrande<T extends string>({
 
   return (
     <div role="radiogroup" aria-label={rotulo} aria-invalid={erro || undefined} className="flex flex-col gap-2">
-      {!ocultarRotulo && <span className="text-lg font-semibold">{rotulo}</span>}
-      <div
-        className={cn(
-          "grid gap-2",
-          { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[cols],
-        )}
-      >
+      {!ocultarRotulo && <span className="text-lg font-bold">{rotulo}</span>}
+      <div className={cn("grid gap-2", { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[cols])}>
         {opcoes.map((o, i) => {
           const marcado = o.valor === valor;
           return (
@@ -78,13 +75,12 @@ export function SeletorGrande<T extends string>({
               onClick={() => onChange(o.valor)}
               onKeyDown={(e) => teclado(e, i)}
               className={cn(
-                "relative flex min-h-toque flex-col items-center justify-center gap-1 rounded-xl border-[length:var(--borda)] px-2 py-2 text-base font-bold transition-colors [&_svg]:size-6",
-                marcado
-                  ? corMarcado[o.tom ?? "neutro"]
-                  : cn("bg-card text-foreground hover:bg-muted", erro ? "border-perigo border-2" : "border-input"),
+                "tocavel flex items-center justify-center gap-2 rounded-2xl px-2 text-lg font-extrabold [&_svg]:size-7",
+                compacto ? "min-h-toque" : "min-h-[4.5rem]",
+                marcado ? corMarcado[o.tom ?? "neutro"] : "bg-superficie text-foreground",
+                erro && !marcado && "ring-2 ring-perigo",
               )}
             >
-              {marcado && <Check aria-hidden className="absolute top-1.5 right-1.5 !size-4" />}
               {o.icone}
               <span className="leading-tight">{o.rotulo}</span>
             </button>

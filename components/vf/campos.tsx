@@ -9,12 +9,8 @@ import { formatarKm, formatarPlaca, formatarTelefone } from "@/lib/formatos";
 /** Mensagem de erro no próprio campo, dizendo o que fazer. Nunca mensagem técnica. */
 export function MensagemErroCampo({ id, children }: { id?: string; children: React.ReactNode }) {
   return (
-    <p
-      id={id}
-      role="alert"
-      className="flex items-start gap-2 rounded-lg bg-perigo-fundo px-3 py-2 text-base font-semibold text-perigo"
-    >
-      <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
+    <p id={id} role="alert" className="flex items-center gap-2 text-base font-bold text-perigo">
+      <AlertCircle aria-hidden className="size-5 shrink-0" />
       <span>{children}</span>
     </p>
   );
@@ -29,14 +25,14 @@ type CampoBaseProps = {
   grande?: boolean;
 } & Omit<ComponentProps<"input">, "value" | "onChange" | "id">;
 
-/** Campo de texto padrão: rótulo grande em cima, dica embaixo, erro no próprio campo. */
+/** Campo de texto padrão: rótulo em cima, fundo cinza claro, erro logo embaixo. */
 export function Campo({ rotulo, dica, erro, valor, onValor, grande, className, ...props }: CampoBaseProps) {
   const id = useId();
   const idDica = `${id}-dica`;
   const idErro = `${id}-erro`;
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-lg font-semibold">
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-lg font-bold">
         {rotulo}
       </label>
       <input
@@ -46,10 +42,10 @@ export function Campo({ rotulo, dica, erro, valor, onValor, grande, className, .
         aria-invalid={erro ? true : undefined}
         aria-describedby={cn(dica && idDica, erro && idErro) || undefined}
         className={cn(
-          "min-h-toque w-full rounded-xl border-[length:var(--borda)] border-input bg-card px-4 text-lg outline-none",
-          "placeholder:text-muted-foreground/70 focus:border-ring focus:ring-3 focus:ring-ring/30",
-          grande && "py-3 text-center font-mono text-3xl font-bold tracking-widest placeholder:font-normal placeholder:text-muted-foreground/35",
-          erro && "border-2 border-perigo focus:border-perigo focus:ring-perigo/30",
+          "min-h-toque-grande w-full rounded-2xl border-2 border-transparent bg-superficie px-4 text-xl font-semibold outline-none",
+          "placeholder:font-normal placeholder:text-muted-foreground/50 focus:border-oficina focus:bg-background",
+          grande && "text-center font-mono text-[2rem] font-extrabold tracking-[0.15em] uppercase",
+          erro && "border-perigo bg-perigo-clara focus:border-perigo",
           className,
         )}
         {...props}
@@ -67,11 +63,10 @@ export function Campo({ rotulo, dica, erro, valor, onValor, grande, className, .
 type CampoEspecifico = Omit<CampoBaseProps, "rotulo"> & { rotulo?: string };
 
 /** Placa: teclado de letras maiúsculas, aceita antiga (ABC-1234) e Mercosul (ABC1D23). */
-export function CampoPlaca({ rotulo = textos.campos.placa, dica = textos.campos.placaDica, onValor, ...props }: CampoEspecifico) {
+export function CampoPlaca({ rotulo = textos.campos.placa, onValor, ...props }: CampoEspecifico) {
   return (
     <Campo
       rotulo={rotulo}
-      dica={dica}
       grande
       inputMode="text"
       autoCapitalize="characters"
@@ -87,11 +82,10 @@ export function CampoPlaca({ rotulo = textos.campos.placa, dica = textos.campos.
 }
 
 /** Telefone/WhatsApp: teclado de telefone, formata (11) 98765-4321. */
-export function CampoTelefone({ rotulo = textos.campos.telefone, dica = textos.campos.telefoneDica, onValor, ...props }: CampoEspecifico) {
+export function CampoTelefone({ rotulo = textos.campos.telefone, onValor, ...props }: CampoEspecifico) {
   return (
     <Campo
       rotulo={rotulo}
-      dica={dica}
       type="tel"
       inputMode="tel"
       autoComplete="tel-national"
@@ -103,11 +97,10 @@ export function CampoTelefone({ rotulo = textos.campos.telefone, dica = textos.c
 }
 
 /** Km: teclado numérico, formata 45.320. */
-export function CampoKm({ rotulo = textos.campos.km, dica = textos.campos.kmDica, onValor, ...props }: CampoEspecifico) {
+export function CampoKm({ rotulo = textos.campos.km, onValor, ...props }: CampoEspecifico) {
   return (
     <Campo
       rotulo={rotulo}
-      dica={dica}
       inputMode="numeric"
       pattern="[0-9.]*"
       autoComplete="off"

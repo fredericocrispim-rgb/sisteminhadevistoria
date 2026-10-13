@@ -3,11 +3,12 @@
 @import "shadcn/tailwind.css";
 
 /*
-  Padrão visual do VistoriaFácil (Prompt 02).
-  - Fundo claro, texto escuro, contraste alto (legível ao sol).
-  - --cor-oficina: cor principal. Vem do cadastro da oficina; padrão azul-escuro.
+  Padrão visual do VistoriaFácil.
+  Moderno e enxuto: fundo branco, blocos em cinza bem claro, sem bordas desnecessárias,
+  botões e ícones grandes, pouco texto.
+  - --cor-oficina: cor principal (vem do cadastro da oficina; padrão azul).
   - Verde = ação principal. Vermelho = só erro/avaria. Amarelo = atenção.
-  - Modo "sol" (classe .sol no <html>): contraste máximo, bordas mais grossas.
+  - Modo "sol" (classe .sol no <html>): contraste máximo.
 */
 
 @theme inline {
@@ -33,79 +34,81 @@
   --color-card: var(--card);
 
   /* Cores do app (use estas nas telas) */
+  --color-superficie: var(--cor-superficie);
   --color-oficina: var(--cor-oficina);
+  --color-oficina-clara: var(--cor-oficina-clara);
   --color-oficina-texto: var(--cor-oficina-texto);
   --color-acao: var(--cor-acao);
   --color-acao-escura: var(--cor-acao-escura);
+  --color-acao-clara: var(--cor-acao-clara);
   --color-acao-texto: var(--cor-acao-texto);
   --color-perigo: var(--cor-perigo);
-  --color-perigo-fundo: var(--cor-perigo-fundo);
+  --color-perigo-clara: var(--cor-perigo-clara);
   --color-atencao: var(--cor-atencao);
-  --color-atencao-fundo: var(--cor-atencao-fundo);
+  --color-atencao-clara: var(--cor-atencao-clara);
   --color-atencao-texto: var(--cor-atencao-texto);
-  --color-sucesso-fundo: var(--cor-sucesso-fundo);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
 
-  /* Tamanhos mínimos de toque */
-  --spacing-toque: 3.5rem; /* 56 px */
+  /* Tamanhos de toque */
+  --spacing-toque: 3.5rem; /* 56 px: mínimo */
+  --spacing-toque-grande: 4rem; /* 64 px: botão principal */
 }
 
 :root {
   --fonte-sistema: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  --cor-oficina: #1e3a5f;
+  --cor-superficie: #f1f3f6;
+  --cor-oficina: #1d4ed8;
+  --cor-oficina-clara: #e8eefc;
   --cor-oficina-texto: #ffffff;
   --cor-acao: #15803d;
-  --cor-acao-escura: #166534;
+  --cor-acao-escura: #116932;
+  --cor-acao-clara: #e7f6ec;
   --cor-acao-texto: #ffffff;
-  --cor-perigo: #b91c1c;
-  --cor-perigo-fundo: #fef2f2;
-  --cor-atencao: #d97706;
-  --cor-atencao-fundo: #fffbeb;
-  --cor-atencao-texto: #78350f;
-  --cor-sucesso-fundo: #f0fdf4;
+  --cor-perigo: #c81e1e;
+  --cor-perigo-clara: #fdecec;
+  --cor-atencao: #f59e0b;
+  --cor-atencao-clara: #fff6e0;
+  --cor-atencao-texto: #7a3e00;
 
-  --background: #f4f6f8;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #0b1220;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #0b1220;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #0b1220;
   --primary: var(--cor-oficina);
   --primary-foreground: var(--cor-oficina-texto);
-  --secondary: #e8ecf1;
-  --secondary-foreground: #0f172a;
-  --muted: #e8ecf1;
-  --muted-foreground: #475569;
-  --accent: #e8ecf1;
-  --accent-foreground: #0f172a;
+  --secondary: var(--cor-superficie);
+  --secondary-foreground: #0b1220;
+  --muted: var(--cor-superficie);
+  --muted-foreground: #5b6474;
+  --accent: var(--cor-superficie);
+  --accent-foreground: #0b1220;
   --destructive: var(--cor-perigo);
-  --border: #cbd5e1;
-  --input: #94a3b8;
+  --border: #e3e7ed;
+  --input: #c9d0da;
   --ring: #2563eb;
-  --radius: 0.75rem;
-  --borda: 1px;
+  --radius: 1rem;
 }
 
 /* Modo alto contraste para sol */
 .sol {
-  --background: #ffffff;
   --foreground: #000000;
-  --card: #ffffff;
   --card-foreground: #000000;
   --muted-foreground: #1f2937;
-  --secondary: #ffffff;
-  --muted: #f1f5f9;
+  --cor-superficie: #e6e9ee;
   --border: #000000;
   --input: #000000;
+  --cor-oficina: #1e3a8a;
   --cor-acao: #0f5f2c;
   --cor-perigo: #991b1b;
-  --borda: 2px;
 }
 
 @layer base {
@@ -115,11 +118,12 @@
   html {
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-size: 1.0625rem; /* 17 px */
-    line-height: 1.5;
+    font-size: 1.125rem; /* 18 px */
+    line-height: 1.45;
   }
   /* Foco sempre visível para quem usa teclado ou leitor de tela */
   :focus-visible {
@@ -133,5 +137,15 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer utilities {
+  /* Efeito de toque: o botão "afunda" um pouco */
+  .tocavel {
+    transition: transform 80ms ease, background-color 120ms ease, color 120ms ease;
+  }
+  .tocavel:active {
+    transform: scale(0.97);
   }
 }

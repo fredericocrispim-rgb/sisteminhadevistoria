@@ -30,24 +30,31 @@ celular simples e internet fraca. O app deve ser EXTREMAMENTE simples na tela e 
 14. Cada papel vê só o que precisa (vistoriador só faz vistoria; configurações/cobrança/relatórios para dono/gerente).
 15. Acessível: rótulos para leitor de tela, foco visível, contraste AA, áreas de toque grandes. Nenhuma tela está pronta antes de um leigo conseguir usá-la sozinho.
 
-## Padrão visual (Prompt 02)
-- Componentes em `components/vf/` (importe de `@/components/vf`). Veja todos em `/estilo`. Não crie botões/campos soltos: reutilize ou estenda estes.
-- Cores (classes Tailwind): `oficina` (cor da oficina, padrão azul-escuro), `acao` (verde, ação principal),
-  `perigo` (vermelho: SÓ erro/avaria), `atencao` (amarelo). Tokens em `app/globals.css`.
-- Modo sol: classe `.sol` no `<html>` (alto contraste), ligado por `BotaoModoSol`.
-- Fonte de sistema, base 17 px. Mobile-first; testar sempre em 360 px de largura.
-- Formatação/validação de placa, telefone e km em `lib/formatos.ts` (com testes).
+## Padrão visual (Prompt 02, revisado: moderno e enxuto)
+Quem usa são mecânicos, muitos com pouca instrução: QUANTO MAIS SIMPLES, MELHOR.
+- Pouco texto: frases de 2 a 6 palavras. Nada de explicação longa na tela. Ícone grande + palavra.
+- Fundo branco, blocos em cinza claro (`bg-superficie`), sem bordas desnecessárias, cantos bem arredondados (rounded-2xl/3xl).
+- Botão principal 64 px (`min-h-toque-grande`), demais toques no mínimo 56 px (`min-h-toque`). Fonte base 18 px; títulos grandes e grossos (font-extrabold).
+- Componentes em `components/vf/` (importe de `@/components/vf`). Veja as telas de exemplo em `/estilo`. Não crie botões/campos soltos.
+- Cores: `oficina` (cor da oficina, padrão azul), `acao` (verde), `perigo` (vermelho: SÓ erro/avaria), `atencao` (amarelo); versões `-clara` para fundos. Tokens em `app/globals.css`.
+- Modo sol: classe `.sol` no `<html>`, ligado por `BotaoModoSol`.
+- Mobile-first; testar sempre em 360 px. Formatação de placa/telefone/km em `lib/formatos.ts`; Pix em `lib/pix.ts` (com testes).
 
 ## Vocabulário (Anexo B)
-Chegada do veículo / Entrega do veículo (internamente ENTRADA/SAIDA), Vistoria, Fotos, Riscos e amassados,
-Pneus e itens, Conferir e assinar, Enviar para o cliente, Termo de vistoria (PDF), Veículos no pátio,
+CHEGOU CARRO / ENTREGAR CARRO (internamente ENTRADA/SAIDA), Vistoria, Fotos, Riscos e amassados,
+Pneus e itens, Assinar, Enviar para o cliente, Termo de vistoria (PDF), Veículos no pátio,
 Equipe, Minha oficina, Meu plano, Ajuda. Evite: check-in, upload, dashboard, sincronizando, submeter.
 
 ## Requisitos gerais
 - Multiempresa (cada oficina com usuários e dados isolados) e várias unidades por empresa.
 - Usuários: ADMINISTRADOR DA PLATAFORMA (Frederico Crispim) em `/admin`; usuários das oficinas (dono, gerente, vistoriador); público sem login (link seguro).
 - Dados do fornecedor (Frederico) ficam na tabela `plataforma`, nunca fixos no código.
-- Cobrança por assinatura via Asaas, SEMPRE pela camada `lib/pagamentos`.
+- COBRANÇA — FASE DE VALIDAÇÃO (decisão do Frederico, 13/10/2026): SÓ PIX, SEM ASAAS e sem intermediário.
+  A oficina paga a mensalidade lendo o QR Code / Pix copia e cola gerado por `lib/pix.ts` com a chave Pix do Frederico
+  (guardada na tabela `plataforma`, nunca no código). Frederico confirma o pagamento à mão no `/admin`, e o sistema
+  libera/bloqueia o acesso. Nada de webhook, cartão ou boleto agora. Quando o produto estiver validado, a cobrança
+  automática (Asaas ou outro) entra pela camada `lib/pagamentos`: mantenha os campos de pagamento genéricos
+  (ex.: `provedor`, `id_externo`), sem nomes de um provedor específico. Ignore as partes do guia sobre Asaas até lá.
 - Mobile-first com câmera; também funciona no computador.
 - Tudo em português do Brasil; datas dd/mm/aaaa; fuso America/Sao_Paulo; valores em R$.
 - Stack: Next.js 16 (App Router) + TypeScript + Tailwind 4 + shadcn/ui (base-ui) + Supabase (região São Paulo). Zod e React Hook Form. Vitest.
@@ -57,7 +64,7 @@ Equipe, Minha oficina, Meu plano, Ajuda. Evite: check-in, upload, dashboard, sin
 Vistoria em 5 passos: Veículo e cliente → Fotos guiadas (8 obrigatórias) → Riscos e amassados (mapa em 5 vistas)
 → Pneus e itens → Conferir e assinar. Ao concluir: vistoria travada (correções só por adendo), PDF com logo da oficina,
 código de autenticidade + SHA-256 + QR Code, envio por WhatsApp e e-mail, link público e página /verificar.
-Negócio: assinatura mensal (Asaas); cada documento divulga, com discrição, o produto e o fornecedor.
+Negócio: mensalidade paga por Pix (fase de validação); cada documento divulga, com discrição, o produto e o fornecedor.
 
 ## Antes de dizer que terminou
 Rode `npm run build`, `npm run lint` e `npm test` sem erros e confira a tela em largura de 360 px.

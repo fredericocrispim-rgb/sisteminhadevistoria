@@ -1,14 +1,14 @@
 /**
  * TODOS os textos da interface ficam aqui.
  * Para trocar uma palavra no app, mude só neste arquivo.
- * Vocabulário: linguagem do pátio, sem termos técnicos (Anexo B do guia).
- * Internamente: ENTRADA = "Chegada do veículo"; SAIDA = "Entrega do veículo".
+ * Regra: frases curtas, palavras do pátio, nada técnico (Anexo B do guia).
+ * Internamente: ENTRADA = "Chegada"; SAIDA = "Entrega".
  */
 
 export const textos = {
   produto: {
     nome: "VistoriaFácil",
-    slogan: "Vistoria de veículos com fotos, assinatura e envio pelo WhatsApp em 3 minutos.",
+    slogan: "Vistoria do carro com fotos e assinatura, enviada no WhatsApp em 3 minutos.",
   },
 
   geral: {
@@ -21,10 +21,12 @@ export const textos = {
     desfazer: "Desfazer",
     carregando: "Carregando…",
     ajuda: "Ajuda",
+    verVideo: "Ver vídeo",
     sim: "Sim",
     nao: "Não",
     tentarDeNovo: "Tentar de novo",
-    passoDe: (atual: number, total: number) => `Passo ${atual} de ${total}`,
+    copiar: "Copiar",
+    copiado: "Copiado!",
   },
 
   menu: {
@@ -32,7 +34,7 @@ export const textos = {
     vistorias: "Vistorias",
     patio: "Pátio",
     mais: "Mais",
-    veiculosNoPatio: "Veículos no pátio",
+    veiculosNoPatio: "No pátio",
     equipe: "Equipe",
     minhaOficina: "Minha oficina",
     meuPlano: "Meu plano",
@@ -41,19 +43,17 @@ export const textos = {
 
   vistoria: {
     nome: "Vistoria",
-    chegada: "Chegada do veículo",
-    entrega: "Entrega do veículo",
-    chegadaBotao: "CHEGADA DE VEÍCULO",
-    entregaBotao: "ENTREGA DE VEÍCULO",
-    chegadaExplicacao: "O carro acabou de chegar na oficina",
-    entregaExplicacao: "O carro vai sair da oficina",
-    continuar: "Continuar vistoria",
+    chegada: "Chegada",
+    entrega: "Entrega",
+    chegadaBotao: "CHEGOU CARRO",
+    entregaBotao: "ENTREGAR CARRO",
+    continuar: "Continuar",
     etapas: {
-      veiculo: "Veículo e cliente",
+      veiculo: "Carro e cliente",
       fotos: "Fotos",
       avarias: "Riscos e amassados",
       pneusItens: "Pneus e itens",
-      conferir: "Conferir e assinar",
+      conferir: "Assinar",
     },
     concluir: "Concluir vistoria",
     enviarCliente: "Enviar para o cliente",
@@ -67,21 +67,27 @@ export const textos = {
     escolherFoto: "Escolher foto",
     faltam: (n: number) => (n === 1 ? "Falta 1 foto" : `Faltam ${n} fotos`),
     estado: {
-      vazio: "Falta tirar",
-      enviando: "Enviando…",
-      ok: "Foto salva",
-      erro: "Não enviou. Toque de novo",
-      aguardando: "Aguardando internet",
+      vazio: "Falta",
+      enviando: "Enviando",
+      ok: "Pronta",
+      erro: "Erro. Toque de novo",
+      aguardando: "Sem internet",
     },
+  },
+
+  pneus: {
+    todosBons: "Todos BONS",
+    dianteiroEsquerdo: "Dianteiro esquerdo",
+    dianteiroDireito: "Dianteiro direito",
+    traseiroEsquerdo: "Traseiro esquerdo",
+    traseiroDireito: "Traseiro direito",
+    estepe: "Estepe",
   },
 
   campos: {
     placa: "Placa",
-    placaDica: "Ex.: ABC1D23 ou ABC-1234",
     telefone: "WhatsApp do cliente",
-    telefoneDica: "Com DDD. Ex.: (11) 98765-4321",
-    km: "Quilometragem (km)",
-    kmDica: "O número que aparece no painel",
+    km: "Km do painel",
     combustivel: "Combustível",
   },
 
@@ -96,50 +102,56 @@ export const textos = {
   estadoItem: {
     bom: "BOM",
     ruim: "RUIM",
-    ausente: "AUSENTE",
+    ausente: "NÃO TEM",
     tem: "TEM",
     naoTem: "NÃO TEM",
   },
 
   erros: {
-    placaFalta: "Falta a placa do veículo",
-    placaInvalida: "Placa incompleta. Confira as letras e números",
-    telefoneFalta: "Falta o WhatsApp do cliente",
-    telefoneInvalido: "Número incompleto. Coloque o DDD e o número",
-    kmFalta: "Falta a quilometragem",
-    escolhaUmaOpcao: "Escolha uma das opções",
+    placaFalta: "Coloque a placa",
+    placaInvalida: "Placa incompleta",
+    telefoneFalta: "Coloque o WhatsApp",
+    telefoneInvalido: "Falta número. Coloque o DDD",
+    kmFalta: "Coloque o km",
+    escolhaUmaOpcao: "Escolha uma opção",
   },
 
   avisos: {
-    semInternet: "Sem internet. Pode continuar: tudo fica salvo e envia sozinho quando a internet voltar.",
-    voltouInternet: "Internet de volta. Enviando o que ficou guardado…",
-    aguardandoEnvio: (n: number) =>
-      n === 1 ? "1 foto aguardando internet" : `${n} fotos aguardando internet`,
+    semInternet: "Sem internet",
+    semInternetDetalhe: "Pode continuar. Envia sozinho depois.",
+    aguardandoEnvio: (n: number) => (n === 1 ? "1 foto vai enviar depois" : `${n} fotos vão enviar depois`),
   },
 
   confirmacao: {
-    concluirTitulo: "Concluir a vistoria?",
-    concluirTexto: "Depois de concluir, não dá para alterar. Se precisar corrigir, você poderá fazer uma observação extra (adendo).",
+    concluirTitulo: "Concluir?",
+    concluirTexto: "Depois não dá para mudar.",
     concluirSim: "Sim, concluir",
-    excluirTitulo: "Excluir?",
-    excluirSim: "Sim, excluir",
+    excluirTitulo: "Apagar?",
+    excluirSim: "Sim, apagar",
     naoVoltar: "Não, voltar",
   },
 
   desfazer: {
-    apagado: "Apagado.",
+    apagado: "Apagado",
   },
 
   modoSol: {
-    ligar: "Modo sol",
-    descricao: "Deixa a tela mais forte para ver no sol",
-    ligado: "Modo sol ligado",
-    desligado: "Modo sol desligado",
+    ligar: "Tela forte (sol)",
   },
 
   vazio: {
-    nenhumaVistoria: "Você ainda não fez nenhuma vistoria.",
-    nenhumaVistoriaAcao: "Toque em CHEGADA DE VEÍCULO para começar.",
+    nenhumaVistoria: "Nenhuma vistoria ainda",
+    nenhumaVistoriaAcao: "Toque em CHEGOU CARRO para começar.",
+  },
+
+  pix: {
+    titulo: "Pagar com Pix",
+    valor: "Valor",
+    escaneie: "Abra o app do banco e leia o QR Code",
+    ou: "ou",
+    copiarCodigo: "Copiar código Pix",
+    copiadoDica: "Agora cole no app do banco, em Pix Copia e Cola",
+    aguardando: "Assim que o pagamento cair, liberamos seu acesso.",
   },
 } as const;
 

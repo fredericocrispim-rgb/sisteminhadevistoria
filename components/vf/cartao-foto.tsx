@@ -1,80 +1,63 @@
 /* eslint-disable @next/next/no-img-element -- fotos vêm do aparelho/URL assinada, não do otimizador do Next */
-import { Camera, CheckCircle2, CloudOff, Loader2, RotateCcw } from "lucide-react";
+import { Check, CloudOff, Loader2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 import { SilhuetaCarro, type VistaFoto } from "./silhueta-carro";
 
 export type EstadoFoto = "vazio" | "enviando" | "ok" | "erro" | "aguardando";
 
-const visual: Record<EstadoFoto, { classe: string; icone: React.ReactNode; texto: string }> = {
-  vazio: { classe: "border-dashed border-input bg-card", icone: <Camera aria-hidden />, texto: textos.fotos.estado.vazio },
-  enviando: { classe: "border-oficina bg-card", icone: <Loader2 aria-hidden className="animate-spin" />, texto: textos.fotos.estado.enviando },
-  ok: { classe: "border-acao bg-sucesso-fundo", icone: <CheckCircle2 aria-hidden className="text-acao" />, texto: textos.fotos.estado.ok },
-  erro: { classe: "border-perigo bg-perigo-fundo", icone: <RotateCcw aria-hidden className="text-perigo" />, texto: textos.fotos.estado.erro },
-  aguardando: { classe: "border-atencao bg-atencao-fundo", icone: <CloudOff aria-hidden className="text-atencao-texto" />, texto: textos.fotos.estado.aguardando },
+const selo: Record<Exclude<EstadoFoto, "vazio">, { classe: string; icone: React.ReactNode; texto: string }> = {
+  enviando: { classe: "bg-oficina text-white", icone: <Loader2 aria-hidden className="animate-spin" />, texto: textos.fotos.estado.enviando },
+  ok: { classe: "bg-acao text-white", icone: <Check aria-hidden strokeWidth={3} />, texto: textos.fotos.estado.ok },
+  erro: { classe: "bg-perigo text-white", icone: <RotateCcw aria-hidden strokeWidth={3} />, texto: textos.fotos.estado.erro },
+  aguardando: { classe: "bg-atencao text-atencao-texto", icone: <CloudOff aria-hidden strokeWidth={3} />, texto: textos.fotos.estado.aguardando },
 };
 
 /**
- * Cartão de uma foto da vistoria. Vazio: mostra a silhueta do ângulo certo.
- * Com foto: mostra a imagem e o estado do envio.
+ * Miniatura de uma foto da vistoria. Vazia: mostra o desenho do ângulo.
+ * Com foto: mostra a imagem e um selo colorido (enviando / ok / erro / sem internet).
  */
 export function CartaoFoto({
-  numero,
   titulo,
   vista,
   estado,
   src,
-  obrigatoria,
-  progresso,
+  atual,
   onClick,
 }: {
-  numero?: number;
   titulo: string;
   vista: VistaFoto;
   estado: EstadoFoto;
   src?: string;
-  obrigatoria?: boolean;
-  /** 0 a 100, enquanto envia */
-  progresso?: number;
+  /** Destaca a foto que deve ser tirada agora. */
+  atual?: boolean;
   onClick?: () => void;
 }) {
-  const v = visual[estado];
+  const s = estado === "vazio" ? null : selo[estado];
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${titulo}: ${s ? s.texto : textos.fotos.estado.vazio}`}
       className={cn(
-        "flex w-full flex-col overflow-hidden rounded-xl border-2 text-left transition-colors hover:brightness-[0.98]",
-        v.classe,
+        "tocavel relative flex w-full flex-col items-center gap-1 rounded-2xl bg-superficie p-1.5 pb-2 text-center",
+        atual && "ring-3 ring-oficina",
+        estado === "erro" && "ring-3 ring-perigo",
       )}
     >
-      <div className="relative flex aspect-[4/3] w-full items-center justify-center bg-muted/40">
+      <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-background">
         {src ? (
-          <img src={src} alt={titulo} className="size-full object-cover" />
+          <img src={src} alt="" className="size-full object-cover" />
         ) : (
-          <SilhuetaCarro vista={vista} className="w-4/5 text-muted-foreground" />
-        )}
-        {numero !== undefined && (
-          <span className="absolute top-2 left-2 grid size-8 place-items-center rounded-full bg-oficina text-base font-bold text-oficina-texto">
-            {numero}
-          </span>
-        )}
-        {estado === "enviando" && progresso !== undefined && (
-          <div className="absolute inset-x-0 bottom-0 h-2 bg-black/20" role="progressbar" aria-valuenow={progresso} aria-valuemin={0} aria-valuemax={100} aria-label={textos.fotos.estado.enviando}>
-            <div className="h-full bg-oficina transition-all" style={{ width: `${progresso}%` }} />
-          </div>
+          <SilhuetaCarro vista={vista} className={cn("w-[85%]", atual ? "text-oficina" : "text-muted-foreground/60")} />
         )}
       </div>
-      <div className="flex flex-col gap-0.5 px-3 py-2">
-        <span className="text-base leading-tight font-bold">
-          {titulo}
-          {obrigatoria && estado === "vazio" && <span className="text-perigo"> *</span>}
+      <span className="text-sm leading-tight font-bold">{titulo}</span>
+      {s && (
+        <span className={cn("absolute top-0.5 right-0.5 grid size-7 place-items-center rounded-full shadow [&_svg]:size-4", s.classe)}>
+          {s.icone}
         </span>
-        <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground [&_svg]:size-4">
-          {v.icone}
-          {v.texto}
-        </span>
-      </div>
+      )}
     </button>
   );
 }

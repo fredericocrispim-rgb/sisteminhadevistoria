@@ -18,11 +18,11 @@ export function EstadoVazio({
   acao?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border-[length:var(--borda)] border-dashed border-input bg-card px-6 py-10 text-center">
-      <div className="grid size-20 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-10">
+    <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+      <div className="grid size-20 place-items-center rounded-full bg-superficie text-muted-foreground [&_svg]:size-10">
         {icone ?? <Inbox aria-hidden />}
       </div>
-      <p className="text-xl font-bold">{titulo}</p>
+      <p className="text-xl font-extrabold">{titulo}</p>
       {texto && <p className="max-w-sm text-lg text-muted-foreground">{texto}</p>}
       {acao && <div className="mt-2 w-full max-w-sm">{acao}</div>}
     </div>
@@ -55,14 +55,13 @@ export function AvisoSemInternet({ pendentes = 0, forcar }: { pendentes?: number
   const semInternet = useSemInternet();
   if (!semInternet && !forcar && pendentes === 0) return null;
   return (
-    <div
-      role="status"
-      className="flex items-start gap-3 rounded-xl border-[length:var(--borda)] border-atencao bg-atencao-fundo px-4 py-3 text-base font-semibold text-atencao-texto"
-    >
-      <CloudOff aria-hidden className="mt-0.5 size-6 shrink-0" />
-      <div className="flex flex-col gap-0.5">
-        {(semInternet || forcar) && <span>{textos.avisos.semInternet}</span>}
-        {pendentes > 0 && <span>{textos.avisos.aguardandoEnvio(pendentes)}</span>}
+    <div role="status" className="flex items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3 text-atencao-texto">
+      <CloudOff aria-hidden className="size-7 shrink-0" />
+      <div className="flex flex-col">
+        <span className="text-lg font-extrabold">{textos.avisos.semInternet}</span>
+        <span className="text-base font-semibold">
+          {pendentes > 0 ? textos.avisos.aguardandoEnvio(pendentes) : textos.avisos.semInternetDetalhe}
+        </span>
       </div>
     </div>
   );
@@ -73,9 +72,9 @@ export function Carregando({ linhas = 3, className }: { linhas?: number; classNa
   return (
     <div role="status" aria-live="polite" className={cn("flex flex-col gap-3", className)}>
       <span className="sr-only">{textos.geral.carregando}</span>
-      <div className="h-36 animate-pulse rounded-xl bg-muted" />
+      <div className="h-36 animate-pulse rounded-2xl bg-superficie" />
       {Array.from({ length: linhas }, (_, i) => (
-        <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" style={{ width: `${100 - i * 12}%` }} />
+        <div key={i} className="h-14 animate-pulse rounded-2xl bg-superficie" style={{ width: `${100 - i * 12}%` }} />
       ))}
     </div>
   );
