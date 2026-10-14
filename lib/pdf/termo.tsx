@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { iniciais } from "@/lib/cores";
 import { ALTURA, DESENHOS, LARGURA, VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
-import { FOTOS_OBRIGATORIAS, NOMES_COMBUSTIVEL, PNEUS, dataHoraBR, mascararDocumento, placaParaMostrar } from "@/lib/vistoria";
+import { NOMES_COMBUSTIVEL, PNEUS, dataHoraBR, mascararDocumento, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
 import { formatarTelefone } from "@/lib/formatos";
 
 type Img = { data: Buffer; format: "png" | "jpg" };
@@ -117,10 +117,6 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
       logo = null;
     }
   }
-  const ordemFoto = (c: string) => {
-    const i = FOTOS_OBRIGATORIAS.findIndex((f) => f.categoria === c);
-    return i === -1 ? 99 : i;
-  };
   const fotosOrdenadas = [...(fotos ?? [])].sort((a, b) => ordemFoto(a.categoria) - ordemFoto(b.categoria));
   const [imagensFotos, assinCliente, assinResp] = await Promise.all([
     Promise.all(fotosOrdenadas.map((f) => baixar(f.url, "jpg"))),
@@ -286,7 +282,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
           <View style={s.fotos}>
             {fotosOrdenadas.map((f, i) => {
               const img = imagensFotos[i];
-              const titulo = FOTOS_OBRIGATORIAS.find((x) => x.categoria === f.categoria)?.titulo ?? f.categoria;
+              const titulo = tituloFoto(f.categoria);
               return (
                 <View key={f.url} style={s.foto} wrap={false}>
                   {img ? <Image src={img} style={s.fotoImg} /> : <View style={[s.fotoImg, { backgroundColor: "#f1f3f6" }]} />}

@@ -110,7 +110,7 @@ export function PassoFotos({
 
       {falhou && <MensagemErroCampo>A foto não foi enviada. Confira a internet e tire de novo.</MensagemErroCampo>}
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {FOTOS_OBRIGATORIAS.map((f) => (
           <CartaoFoto
             key={f.categoria}

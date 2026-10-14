@@ -98,7 +98,7 @@ export function PassoAssinar({ dados, irPara }: { dados: DadosVistoria; irPara: 
           texto={`${c.placa} · ${[c.marca, c.modelo].filter(Boolean).join(" ")} · ${c.km} km · ${c.combustivel ? NOMES_COMBUSTIVEL[c.combustivel] : ""}`}
           onCorrigir={() => irPara(1)}
         />
-        <Resumo icone={<Camera aria-hidden />} titulo="Fotos" texto={faltamFotos ? `Faltam ${faltamFotos}` : "8 fotos prontas"} onCorrigir={() => irPara(2)} />
+        <Resumo icone={<Camera aria-hidden />} titulo="Fotos" texto={faltamFotos ? `Faltam ${faltamFotos}` : `${FOTOS_OBRIGATORIAS.length} fotos prontas`} onCorrigir={() => irPara(2)} />
         <Resumo
           icone={<ShieldAlert aria-hidden />}
           titulo="Riscos e amassados"

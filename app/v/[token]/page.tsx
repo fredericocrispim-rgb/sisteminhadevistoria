@@ -5,7 +5,7 @@ import { FileText, MessageCircle, XCircle } from "lucide-react";
 import { BotaoPrincipal, DesenhoCarro, EstadoVazio, LogoOficina, LogoProduto } from "@/components/vf";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { vistoriaPorToken } from "@/lib/vistoria-publica";
-import { FOTOS_OBRIGATORIAS, NOMES_COMBUSTIVEL, PNEUS, dataHoraBR, placaParaMostrar } from "@/lib/vistoria";
+import { NOMES_COMBUSTIVEL, PNEUS, dataHoraBR, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
 import { VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type VistaAvaria } from "@/lib/desenhos-carro";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
@@ -44,14 +44,13 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
   const e = v.empresas as unknown as { nome_fantasia: string; whatsapp: string | null; logo_app_url: string | null };
   const carro = v.veiculos as unknown as { placa: string; marca: string | null; modelo: string | null; cor: string | null };
   const chegada = v.tipo === "ENTRADA";
-  const ordem = (c: string) => FOTOS_OBRIGATORIAS.findIndex((f) => f.categoria === c);
   const listaFotos = (fotos ?? [])
     .map((f) => ({
       ...f,
-      titulo: FOTOS_OBRIGATORIAS.find((x) => x.categoria === f.categoria)?.titulo ?? f.categoria,
+      titulo: tituloFoto(f.categoria),
       src: assinadas?.find((a) => a.path === f.url)?.signedUrl,
     }))
-    .sort((a, b) => ordem(a.categoria) - ordem(b.categoria));
+    .sort((a, b) => ordemFoto(a.categoria) - ordemFoto(b.categoria));
   const vistasComAvaria = VISTAS.filter((vi) => avarias?.some((a) => a.vista === vi.id));
 
   return (

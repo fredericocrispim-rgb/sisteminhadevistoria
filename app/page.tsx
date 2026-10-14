@@ -86,7 +86,7 @@ export default async function Inicio() {
             <p className="mt-3 font-mono text-4xl font-extrabold tracking-wider">ABC1D23</p>
             <p className="text-base text-muted-foreground">Chevrolet Onix · Prata · 45.320 km</p>
 
-            <div className="mt-4 grid grid-cols-4 gap-1.5">
+            <div className="mt-4 grid grid-cols-3 gap-1.5">
               {FOTOS_OBRIGATORIAS.map((f, i) => (
                 <div
                   key={f.categoria}
@@ -103,7 +103,7 @@ export default async function Inicio() {
 
             <ul className="mt-4 flex flex-col gap-2 text-base">
               <li className="flex items-center gap-2">
-                <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> 8 fotos com data e hora
+                <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> 6 fotos com data e hora
               </li>
               <li className="flex items-center gap-2">
                 <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> 2 riscos marcados no desenho

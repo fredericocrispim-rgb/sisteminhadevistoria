@@ -184,14 +184,12 @@ const fotos: { titulo: string; vista: VistaFoto; dica: string }[] = [
   { titulo: "Traseira", vista: "traseira", dica: "Fique 3 passos atrás do carro" },
   { titulo: "Lado esquerdo", vista: "lateral-esquerda", dica: "Pegue o carro inteiro, de lado" },
   { titulo: "Lado direito", vista: "lateral-direita", dica: "Pegue o carro inteiro, de lado" },
-  { titulo: "Canto da frente", vista: "diagonal-dianteira-esquerda", dica: "Fique na quina da frente" },
-  { titulo: "Canto de trás", vista: "diagonal-traseira-direita", dica: "Fique na quina de trás" },
   { titulo: "Painel", vista: "painel", dica: "Carro ligado. Mostre o km e o combustível" },
   { titulo: "Placa", vista: "placa", dica: "Chegue perto. A placa deve dar para ler" },
 ];
 
 function TelaFotos() {
-  const [estados, setEstados] = useState<EstadoFoto[]>(["ok", "ok", "enviando", "vazio", "vazio", "vazio", "vazio", "vazio"]);
+  const [estados, setEstados] = useState<EstadoFoto[]>(["ok", "ok", "enviando", "vazio", "vazio", "vazio"]);
   const atual = estados.findIndex((e) => e === "vazio");
   const foto = fotos[atual === -1 ? 0 : atual];
   const faltam = estados.filter((e) => e === "vazio").length;
@@ -223,7 +221,7 @@ function TelaFotos() {
           </div>
         )}
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {fotos.map((f, i) => (
             <CartaoFoto key={f.titulo} titulo={f.titulo} vista={f.vista} estado={estados[i]} atual={i === atual} />
           ))}

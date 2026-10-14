@@ -3,17 +3,31 @@
  */
 import type { VistaFoto } from "@/components/vf/silhueta-carro";
 
-/** As 8 fotos obrigatórias, na ordem guiada. */
+/** As 6 fotos obrigatórias, na ordem guiada. */
 export const FOTOS_OBRIGATORIAS: { categoria: string; titulo: string; vista: VistaFoto; dica: string }[] = [
   { categoria: "frente", titulo: "Frente", vista: "frente", dica: "Fique 3 passos na frente do carro" },
   { categoria: "traseira", titulo: "Traseira", vista: "traseira", dica: "Fique 3 passos atrás do carro" },
   { categoria: "lateral_esquerda", titulo: "Lado esquerdo", vista: "lateral-esquerda", dica: "Pegue o carro inteiro, de lado" },
   { categoria: "lateral_direita", titulo: "Lado direito", vista: "lateral-direita", dica: "Pegue o carro inteiro, de lado" },
-  { categoria: "diagonal_dianteira", titulo: "Canto da frente", vista: "diagonal-dianteira-esquerda", dica: "Fique na quina da frente" },
-  { categoria: "diagonal_traseira", titulo: "Canto de trás", vista: "diagonal-traseira-direita", dica: "Fique na quina de trás" },
   { categoria: "painel", titulo: "Painel", vista: "painel", dica: "Carro ligado. Mostre o km e o combustível" },
   { categoria: "placa", titulo: "Placa", vista: "placa", dica: "Chegue perto. A placa deve dar para ler" },
 ];
+
+/** Nome de cada foto, inclusive as que não são mais pedidas (vistorias antigas). */
+const NOMES_FOTOS_ANTIGAS: Record<string, string> = {
+  diagonal_dianteira: "Canto da frente",
+  diagonal_traseira: "Canto de trás",
+};
+
+export function tituloFoto(categoria: string) {
+  return FOTOS_OBRIGATORIAS.find((f) => f.categoria === categoria)?.titulo ?? NOMES_FOTOS_ANTIGAS[categoria] ?? categoria;
+}
+
+/** Ordem para mostrar as fotos (as que não são mais pedidas vão para o fim). */
+export function ordemFoto(categoria: string) {
+  const i = FOTOS_OBRIGATORIAS.findIndex((f) => f.categoria === categoria);
+  return i === -1 ? 99 : i;
+}
 
 export const PNEUS = [
   { posicao: "dianteiro_esquerdo", nome: "Dianteiro esquerdo" },
