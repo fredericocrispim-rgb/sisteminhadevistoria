@@ -44,13 +44,16 @@ import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 import { placaValida, telefoneValido } from "@/lib/formatos";
 import { gerarPixCopiaECola } from "@/lib/pix";
+import { TelaConcluida, TelaRiscos } from "./telas-extras";
 
 const etapas = Object.values(textos.vistoria.etapas);
 
 const telas = [
   { id: "inicio", nome: "Início" },
   { id: "fotos", nome: "Fotos" },
+  { id: "riscos", nome: "Riscos" },
   { id: "pneus", nome: "Pneus" },
+  { id: "concluida", nome: "Concluída" },
   { id: "pix", nome: "Pix" },
   { id: "pecas", nome: "Peças" },
 ] as const;
@@ -95,6 +98,8 @@ export function VitrineEstilo() {
       {tela === "fotos" && <TelaFotos />}
       {tela === "pneus" && <TelaPneus />}
       {tela === "pix" && <TelaPix />}
+      {tela === "riscos" && <TelaRiscos />}
+      {tela === "concluida" && <TelaConcluida />}
       {tela === "pecas" && <TelaPecas />}
     </div>
   );

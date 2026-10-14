@@ -38,7 +38,8 @@ const s = StyleSheet.create({
   marcaTexto: { fontSize: 6.5, color: "#ffffff", fontFamily: "Helvetica-Bold" },
   fotos: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   foto: { width: 258 },
-  fotoImg: { width: 258, height: 172, objectFit: "cover", borderRadius: 4 },
+  // 4:3, igual à foto do celular: não corta o carimbo (data, hora, placa) que fica embaixo
+  fotoImg: { width: 258, height: 193.5, objectFit: "cover", borderRadius: 4 },
   legenda: { fontSize: 7.5, color: cinza, marginTop: 2 },
   assinaturas: { flexDirection: "row", gap: 16 },
   assinatura: { flex: 1, alignItems: "center" },
