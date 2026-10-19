@@ -13,6 +13,9 @@ export const FOTOS_OBRIGATORIAS: { categoria: string; titulo: string; vista: Vis
   { categoria: "placa", titulo: "Placa", vista: "placa", dica: "Chegue perto. A placa deve dar para ler" },
 ];
 
+/** Foto a mais, que o usuário tira se quiser (não é obrigatória). */
+export const FOTO_EXTRA = { categoria: "extra", titulo: "Outra foto", vista: "extra" as VistaFoto, dica: "Opcional. Um detalhe que você quer mostrar" };
+
 /** Nome de cada foto, inclusive as que não são mais pedidas (vistorias antigas). */
 const NOMES_FOTOS_ANTIGAS: Record<string, string> = {
   diagonal_dianteira: "Canto da frente",
@@ -20,13 +23,14 @@ const NOMES_FOTOS_ANTIGAS: Record<string, string> = {
 };
 
 export function tituloFoto(categoria: string) {
-  return FOTOS_OBRIGATORIAS.find((f) => f.categoria === categoria)?.titulo ?? NOMES_FOTOS_ANTIGAS[categoria] ?? categoria;
+  return FOTOS_OBRIGATORIAS.find((f) => f.categoria === categoria)?.titulo ?? (categoria === FOTO_EXTRA.categoria ? FOTO_EXTRA.titulo : NOMES_FOTOS_ANTIGAS[categoria]) ?? categoria;
 }
 
-/** Ordem para mostrar as fotos (as que não são mais pedidas vão para o fim). */
+/** Ordem para mostrar as fotos: obrigatórias, depois a extra, depois as que não são mais pedidas. */
 export function ordemFoto(categoria: string) {
   const i = FOTOS_OBRIGATORIAS.findIndex((f) => f.categoria === categoria);
-  return i === -1 ? 99 : i;
+  if (i !== -1) return i;
+  return categoria === FOTO_EXTRA.categoria ? FOTOS_OBRIGATORIAS.length : 99;
 }
 
 export const PNEUS = [

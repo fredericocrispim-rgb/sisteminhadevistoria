@@ -8,8 +8,8 @@ import { PassoCarro } from "./passo-carro";
 import { PassoFotos } from "./passo-fotos";
 import { PassoAvarias } from "./passo-avarias";
 import { PassoPneus } from "./passo-pneus";
-import { PassoAssinar } from "./passo-assinar";
-import type { DadosVistoria } from "./tipos";
+import { PassoCliente, PassoOficina } from "./passo-assinar";
+import { ASSINATURA_VAZIA, type DadosVistoria } from "./tipos";
 
 const etapas = Object.values(textos.vistoria.etapas);
 const dicas = [
@@ -17,14 +17,16 @@ const dicas = [
   "Tire uma foto de cada vez. Siga o desenho.",
   "Toque no desenho onde tem risco ou amassado. Troque a vista nas abas.",
   "Toque em BOM ou RUIM em cada pneu. Use 'Tem tudo' e corrija só o que falta.",
-  "Mostre o resumo ao cliente. Ele assina com o dedo, depois você.",
+  "Mostre o resumo ao cliente. Ele assina com o dedo.",
+  "Agora é a sua vez: assine e conclua a vistoria.",
 ];
 
-/** Vistoria em 5 passos (a partir do passo 2 a vistoria já existe no banco). */
+/** Vistoria em 6 passos (a partir do passo 2 a vistoria já existe no banco). */
 export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVistoria; passoInicial: number }) {
   const router = useRouter();
   const [dados, setDados] = useState(inicial);
   const [passo, setPasso] = useState(passoInicial);
+  const [assinatura, setAssinatura] = useState(ASSINATURA_VAZIA);
 
   function ir(p: number) {
     setPasso(p);
@@ -90,7 +92,18 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
             }}
           />
         )}
-        {passo === 5 && <PassoAssinar dados={dados} irPara={ir} />}
+        {passo === 5 && (
+          <PassoCliente
+            dados={dados}
+            assinatura={assinatura}
+            aoAssinar={(a) => {
+              setAssinatura(a);
+              ir(6);
+            }}
+            irPara={ir}
+          />
+        )}
+        {passo === 6 && <PassoOficina dados={dados} assinatura={assinatura} irPara={ir} />}
       </main>
     </>
   );

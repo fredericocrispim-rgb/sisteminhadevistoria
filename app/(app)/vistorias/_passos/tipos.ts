@@ -18,6 +18,11 @@ export type DadosCarro = {
 
 export type InfoEntrada = { id: string; data: string; km: number | null; combustivel: string | null } | null;
 
+/** Assinatura do cliente, guardada entre o passo 5 (cliente) e o 6 (oficina). */
+export type AssinaturaCliente = { nome: string; imagem: string | null; ausente: boolean; motivo: string };
+
+export const ASSINATURA_VAZIA: AssinaturaCliente = { nome: "", imagem: null, ausente: false, motivo: "" };
+
 export type FotoSalva = { id: string; categoria: string; caminho: string; previa: string | null };
 
 export type Avaria = {

@@ -2,14 +2,17 @@
 /* eslint-disable @next/next/no-img-element -- fotos locais/URL assinada */
 
 import { useRef, useState } from "react";
-import { ArrowRight, Camera, RefreshCw, ThumbsUp } from "lucide-react";
+import { ArrowRight, Camera, RefreshCw, ThumbsUp, Trash2 } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, CartaoFoto, MensagemErroCampo, SilhuetaCarro, type EstadoFoto } from "@/components/vf";
 import { criarClienteNavegador } from "@/lib/supabase/cliente";
 import { prepararFoto } from "@/lib/foto";
-import { FOTOS_OBRIGATORIAS, dataHoraBR, placaParaMostrar } from "@/lib/vistoria";
+import { FOTOS_OBRIGATORIAS, FOTO_EXTRA, dataHoraBR, placaParaMostrar } from "@/lib/vistoria";
 import { placaParaBanco } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
 import type { FotoSalva } from "./tipos";
+
+/** As obrigatórias e, no fim, a foto extra (opcional). */
+const TODAS = [...FOTOS_OBRIGATORIAS, FOTO_EXTRA];
 
 export function PassoFotos({
   vistoriaId,
@@ -36,7 +39,8 @@ export function PassoFotos({
 
   const feita = (cat: string) => fotos.find((f) => f.categoria === cat);
   const primeiraFaltando = FOTOS_OBRIGATORIAS.find((f) => !feita(f.categoria));
-  const atual = FOTOS_OBRIGATORIAS.find((f) => f.categoria === (escolhida ?? primeiraFaltando?.categoria)) ?? FOTOS_OBRIGATORIAS[0];
+  const atual = TODAS.find((f) => f.categoria === (escolhida ?? primeiraFaltando?.categoria)) ?? FOTOS_OBRIGATORIAS[0];
+  const ehExtra = atual.categoria === FOTO_EXTRA.categoria;
   const fotoAtual = feita(atual.categoria);
   const faltam = FOTOS_OBRIGATORIAS.filter((f) => !feita(f.categoria)).length;
 
@@ -63,7 +67,7 @@ export function PassoFotos({
       if (anterior) await supabase.from("vistoria_fotos").delete().eq("id", anterior.id);
       const { data, error } = await supabase
         .from("vistoria_fotos")
-        .insert({ vistoria_id: vistoriaId, categoria, url: caminho, obrigatoria: true, tamanho_bytes: blob.size })
+        .insert({ vistoria_id: vistoriaId, categoria, url: caminho, obrigatoria: categoria !== FOTO_EXTRA.categoria, tamanho_bytes: blob.size })
         .select("id")
         .single();
       if (error || !data) throw error;
@@ -79,6 +83,20 @@ export function PassoFotos({
     }
   }
 
+  /** Só a foto extra pode ser apagada (as outras são obrigatórias: tira de novo). */
+  async function apagarExtra() {
+    const foto = feita(FOTO_EXTRA.categoria);
+    if (!foto) return;
+    setEnviando(FOTO_EXTRA.categoria);
+    const { error } = await criarClienteNavegador().from("vistoria_fotos").delete().eq("id", foto.id);
+    setEnviando(null);
+    if (error) return setFalhou(FOTO_EXTRA.categoria);
+    const novas = fotos.filter((f) => f.id !== foto.id);
+    setFotos(novas);
+    aoMudar(novas);
+    setEscolhida(null);
+  }
+
   const estadoDe = (cat: string): EstadoFoto =>
     enviando === cat ? "enviando" : falhou === cat ? "erro" : feita(cat) ? "ok" : "vazio";
 
@@ -90,7 +108,9 @@ export function PassoFotos({
         <div className="flex flex-col items-center gap-2 rounded-3xl bg-acao-clara p-6 text-center">
           <ThumbsUp aria-hidden className="size-14 text-acao" />
           <p className="text-2xl font-extrabold">Todas as fotos prontas</p>
-          <p className="text-base font-semibold text-muted-foreground">Toque numa foto para tirar de novo.</p>
+          <p className="text-base font-semibold text-muted-foreground">
+            {feita(FOTO_EXTRA.categoria) ? "Toque numa foto para tirar de novo." : "Quer mostrar um detalhe? Toque em Outra foto."}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 overflow-hidden rounded-3xl bg-oficina-clara text-center">
@@ -102,7 +122,10 @@ export function PassoFotos({
             </div>
           )}
           <div className="px-4 pb-5">
-            <p className="text-[1.75rem] leading-tight font-extrabold">{atual.titulo}</p>
+            <p className="text-[1.75rem] leading-tight font-extrabold">
+              {atual.titulo}
+              {ehExtra && <span className="text-xl text-muted-foreground"> (opcional)</span>}
+            </p>
             <p className="text-lg font-semibold text-muted-foreground">{atual.dica}</p>
           </div>
         </div>
@@ -111,10 +134,10 @@ export function PassoFotos({
       {falhou && <MensagemErroCampo>A foto não foi enviada. Confira a internet e tire de novo.</MensagemErroCampo>}
 
       <div className="grid grid-cols-3 gap-2">
-        {FOTOS_OBRIGATORIAS.map((f) => (
+        {TODAS.map((f) => (
           <CartaoFoto
             key={f.categoria}
-            titulo={f.titulo}
+            titulo={f.categoria === FOTO_EXTRA.categoria ? "Outra (opcional)" : f.titulo}
             vista={f.vista}
             estado={estadoDe(f.categoria)}
             src={feita(f.categoria)?.previa ?? undefined}
@@ -128,6 +151,11 @@ export function PassoFotos({
       {fotoAtual && escolhida && (
         <BotaoSecundario icone={<RefreshCw aria-hidden />} onClick={() => abrirCamera(atual.categoria)} disabled={Boolean(enviando)}>
           {textos.fotos.tirarDeNovo}
+        </BotaoSecundario>
+      )}
+      {fotoAtual && escolhida && ehExtra && (
+        <BotaoSecundario icone={<Trash2 aria-hidden />} onClick={apagarExtra} disabled={Boolean(enviando)}>
+          Apagar esta foto
         </BotaoSecundario>
       )}
 

@@ -12,7 +12,8 @@ export type VistaFoto =
   | "diagonal-dianteira-esquerda"
   | "diagonal-traseira-direita"
   | "painel"
-  | "placa";
+  | "placa"
+  | "extra";
 
 const traco = {
   stroke: "currentColor",
@@ -164,6 +165,18 @@ function Placa() {
   );
 }
 
+/** Foto extra (opcional): câmera com um sinal de mais. */
+function Extra() {
+  return (
+    <g>
+      <path d="M62 30 L74 30 L81 20 L119 20 L126 30 L138 30 Q148 30 148 40 L148 74 Q148 84 138 84 L62 84 Q52 84 52 74 L52 40 Q52 30 62 30 Z" {...lataria} />
+      <circle cx="100" cy="56" r="17" fill="#fff" {...traco} />
+      <path d="M100 48 L100 64 M92 56 L108 56" {...traco} strokeWidth={3.5} />
+      <circle cx="136" cy="40" r="3" {...cheio} />
+    </g>
+  );
+}
+
 export function SilhuetaCarro({ vista, className }: { vista: VistaFoto; className?: string }) {
   let desenho: React.ReactNode;
   let espelhar = false;
@@ -193,6 +206,9 @@ export function SilhuetaCarro({ vista, className }: { vista: VistaFoto; classNam
       break;
     case "placa":
       desenho = <Placa />;
+      break;
+    case "extra":
+      desenho = <Extra />;
       break;
   }
   return (

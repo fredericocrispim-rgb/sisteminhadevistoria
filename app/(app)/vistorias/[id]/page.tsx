@@ -90,6 +90,8 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
 
   // Abre no passo pedido; senão, no primeiro que falta
   let inicial = Number(passo);
+  // O passo 6 (assinatura da oficina) precisa da assinatura do cliente, que não fica salva: volta ao 5
+  if (inicial === 6) inicial = 5;
   if (!(inicial >= 1 && inicial <= 5)) {
     const faltaFoto = FOTOS_OBRIGATORIAS.some((f) => !dados.fotos.some((x) => x.categoria === f.categoria));
     inicial = !carro ? 1 : faltaFoto ? 2 : Object.keys(dados.pneus).length < 5 ? (dados.avarias.length ? 4 : 3) : 5;
