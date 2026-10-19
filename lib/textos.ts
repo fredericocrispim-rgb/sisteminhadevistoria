@@ -292,6 +292,20 @@ export const textos = {
     copiadoDica: "Agora cole no app do banco, em Pix Copia e Cola",
     aguardando: "Assim que o pagamento cair, liberamos seu acesso.",
   },
+
+  indicar: {
+    menu: "Indique e ganhe",
+    titulo: "Indique e ganhe",
+    regra: "Indique uma oficina. Quando ela pagar a primeira mensalidade, você ganha 1 mês grátis.",
+    seuCodigo: "Seu código",
+    enviarWhatsapp: "Enviar no WhatsApp",
+    copiarLink: "Copiar link",
+    copiado: "Link copiado",
+    indicadas: "Oficinas que você indicou",
+    nenhuma: "Nenhuma ainda. Mande seu link para um colega.",
+    mensagem: (link: string) =>
+      `Uso o Sisteminha de Vistoria na minha oficina: fotos do carro, assinatura do cliente e PDF no WhatsApp em 3 minutos. Acabou a discussão de risco! Teste 7 dias grátis: ${link}`,
+  },
 } as const;
 
 export type Textos = typeof textos;

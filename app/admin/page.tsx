@@ -46,10 +46,12 @@ export default async function Admin() {
   const { data: empresas } = await admin
     .from("empresas")
     .select(
-      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, criado_em, assinaturas (status, fim_teste, proximo_vencimento)",
+      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, assinaturas (status, fim_teste, proximo_vencimento)",
     )
     .order("criado_em", { ascending: false })
     .limit(200);
+
+  const nomePorId = new Map((empresas ?? []).map((e) => [e.id, e.nome_fantasia]));
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6">
@@ -77,7 +79,14 @@ export default async function Admin() {
                   <p className="text-base text-muted-foreground">
                     {[e.responsavel_nome, [e.cidade, e.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ")}
                   </p>
-                  <p className="text-sm text-muted-foreground">Desde {new Date(e.criado_em).toLocaleDateString("pt-BR")}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Desde {new Date(e.criado_em).toLocaleDateString("pt-BR")} · Código {e.codigo_indicacao}
+                  </p>
+                  {e.indicada_por_empresa_id && (
+                    <p className="text-sm font-bold text-oficina">
+                      Indicada por {nomePorId.get(e.indicada_por_empresa_id) ?? "outra oficina"}
+                    </p>
+                  )}
                 </div>
               </div>
               <span className={`self-start rounded-full px-3 py-1 text-base font-bold ${s.classe}`}>{s.texto}</span>
