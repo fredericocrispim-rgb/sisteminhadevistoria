@@ -293,6 +293,15 @@ export const textos = {
     aguardando: "Assim que o pagamento cair, liberamos seu acesso.",
   },
 
+  app: {
+    titulo: "Coloque o app no celular",
+    texto: "Depois é só tocar no ícone para entrar.",
+    instalar: "Instalar app",
+    agoraNao: "Agora não",
+    iphone1: "No Safari, toque em Compartilhar",
+    iphone2: "Depois em Adicionar à Tela de Início",
+  },
+
   indicar: {
     menu: "Indique e ganhe",
     titulo: "Indique e ganhe",

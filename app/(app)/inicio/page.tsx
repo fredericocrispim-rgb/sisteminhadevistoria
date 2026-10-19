@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AlertTriangle, CarFront, ChevronRight, Clock, LogIn, LogOut } from "lucide-react";
-import { LogoOficina } from "@/components/vf";
+import { InstalarApp, LogoOficina } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { hojeBR } from "@/lib/cadastro";
 import { listarPatio } from "@/lib/patio";
@@ -54,6 +54,8 @@ export default async function Inicio() {
       <BotaoGigante href="/vistorias/nova?tipo=SAIDA" cor="bg-acao text-acao-texto" icone={<LogOut aria-hidden />}>
         {textos.vistoria.entregaBotao}
       </BotaoGigante>
+
+      <InstalarApp />
 
       {rascunho && (
         <Link href={`/vistorias/${rascunho.id}`} className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3">

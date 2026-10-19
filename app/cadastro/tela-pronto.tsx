@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Home } from "lucide-react";
-import { BotaoPrincipal, LogoOficina } from "@/components/vf";
+import { BotaoPrincipal, InstalarApp, LogoOficina } from "@/components/vf";
 import { textos } from "@/lib/textos";
 import type { EmpresaCadastro } from "./assistente";
 
@@ -25,6 +25,9 @@ export function TelaPronto({ empresa, diasTeste }: { empresa: EmpresaCadastro; d
         <br />
         {t.teste(diasTeste)}
       </p>
+      <div className="w-full text-left">
+        <InstalarApp podeFechar={false} />
+      </div>
       <BotaoPrincipal
         fixo
         icone={<Home aria-hidden />}

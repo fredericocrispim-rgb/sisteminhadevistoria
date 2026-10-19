@@ -17,3 +17,4 @@ export { LogoProduto } from "./logo-produto";
 export { DesenhoCarro, type MarcaAvaria } from "./desenho-carro";
 export { AssinaturaDedo, type AssinaturaRef } from "./assinatura-dedo";
 export { CampoSenha } from "./campo-senha";
+export { InstalarApp, RegistrarApp } from "./instalar-app";

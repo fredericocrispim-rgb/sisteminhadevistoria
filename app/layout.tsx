@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { scriptModoSol } from "@/components/vf/modo-sol";
+import { RegistrarApp } from "@/components/vf/instalar-app";
 import { textos } from "@/lib/textos";
 import "./globals.css";
 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         {children}
         <Toaster />
+        <RegistrarApp />
       </body>
     </html>
   );
