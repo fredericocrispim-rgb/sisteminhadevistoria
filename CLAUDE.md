@@ -95,3 +95,7 @@ Depois, faça o commit da etapa (mensagem em português).
   3 dias antes → Pix aparece ao entrar (1x por dia, cookie vf_aviso_pix) com "Continuar para o sistema"; vencido até 5 dias (`plataforma.dias_carencia`) → Pix com "Mensalidade em atraso", ainda usa; mais de 5 dias → bloqueado (`exigirOficina()` manda para `/plano`, ações de vistoria recusam). Superadmin nunca é bloqueado.
 - Login: e-mail + senha, sem nenhum e-mail enviado (conta criada já confirmada no servidor). Esqueci a senha → WhatsApp do suporte + link gerado no /admin.
 - Termos e privacidade não são mais "provisórios".
+
+## Decisões de 20/10/2026 (Frederico)
+- Equipe (`/equipe`, menu Mais): dono/gerente convidam pessoas por link no WhatsApp. Até 3 usuários ativos (contando o dono) pelo preço do plano (`planos.limite_usuarios`); cada um a mais soma `planos.preco_usuario_extra` (R$ 9,90). Cálculo em `lib/cobranca.ts`; valor da oficina em `lib/mensalidade.ts` (usado no Pix do `/plano` e no "Marcar como pago").
+- Vistoria começa escolhendo o veículo: CARRO, MOTOCICLETA ou CAMINHÃO (`vistorias.tipo_veiculo`, `veiculos.tipo`). Moto tem 2 pneus (dianteiro, traseiro). Desenhos de moto/caminhão em `lib/desenhos-carro.ts` (`desenhosDo(tipo)`), usados no mapa, no PDF e no guia das fotos.

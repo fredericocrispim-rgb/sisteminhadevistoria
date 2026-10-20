@@ -1,5 +1,8 @@
+import { desenhosDo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
+
 /**
  * Desenhos ORIGINAIS do carro, usados como guia nas fotos.
+ * Moto e caminhão usam os desenhos do mapa de avarias (lib/desenhos-carro), com o mesmo estilo.
  * Estilo: carrinho arredondado, traço na cor do texto (currentColor), carroceria e vidros
  * levemente preenchidos e rodas cheias. Área de desenho: 200 x 96.
  */
@@ -165,6 +168,28 @@ function Placa() {
   );
 }
 
+/** Desenha formas do mapa de avarias no estilo do guia (rodas cheias, vidros preenchidos). */
+function DeFormas({ formas }: { formas: Forma[] }) {
+  return (
+    <g>
+      {formas.map((f, i) => {
+        const estilo = f.p === "roda" ? cheio : f.p === "cubo" ? { fill: "#fff" } : f.p === "vidro" ? vidro : lataria;
+        if (f.t === "path") return <path key={i} d={f.d} {...estilo} />;
+        if (f.t === "circle") return <circle key={i} cx={f.cx} cy={f.cy} r={f.r} {...estilo} />;
+        if (f.t === "ellipse") return <ellipse key={i} cx={f.cx} cy={f.cy} rx={f.rx} ry={f.ry} {...estilo} />;
+        return <rect key={i} x={f.x} y={f.y} width={f.w} height={f.h} rx={f.rx} {...estilo} />;
+      })}
+    </g>
+  );
+}
+
+const VISTA_DO_MAPA: Partial<Record<VistaFoto, VistaAvaria>> = {
+  frente: "frente",
+  traseira: "traseira",
+  "lateral-esquerda": "lateral_esquerda",
+  "lateral-direita": "lateral_direita",
+};
+
 /** Foto extra (opcional): câmera com um sinal de mais. */
 function Extra() {
   return (
@@ -177,9 +202,20 @@ function Extra() {
   );
 }
 
-export function SilhuetaCarro({ vista, className }: { vista: VistaFoto; className?: string }) {
+export function SilhuetaCarro({ vista, veiculo = "carro", className }: { vista: VistaFoto; veiculo?: string; className?: string }) {
   let desenho: React.ReactNode;
   let espelhar = false;
+  const doMapa = veiculo !== "carro" ? VISTA_DO_MAPA[vista] : undefined;
+  if (doMapa) {
+    const d = desenhosDo(veiculo)[doMapa];
+    return (
+      <svg viewBox="0 0 200 96" className={className} aria-hidden>
+        <g transform={d.espelhar ? "translate(200 0) scale(-1 1)" : undefined}>
+          <DeFormas formas={d.formas} />
+        </g>
+      </svg>
+    );
+  }
   switch (vista) {
     case "frente":
       desenho = <Frontal />;

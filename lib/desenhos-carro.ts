@@ -1,14 +1,19 @@
 /**
- * Desenhos ORIGINAIS do carro (linhas simples) usados no mapa de avarias.
+ * Desenhos ORIGINAIS do carro, da moto e do caminhão (linhas simples) usados no mapa de avarias
+ * (e, para moto e caminhão, também como guia das fotos).
  * Os mesmos dados desenham a tela (SVG) e o PDF, para as marcações ficarem no mesmo lugar.
  * Área de desenho: 200 x 96. Posições das avarias são guardadas em % (x, y).
  */
 
-export type Forma =
-  | { t: "path"; d: string }
-  | { t: "circle"; cx: number; cy: number; r: number }
-  | { t: "rect"; x: number; y: number; w: number; h: number; rx?: number }
-  | { t: "ellipse"; cx: number; cy: number; rx: number; ry: number };
+/** `p` só muda o estilo no guia das fotos: roda (cheia), cubo (branco), vidro. O mapa ignora. */
+type Estilo = { p?: "roda" | "cubo" | "vidro" };
+export type Forma = Estilo &
+  (
+    | { t: "path"; d: string }
+    | { t: "circle"; cx: number; cy: number; r: number }
+    | { t: "rect"; x: number; y: number; w: number; h: number; rx?: number }
+    | { t: "ellipse"; cx: number; cy: number; rx: number; ry: number }
+  );
 
 export type VistaAvaria = "lateral_esquerda" | "lateral_direita" | "frente" | "traseira" | "cima";
 
@@ -75,6 +80,138 @@ export const DESENHOS: Record<VistaAvaria, { formas: Forma[]; espelhar?: boolean
   traseira: { formas: traseira },
   cima: { formas: cima },
 };
+
+/* ---------- Motocicleta ---------- */
+
+const motoLateral: Forma[] = [
+  { t: "path", d: "M66 34 Q74 26 92 26 L110 28 Q116 30 118 34 L150 34 Q164 34 170 40 L166 44 L118 44 L112 50 L76 50 Z" },
+  { t: "rect", x: 80, y: 50, w: 30, h: 18, rx: 4 },
+  { t: "path", d: "M42 66 L60 24" },
+  { t: "path", d: "M52 22 L68 18" },
+  { t: "path", d: "M62 21 L57 11" },
+  { t: "ellipse", cx: 63, cy: 34, rx: 6, ry: 5, p: "vidro" },
+  { t: "path", d: "M24 56 Q40 40 58 52" },
+  { t: "path", d: "M140 44 Q160 40 174 52" },
+  { t: "path", d: "M110 58 L156 66" },
+  { t: "path", d: "M98 70 Q124 70 150 60" },
+  { t: "circle", cx: 42, cy: 66, r: 20, p: "roda" },
+  { t: "circle", cx: 156, cy: 66, r: 20, p: "roda" },
+  { t: "circle", cx: 42, cy: 66, r: 7, p: "cubo" },
+  { t: "circle", cx: 156, cy: 66, r: 7, p: "cubo" },
+];
+
+const motoFrente: Forma[] = [
+  { t: "path", d: "M80 30 Q100 14 120 30 L116 50 Q100 56 84 50 Z" },
+  { t: "path", d: "M90 56 L94 50 M110 56 L106 50" },
+  { t: "path", d: "M50 28 L80 30 M120 30 L150 28" },
+  { t: "rect", x: 38, y: 24, w: 13, h: 8, rx: 3 },
+  { t: "rect", x: 149, y: 24, w: 13, h: 8, rx: 3 },
+  { t: "path", d: "M68 29 L62 15 M132 29 L138 15" },
+  { t: "ellipse", cx: 60, cy: 11, rx: 7, ry: 5, p: "vidro" },
+  { t: "ellipse", cx: 140, cy: 11, rx: 7, ry: 5, p: "vidro" },
+  { t: "circle", cx: 100, cy: 38, r: 8, p: "vidro" },
+  { t: "rect", x: 70, y: 40, w: 9, h: 5, rx: 2 },
+  { t: "rect", x: 121, y: 40, w: 9, h: 5, rx: 2 },
+  { t: "path", d: "M86 62 Q100 54 114 62" },
+  { t: "rect", x: 92, y: 60, w: 16, h: 32, rx: 7, p: "roda" },
+];
+
+const motoTraseira: Forma[] = [
+  { t: "path", d: "M76 34 Q100 22 124 34 L118 50 L82 50 Z" },
+  { t: "path", d: "M50 22 L150 22" },
+  { t: "rect", x: 38, y: 18, w: 13, h: 8, rx: 3 },
+  { t: "rect", x: 149, y: 18, w: 13, h: 8, rx: 3 },
+  { t: "rect", x: 88, y: 36, w: 24, h: 7, rx: 3 },
+  { t: "rect", x: 66, y: 40, w: 9, h: 5, rx: 2 },
+  { t: "rect", x: 125, y: 40, w: 9, h: 5, rx: 2 },
+  { t: "rect", x: 84, y: 52, w: 32, h: 14, rx: 2 },
+  { t: "ellipse", cx: 134, cy: 72, rx: 11, ry: 6 },
+  { t: "rect", x: 92, y: 66, w: 16, h: 26, rx: 7, p: "roda" },
+];
+
+const motoCima: Forma[] = [
+  { t: "ellipse", cx: 88, cy: 48, rx: 22, ry: 14 },
+  { t: "rect", x: 108, y: 38, w: 50, h: 20, rx: 9 },
+  { t: "path", d: "M54 20 L54 76" },
+  { t: "rect", x: 49, y: 12, w: 10, h: 10, rx: 3 },
+  { t: "rect", x: 49, y: 74, w: 10, h: 10, rx: 3 },
+  { t: "circle", cx: 44, cy: 26, r: 4 },
+  { t: "circle", cx: 44, cy: 70, r: 4 },
+  { t: "rect", x: 12, y: 42, w: 40, h: 12, rx: 6, p: "roda" },
+  { t: "rect", x: 150, y: 42, w: 42, h: 12, rx: 6, p: "roda" },
+];
+
+/* ---------- Caminhão ---------- */
+
+const caminhaoLateral: Forma[] = [
+  { t: "path", d: "M12 72 L12 34 Q12 20 26 18 L58 16 Q66 16 66 26 L66 72 Z" },
+  { t: "rect", x: 70, y: 10, w: 120, h: 58, rx: 3 },
+  { t: "path", d: "M18 24 L56 22 L58 42 L18 44 Z", p: "vidro" },
+  { t: "path", d: "M66 70 L190 70" },
+  { t: "rect", x: 8, y: 62, w: 10, h: 9, rx: 2 },
+  { t: "circle", cx: 38, cy: 76, r: 13, p: "roda" },
+  { t: "circle", cx: 140, cy: 76, r: 13, p: "roda" },
+  { t: "circle", cx: 168, cy: 76, r: 13, p: "roda" },
+  { t: "circle", cx: 38, cy: 76, r: 5, p: "cubo" },
+  { t: "circle", cx: 140, cy: 76, r: 5, p: "cubo" },
+  { t: "circle", cx: 168, cy: 76, r: 5, p: "cubo" },
+];
+
+const caminhaoFrente: Forma[] = [
+  { t: "rect", x: 46, y: 8, w: 108, h: 68, rx: 10 },
+  { t: "rect", x: 54, y: 16, w: 92, h: 28, rx: 4, p: "vidro" },
+  { t: "rect", x: 72, y: 50, w: 56, h: 18, rx: 2 },
+  { t: "path", d: "M76 56 L124 56 M76 62 L124 62" },
+  { t: "rect", x: 54, y: 52, w: 14, h: 9, rx: 3 },
+  { t: "rect", x: 132, y: 52, w: 14, h: 9, rx: 3 },
+  { t: "rect", x: 44, y: 76, w: 112, h: 8, rx: 3 },
+  { t: "rect", x: 30, y: 18, w: 10, h: 22, rx: 3 },
+  { t: "rect", x: 160, y: 18, w: 10, h: 22, rx: 3 },
+  { t: "path", d: "M40 24 L46 24 M154 24 L160 24" },
+  { t: "rect", x: 50, y: 84, w: 18, h: 10, rx: 3, p: "roda" },
+  { t: "rect", x: 132, y: 84, w: 18, h: 10, rx: 3, p: "roda" },
+];
+
+const caminhaoTraseira: Forma[] = [
+  { t: "rect", x: 40, y: 6, w: 120, h: 72, rx: 3 },
+  { t: "path", d: "M100 6 L100 78" },
+  { t: "path", d: "M92 30 L92 54 M108 30 L108 54" },
+  { t: "rect", x: 46, y: 68, w: 14, h: 7, rx: 2 },
+  { t: "rect", x: 140, y: 68, w: 14, h: 7, rx: 2 },
+  { t: "rect", x: 86, y: 64, w: 28, h: 11, rx: 1 },
+  { t: "rect", x: 38, y: 79, w: 124, h: 6, rx: 2 },
+  { t: "rect", x: 48, y: 85, w: 22, h: 9, rx: 3, p: "roda" },
+  { t: "rect", x: 130, y: 85, w: 22, h: 9, rx: 3, p: "roda" },
+];
+
+const caminhaoCima: Forma[] = [
+  { t: "rect", x: 10, y: 22, w: 46, h: 52, rx: 8 },
+  { t: "path", d: "M18 28 Q13 48 18 68", p: "vidro" },
+  { t: "rect", x: 60, y: 14, w: 130, h: 68, rx: 3 },
+  { t: "rect", x: 24, y: 13, w: 9, h: 8, rx: 2 },
+  { t: "rect", x: 24, y: 75, w: 9, h: 8, rx: 2 },
+];
+
+const DESENHOS_MOTO: typeof DESENHOS = {
+  lateral_esquerda: { formas: motoLateral },
+  lateral_direita: { formas: motoLateral, espelhar: true },
+  frente: { formas: motoFrente },
+  traseira: { formas: motoTraseira },
+  cima: { formas: motoCima },
+};
+
+const DESENHOS_CAMINHAO: typeof DESENHOS = {
+  lateral_esquerda: { formas: caminhaoLateral },
+  lateral_direita: { formas: caminhaoLateral, espelhar: true },
+  frente: { formas: caminhaoFrente },
+  traseira: { formas: caminhaoTraseira },
+  cima: { formas: caminhaoCima },
+};
+
+/** Desenhos do veículo certo (carro, moto ou caminhão). */
+export function desenhosDo(tipo: string | null | undefined) {
+  return tipo === "moto" ? DESENHOS_MOTO : tipo === "caminhao" ? DESENHOS_CAMINHAO : DESENHOS;
+}
 
 export const TIPOS_AVARIA = [
   { id: "risco", nome: "Risco", cor: "#d97706" },

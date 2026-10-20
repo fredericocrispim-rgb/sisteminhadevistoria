@@ -303,6 +303,39 @@ export const textos = {
     iphone2: "Depois em Adicionar à Tela de Início",
   },
 
+  veiculo: {
+    pergunta: "Qual é o veículo?",
+  },
+
+  equipe: {
+    titulo: "Equipe",
+    precoRegra: (inclusos: number, extra: string) => `Até ${inclusos} pessoas, contando você, pelo mesmo preço. Cada pessoa a mais: + ${extra} por mês.`,
+    hoje: (pessoas: number, valor: string) => `Hoje: ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"} · ${valor} por mês`,
+    adicionar: "Adicionar pessoa",
+    nome: "Nome da pessoa",
+    papel: "O que ela faz",
+    vistoriador: "Vistoriador",
+    vistoriadorDica: "Só faz vistorias",
+    gerente: "Gerente",
+    gerenteDica: "Faz tudo, menos o plano",
+    criarConvite: "Criar convite",
+    comEssaPessoa: (valor: string) => `Com essa pessoa, a mensalidade passa para ${valor}.`,
+    conviteCriado: "Convite pronto",
+    conviteCriadoTexto: "Mande o link para a pessoa. Ela cria a senha e já entra na equipe.",
+    enviarWhatsapp: "Mandar no WhatsApp",
+    copiarLink: "Copiar link",
+    copiado: "Link copiado",
+    mensagem: (nome: string, oficina: string, link: string) =>
+      `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no Sisteminha de Vistoria. Toque no link para entrar: ${link}`,
+    pendentes: "Esperando aceitar",
+    cancelar: "Cancelar convite",
+    tirar: "Tirar da equipe",
+    tirarTitulo: (nome: string) => `Tirar ${nome} da equipe?`,
+    tirarTexto: "A pessoa não vai mais conseguir entrar. As vistorias que ela fez continuam guardadas.",
+    voce: "Você",
+    papeis: { dono: "Dono", gerente: "Gerente", vistoriador: "Vistoriador" },
+  },
+
   indicar: {
     menu: "Indique e ganhe",
     titulo: "Indique e ganhe",

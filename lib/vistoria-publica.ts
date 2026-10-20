@@ -8,7 +8,7 @@ export async function vistoriaPorToken(token: string) {
   const { data } = await admin
     .from("vistorias")
     .select(
-      `id, tipo, numero, status, codigo_autenticidade, concluida_em, km, combustivel, observacoes, pdf_url, link_publico_ativo,
+      `id, tipo, tipo_veiculo, numero, status, codigo_autenticidade, concluida_em, km, combustivel, observacoes, pdf_url, link_publico_ativo,
        nome_assinante_cliente, cliente_ausente_justificativa, recebido_por, liberado_por,
        empresas (nome_fantasia, whatsapp, logo_app_url),
        veiculos (placa, marca, modelo, cor), clientes (nome)`,

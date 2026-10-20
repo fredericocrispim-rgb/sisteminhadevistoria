@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, Gift, ImageIcon, KeyRound, LogOut, QrCode, ShieldCheck } from "lucide-react";
+import { ChevronRight, Gift, ImageIcon, Users, KeyRound, LogOut, QrCode, ShieldCheck } from "lucide-react";
 import { BotaoModoSol, InstalarApp } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
@@ -28,6 +28,9 @@ export default async function Mais() {
 
       {gestor && (
         <>
+          <Item href="/equipe" icone={<Users aria-hidden />}>
+            {textos.menu.equipe}
+          </Item>
           <Item href="/plano" icone={<QrCode aria-hidden />}>
             {textos.menu.meuPlano}
           </Item>

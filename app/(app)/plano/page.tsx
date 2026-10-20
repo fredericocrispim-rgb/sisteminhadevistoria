@@ -6,6 +6,7 @@ import { LogoProduto, PagarPix } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { formatarReais, gerarPixCopiaECola } from "@/lib/pix";
+import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { textos } from "@/lib/textos";
 import { sair } from "../mais/acoes";
 import { continuarSemPagar } from "./acoes";
@@ -28,13 +29,12 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   if (!gestor && !bloqueado) redirect("/inicio");
 
   const admin = criarClienteAdmin();
-  const [{ data: plat }, { data: assinatura }, { data: planos }] = await Promise.all([
+  const [{ data: plat }, m] = await Promise.all([
     admin.from("plataforma").select("nome_produto, pix_chave, pix_nome_recebedor, pix_cidade").single(),
-    admin.from("assinaturas").select("plano_id").eq("empresa_id", empresa.id).maybeSingle(),
-    admin.from("planos").select("id, nome, preco_mensal").eq("ativo", true).order("ordem"),
+    mensalidadeDaOficina(empresa.id),
   ]);
-  const p = planos?.find((x) => x.id === assinatura?.plano_id) ?? planos?.[0];
-  const valor = Number(p?.preco_mensal ?? 0);
+  // O valor (e o QR Code) acompanha o tamanho da equipe: usuário a mais soma na mensalidade
+  const valor = m.valor;
   const codigo =
     plat?.pix_chave && plat.pix_nome_recebedor && plat.pix_cidade && valor > 0
       ? gerarPixCopiaECola({
@@ -117,10 +117,17 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
 
       {gestor && (
         <>
-          {p && (
-            <p className="text-lg">
-              {empresa.nome_fantasia} · Plano <strong>{p.nome}</strong>: {formatarReais(valor)} por mês
-            </p>
+          {m.planoNome && (
+            <div className="rounded-2xl bg-superficie px-4 py-3 text-lg">
+              <p>
+                {empresa.nome_fantasia} · Plano <strong>{m.planoNome}</strong>
+              </p>
+              <p className="text-base text-muted-foreground">
+                {m.usuarios} {m.usuarios === 1 ? "usuário" : "usuários"}
+                {m.preco.inclusos != null && ` · ${m.preco.inclusos} inclusos`}
+                {m.aMais > 0 && ` · ${m.aMais} a mais × ${formatarReais(m.preco.extra)}`}
+              </p>
+            </div>
           )}
           {codigo ? (
             <PagarPix codigo={codigo} valor={valor} descricao="Mensalidade" />

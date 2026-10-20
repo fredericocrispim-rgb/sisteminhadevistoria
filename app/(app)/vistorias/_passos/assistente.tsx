@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AjudaRapida, BarraEtapas } from "@/components/vf";
 import { textos } from "@/lib/textos";
+import { nomeVeiculo } from "@/lib/vistoria";
 import { PassoCarro } from "./passo-carro";
 import { PassoFotos } from "./passo-fotos";
 import { PassoAvarias } from "./passo-avarias";
@@ -34,7 +35,7 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
     window.scrollTo(0, 0);
   }
 
-  const titulo = `${dados.tipo === "ENTRADA" ? "Chegada" : "Entrega"} · ${dados.carro.placa}`;
+  const titulo = `${dados.tipo === "ENTRADA" ? "Chegada" : "Entrega"} · ${nomeVeiculo(dados.tipoVeiculo)} · ${dados.carro.placa}`;
 
   return (
     <>
@@ -50,6 +51,7 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
           <PassoCarro
             vistoriaId={dados.id}
             tipo={dados.tipo}
+            tipoVeiculo={dados.tipoVeiculo}
             inicial={dados.carro}
             entrada={dados.entrada}
             aoSalvar={(_, carro) => {
@@ -63,6 +65,7 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
             vistoriaId={dados.id}
             empresaId={dados.empresaId}
             placa={dados.carro.placa}
+            veiculo={dados.tipoVeiculo}
             oficinaNome={dados.oficinaNome}
             iniciais={dados.fotos}
             aoMudar={(fotos) => setDados((d) => ({ ...d, fotos }))}
@@ -72,6 +75,7 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
         {passo === 3 && (
           <PassoAvarias
             vistoriaId={dados.id}
+            veiculo={dados.tipoVeiculo}
             tipo={dados.tipo}
             iniciais={dados.avarias}
             daEntrada={dados.avariasEntrada}
@@ -82,6 +86,7 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
         {passo === 4 && (
           <PassoPneus
             vistoriaId={dados.id}
+            veiculo={dados.tipoVeiculo}
             checklist={dados.checklist}
             iniciaisPneus={dados.pneus}
             iniciaisItens={dados.itens}

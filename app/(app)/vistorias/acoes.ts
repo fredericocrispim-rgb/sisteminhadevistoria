@@ -8,7 +8,7 @@ import { obterContexto, situacaoPlano } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { placaParaBanco, placaValida, telefoneValido, kmParaNumero } from "@/lib/formatos";
-import { FOTOS_OBRIGATORIAS, PNEUS } from "@/lib/vistoria";
+import { FOTOS_OBRIGATORIAS, PNEUS, PNEUS_MOTO, pneusDoVeiculo } from "@/lib/vistoria";
 import { gerarTermoPdf } from "@/lib/pdf/termo";
 
 type Resultado<T = object> = ({ ok: true } & T) | { ok: false; erro: string };
@@ -35,7 +35,7 @@ export async function buscarPorPlaca(placa: string) {
   const supabase = await criarClienteServidor();
   const { data: veiculo } = await supabase
     .from("veiculos")
-    .select("id, placa, marca, modelo, ano, cor, clientes (nome, whatsapp, email)")
+    .select("id, placa, marca, modelo, ano, cor, tipo, clientes (nome, whatsapp, email)")
     .eq("empresa_id", ctx.empresa.id)
     .eq("placa", placaParaBanco(placa))
     .maybeSingle();
@@ -50,6 +50,7 @@ export async function buscarPorPlaca(placa: string) {
     .maybeSingle();
   const cliente = veiculo.clientes as unknown as { nome: string; whatsapp: string | null; email: string | null } | null;
   return {
+    tipoVeiculo: veiculo.tipo as string,
     marca: veiculo.marca ?? "",
     modelo: veiculo.modelo ?? "",
     cor: veiculo.cor ?? "",
@@ -64,6 +65,7 @@ export async function buscarPorPlaca(placa: string) {
 const esquemaPasso1 = z.object({
   vistoriaId: z.string().uuid().nullish(),
   tipo: z.enum(["ENTRADA", "SAIDA"]),
+  tipoVeiculo: z.enum(["carro", "moto", "caminhao"]).default("carro"),
   entradaId: z.string().uuid().nullish(),
   placa: z.string().refine(placaValida, "Placa incompleta"),
   marca: z.string().trim().min(1, "Escolha a marca").max(40),
@@ -111,7 +113,7 @@ export async function salvarCarroCliente(dados: z.input<typeof esquemaPasso1>): 
   const placa = placaParaBanco(d.placa);
   let veiculoId: string;
   {
-    const dadosVeiculo = { marca: d.marca, modelo: d.modelo || null, cor: d.cor, cliente_id: clienteId };
+    const dadosVeiculo = { marca: d.marca, modelo: d.modelo || null, cor: d.cor, tipo: d.tipoVeiculo, cliente_id: clienteId };
     const { data: existente } = await supabase.from("veiculos").select("id").eq("empresa_id", empresaId).eq("placa", placa).maybeSingle();
     if (existente) {
       veiculoId = existente.id;
@@ -130,6 +132,7 @@ export async function salvarCarroCliente(dados: z.input<typeof esquemaPasso1>): 
   const campos = {
     veiculo_id: veiculoId,
     cliente_id: clienteId,
+    tipo_veiculo: d.tipoVeiculo,
     km: kmParaNumero(d.km),
     combustivel: d.combustivel,
     chegou_guincho: d.tipo === "ENTRADA" && d.chegouGuincho,
@@ -168,7 +171,10 @@ export async function salvarCarroCliente(dados: z.input<typeof esquemaPasso1>): 
 
 const esquemaPasso4 = z.object({
   vistoriaId: z.string().uuid(),
-  pneus: z.array(z.object({ posicao: z.enum(PNEUS.map((p) => p.posicao) as [string, ...string[]]), estado: z.enum(["bom", "ruim", "ausente"]) })).length(5),
+  pneus: z
+    .array(z.object({ posicao: z.enum([...PNEUS, ...PNEUS_MOTO].map((p) => p.posicao) as [string, ...string[]]), estado: z.enum(["bom", "ruim", "ausente"]) }))
+    .min(2)
+    .max(5),
   itens: z.array(z.object({ nome: z.string().max(60), tem: z.boolean() })).max(60),
   observacoes: z.string().max(4000).default(""),
 });
@@ -180,6 +186,13 @@ export async function salvarPneusItens(dados: z.input<typeof esquemaPasso4>): Pr
   if (!v.success) return { ok: false, erro: "Marque todos os pneus" };
   const d = v.data;
   const supabase = await criarClienteServidor();
+
+  // Os pneus têm de ser exatamente os do veículo (moto: 2; carro e caminhão: 5)
+  const { data: vt } = await supabase.from("vistorias").select("tipo_veiculo").eq("id", d.vistoriaId).single();
+  const esperados = pneusDoVeiculo(vt?.tipo_veiculo).map((p) => p.posicao);
+  if (d.pneus.length !== esperados.length || !esperados.every((p) => d.pneus.some((x) => x.posicao === p))) {
+    return { ok: false, erro: "Marque todos os pneus" };
+  }
 
   await supabase.from("vistoria_pneus").delete().eq("vistoria_id", d.vistoriaId);
   const r1 = await supabase.from("vistoria_pneus").insert(d.pneus.map((p) => ({ vistoria_id: d.vistoriaId, ...p })));
@@ -222,7 +235,7 @@ export async function concluirVistoria(dados: z.input<typeof esquemaConcluir>): 
 
   const { data: vistoria } = await supabase
     .from("vistorias")
-    .select("id, empresa_id, status, codigo_autenticidade, veiculo_id")
+    .select("id, empresa_id, status, codigo_autenticidade, veiculo_id, tipo_veiculo")
     .eq("id", d.vistoriaId)
     .single();
   if (!vistoria || vistoria.status !== "rascunho") return { ok: false, erro: "Esta vistoria já foi concluída." };
@@ -234,7 +247,7 @@ export async function concluirVistoria(dados: z.input<typeof esquemaConcluir>): 
   ]);
   const faltaFoto = FOTOS_OBRIGATORIAS.find((f) => !fotos?.some((x) => x.categoria === f.categoria));
   if (faltaFoto) return { ok: false, erro: `Falta a foto: ${faltaFoto.titulo}` };
-  if ((pneus ?? 0) < 5) return { ok: false, erro: "Falta marcar os pneus" };
+  if ((pneus ?? 0) < pneusDoVeiculo(vistoria.tipo_veiculo).length) return { ok: false, erro: "Falta marcar os pneus" };
   if (!vistoria.veiculo_id) return { ok: false, erro: "Falta o carro e o cliente" };
 
   // Guarda as assinaturas

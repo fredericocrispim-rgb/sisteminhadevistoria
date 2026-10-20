@@ -18,6 +18,7 @@ export function PassoFotos({
   vistoriaId,
   empresaId,
   placa,
+  veiculo,
   oficinaNome,
   iniciais,
   aoMudar,
@@ -26,6 +27,7 @@ export function PassoFotos({
   vistoriaId: string;
   empresaId: string;
   placa: string;
+  veiculo: string;
   oficinaNome: string;
   iniciais: FotoSalva[];
   aoMudar: (fotos: FotoSalva[]) => void;
@@ -118,7 +120,7 @@ export function PassoFotos({
             <img src={fotoAtual.previa} alt={atual.titulo} className="aspect-[4/3] w-full object-cover" />
           ) : (
             <div className="px-4 pt-6">
-              <SilhuetaCarro vista={atual.vista} className="mx-auto w-4/5 text-oficina" />
+              <SilhuetaCarro vista={atual.vista} veiculo={veiculo} className="mx-auto w-4/5 text-oficina" />
             </div>
           )}
           <div className="px-4 pb-5">
@@ -139,6 +141,7 @@ export function PassoFotos({
             key={f.categoria}
             titulo={f.categoria === FOTO_EXTRA.categoria ? "Outra (opcional)" : f.titulo}
             vista={f.vista}
+            veiculo={veiculo}
             estado={estadoDe(f.categoria)}
             src={feita(f.categoria)?.previa ?? undefined}
             atual={f.categoria === atual.categoria && (faltam > 0 || Boolean(escolhida))}

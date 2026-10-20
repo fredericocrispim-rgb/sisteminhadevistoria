@@ -13,7 +13,7 @@ import {
   SeletorGrande,
 } from "@/components/vf";
 import { formatarKm, formatarPlaca, kmParaNumero, placaValida, telefoneValido } from "@/lib/formatos";
-import { CORES_CARRO, MARCAS_COMUNS, NOMES_COMBUSTIVEL, dataHoraBR } from "@/lib/vistoria";
+import { CORES_CARRO, EXEMPLO_MODELO, MARCAS_POR_TIPO, NOMES_COMBUSTIVEL, dataHoraBR, type TipoVeiculo } from "@/lib/vistoria";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 import { buscarPorPlaca, salvarCarroCliente } from "../acoes";
@@ -24,20 +24,23 @@ const RASCUNHO = "vf-vistoria-carro";
 export function PassoCarro({
   vistoriaId,
   tipo,
+  tipoVeiculo,
   inicial,
   entrada,
   aoSalvar,
 }: {
   vistoriaId: string | null;
   tipo: "ENTRADA" | "SAIDA";
+  tipoVeiculo: TipoVeiculo;
   inicial: DadosCarro;
   entrada: InfoEntrada;
   aoSalvar: (id: string, dados: DadosCarro) => void;
 }) {
+  const MARCAS_COMUNS = MARCAS_POR_TIPO[tipoVeiculo];
   const [c, setC] = useState<DadosCarro>(() => {
     if (vistoriaId || inicial.placa) return inicial;
     try {
-      return { ...inicial, ...JSON.parse(localStorage.getItem(`${RASCUNHO}-${tipo}`) ?? "{}") };
+      return { ...inicial, ...JSON.parse(localStorage.getItem(`${RASCUNHO}-${tipo}-${tipoVeiculo}`) ?? "{}") };
     } catch {
       return inicial;
     }
@@ -56,9 +59,9 @@ export function PassoCarro({
   useEffect(() => {
     if (vistoriaId) return;
     try {
-      localStorage.setItem(`${RASCUNHO}-${tipo}`, JSON.stringify(c));
+      localStorage.setItem(`${RASCUNHO}-${tipo}-${tipoVeiculo}`, JSON.stringify(c));
     } catch {}
-  }, [c, vistoriaId, tipo]);
+  }, [c, vistoriaId, tipo, tipoVeiculo]);
 
   // Placa completa → já conhecemos este carro?
   useEffect(() => {
@@ -78,7 +81,7 @@ export function PassoCarro({
         clienteWhatsapp: a.clienteWhatsapp || r.clienteWhatsapp,
       }));
     });
-  }, [c.placa]);
+  }, [c.placa, MARCAS_COMUNS]);
 
   const km = kmParaNumero(c.km);
   const erros = {
@@ -102,11 +105,11 @@ export function PassoCarro({
     }
     setCarregando(true);
     setErro(undefined);
-    const r = await salvarCarroCliente({ vistoriaId, tipo, entradaId: entrada?.id ?? null, ...c, combustivel: c.combustivel! });
+    const r = await salvarCarroCliente({ vistoriaId, tipo, tipoVeiculo, entradaId: entrada?.id ?? null, ...c, combustivel: c.combustivel! });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
     try {
-      localStorage.removeItem(`${RASCUNHO}-${tipo}`);
+      localStorage.removeItem(`${RASCUNHO}-${tipo}-${tipoVeiculo}`);
     } catch {}
     aoSalvar(r.id, c);
   }
@@ -134,7 +137,7 @@ export function PassoCarro({
         <CampoPlaca valor={c.placa} onValor={(v) => muda({ placa: formatarPlaca(v) })} erro={erros.placa} autoFocus={!c.placa} />
         {conhecido && (
           <p className="flex items-center gap-2 rounded-2xl bg-acao-clara px-4 py-3 text-base font-bold text-acao">
-            <Check aria-hidden className="size-6" /> Já conhecemos este carro. Confira os dados.
+            <Check aria-hidden className="size-6" /> Já conhecemos este veículo. Confira os dados.
           </p>
         )}
       </div>
@@ -161,7 +164,7 @@ export function PassoCarro({
         {erros.marca && <MensagemErroCampo>Escolha a marca</MensagemErroCampo>}
       </div>
 
-      <Campo rotulo="Modelo" dica="Ex.: Onix, Gol, HB20" autoCapitalize="words" valor={c.modelo} onValor={(v) => muda({ modelo: v })} />
+      <Campo rotulo="Modelo" dica={EXEMPLO_MODELO[tipoVeiculo]} autoCapitalize="words" valor={c.modelo} onValor={(v) => muda({ modelo: v })} />
 
       <div className="flex flex-col gap-2">
         <span className="text-lg font-bold">Cor</span>

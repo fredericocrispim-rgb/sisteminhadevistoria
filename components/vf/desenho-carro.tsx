@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { ALTURA, DESENHOS, LARGURA, corDoTipo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
+import { ALTURA, LARGURA, corDoTipo, desenhosDo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
 import { cn } from "@/lib/utils";
 
 export type MarcaAvaria = { id: string; numero: number; x: number; y: number; tipo: string; antiga?: boolean };
@@ -20,23 +20,26 @@ function Formas({ formas }: { formas: Forma[] }) {
 }
 
 /**
- * Desenho do carro em uma vista, com as marcações numeradas.
+ * Desenho do veículo em uma vista, com as marcações numeradas.
  * Toque no desenho = nova marcação (onToque recebe x, y em %). Toque na marcação = editar.
  */
 export function DesenhoCarro({
   vista,
+  veiculo,
   marcas,
   onToque,
   onMarca,
   className,
 }: {
   vista: VistaAvaria;
+  /** carro (padrão), moto ou caminhao. */
+  veiculo?: string | null;
   marcas: MarcaAvaria[];
   onToque?: (x: number, y: number) => void;
   onMarca?: (m: MarcaAvaria) => void;
   className?: string;
 }) {
-  const desenho = DESENHOS[vista];
+  const desenho = desenhosDo(veiculo)[vista];
 
   function tocar(e: MouseEvent<HTMLDivElement>) {
     if (!onToque) return;

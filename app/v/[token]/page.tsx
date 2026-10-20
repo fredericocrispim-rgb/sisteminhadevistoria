@@ -5,7 +5,7 @@ import { FileText, MessageCircle, XCircle } from "lucide-react";
 import { BotaoPrincipal, DesenhoCarro, EstadoVazio, LogoOficina, LogoProduto } from "@/components/vf";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { vistoriaPorToken } from "@/lib/vistoria-publica";
-import { NOMES_COMBUSTIVEL, PNEUS, dataHoraBR, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
+import { NOMES_COMBUSTIVEL, dataHoraBR, pneusDoVeiculo, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
 import { VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type VistaAvaria } from "@/lib/desenhos-carro";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
@@ -108,6 +108,7 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
                   <p className="mb-1 text-sm font-bold text-muted-foreground">{vi.nome}</p>
                   <DesenhoCarro
                     vista={vi.id as VistaAvaria}
+                    veiculo={v.tipo_veiculo}
                     marcas={(avarias ?? [])
                       .filter((a) => a.vista === vi.id)
                       .map((a) => ({ id: String(a.numero), numero: a.numero, x: Number(a.x), y: Number(a.y), tipo: a.tipo }))}
@@ -137,7 +138,7 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
         <section className="flex flex-col gap-2">
           <h2 className="text-xl font-extrabold">Pneus</h2>
           <ul className="grid grid-cols-2 gap-2 text-base">
-            {PNEUS.map((p) => {
+            {pneusDoVeiculo(v.tipo_veiculo).map((p) => {
               const estado = pneus?.find((x) => x.posicao === p.posicao)?.estado;
               return (
                 <li key={p.posicao} className="rounded-xl bg-superficie px-3 py-2">

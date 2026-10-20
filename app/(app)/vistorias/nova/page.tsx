@@ -7,6 +7,7 @@ import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { listarPatio } from "@/lib/patio";
 import { formatarPlaca, formatarTelefone } from "@/lib/formatos";
+import { tipoVeiculo, type TipoVeiculo } from "@/lib/vistoria";
 import type { NivelCombustivel } from "@/components/vf";
 import { NovaVistoria } from "./nova-vistoria";
 import { CARRO_VAZIO, type DadosCarro, type InfoEntrada } from "../_passos/tipos";
@@ -43,11 +44,12 @@ export default async function PaginaNova({ searchParams }: PageProps<"/vistorias
   // ENTREGA ligada à chegada: já vem preenchida
   let inicial: DadosCarro = CARRO_VAZIO;
   let entrada: InfoEntrada = null;
+  let veiculoInicial: TipoVeiculo | null = null;
   if (entradaId) {
     const supabase = await criarClienteServidor();
     const { data: e } = await supabase
       .from("vistorias")
-      .select("id, concluida_em, iniciada_em, km, combustivel, veiculos (placa, marca, modelo, cor), clientes (nome, whatsapp)")
+      .select("id, concluida_em, iniciada_em, km, combustivel, tipo_veiculo, veiculos (placa, marca, modelo, cor), clientes (nome, whatsapp)")
       .eq("id", entradaId)
       .maybeSingle();
     if (e) {
@@ -63,9 +65,10 @@ export default async function PaginaNova({ searchParams }: PageProps<"/vistorias
         clienteNome: cliente?.nome ?? "",
         clienteWhatsapp: cliente?.whatsapp ? formatarTelefone(cliente.whatsapp) : "",
       };
+      veiculoInicial = tipoVeiculo(e.tipo_veiculo);
       entrada = { id: e.id, data: e.concluida_em ?? e.iniciada_em, km: e.km, combustivel: e.combustivel };
     }
   }
 
-  return <NovaVistoria tipo={tipo} inicial={inicial} entrada={entrada} />;
+  return <NovaVistoria tipo={tipo} inicial={inicial} entrada={entrada} veiculoInicial={veiculoInicial} />;
 }

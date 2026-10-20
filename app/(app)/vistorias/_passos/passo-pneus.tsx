@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { ArrowRight, Check, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, MensagemErroCampo, SeletorGrande } from "@/components/vf";
-import { PNEUS, type EstadoPneu } from "@/lib/vistoria";
+import { pneusDoVeiculo, type EstadoPneu } from "@/lib/vistoria";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 import { salvarPneusItens } from "../acoes";
 
 export function PassoPneus({
   vistoriaId,
+  veiculo,
   checklist,
   iniciaisPneus,
   iniciaisItens,
@@ -17,12 +18,14 @@ export function PassoPneus({
   aoSalvar,
 }: {
   vistoriaId: string;
+  veiculo: string;
   checklist: string[];
   iniciaisPneus: Record<string, EstadoPneu>;
   iniciaisItens: Record<string, boolean>;
   observacoesIniciais: string;
   aoSalvar: (d: { pneus: Record<string, EstadoPneu>; itens: Record<string, boolean>; observacoes: string }) => void;
 }) {
+  const PNEUS = pneusDoVeiculo(veiculo);
   const [pneus, setPneus] = useState<Record<string, EstadoPneu>>(iniciaisPneus);
   const [itens, setItens] = useState<Record<string, boolean>>(iniciaisItens);
   const [observacoes, setObservacoes] = useState(observacoesIniciais);

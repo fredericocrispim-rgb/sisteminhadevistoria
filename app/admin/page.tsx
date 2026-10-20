@@ -6,6 +6,8 @@ import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { fasePagamento, hojeBR } from "@/lib/cadastro";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
+import { valorMensalidade } from "@/lib/cobranca";
+import { formatarReais } from "@/lib/pix";
 import { textos } from "@/lib/textos";
 import { marcarComoPago } from "./acoes";
 import { LinkSenha } from "./link-senha";
@@ -41,12 +43,15 @@ function situacao(a: Assinatura | undefined, carencia: number) {
 export default async function Admin() {
   await exigirSuperadmin();
   const admin = criarClienteAdmin();
-  const { data: plat } = await admin.from("plataforma").select("dias_carencia").single();
+  const [{ data: plat }, { data: planos }] = await Promise.all([
+    admin.from("plataforma").select("dias_carencia").single(),
+    admin.from("planos").select("id, preco_mensal, limite_usuarios, preco_usuario_extra").eq("ativo", true).order("ordem"),
+  ]);
   const carencia = plat?.dias_carencia ?? 5;
   const { data: empresas } = await admin
     .from("empresas")
     .select(
-      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, assinaturas (status, fim_teste, proximo_vencimento)",
+      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, assinaturas (status, fim_teste, proximo_vencimento, plano_id), usuarios_empresa (ativo)",
     )
     .order("criado_em", { ascending: false })
     .limit(200);
@@ -68,6 +73,11 @@ export default async function Admin() {
           const bruto = e.assinaturas as unknown as Assinatura[] | Assinatura | null;
           const a = (Array.isArray(bruto) ? bruto[0] : bruto) ?? undefined;
           const s = situacao(a, carencia);
+          const usuarios = Math.max(1, (e.usuarios_empresa as unknown as { ativo: boolean }[]).filter((u) => u.ativo).length);
+          const pl = planos?.find((x) => x.id === (a as { plano_id?: string } | undefined)?.plano_id) ?? planos?.[0];
+          const valor = pl
+            ? valorMensalidade({ base: Number(pl.preco_mensal), inclusos: pl.limite_usuarios, extra: Number(pl.preco_usuario_extra ?? 0) }, usuarios)
+            : 0;
           const primeiroNome = e.responsavel_nome?.split(" ")[0] ?? "";
           const mensagem = `Olá${primeiroNome ? `, ${primeiroNome}` : ""}! Aqui é o Frederico, do ${textos.produto.nome}. Tudo certo com o teste da ${e.nome_fantasia}?`;
           return (
@@ -89,7 +99,12 @@ export default async function Admin() {
                   )}
                 </div>
               </div>
-              <span className={`self-start rounded-full px-3 py-1 text-base font-bold ${s.classe}`}>{s.texto}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-3 py-1 text-base font-bold ${s.classe}`}>{s.texto}</span>
+                <span className="text-base font-semibold text-muted-foreground">
+                  {usuarios} {usuarios === 1 ? "usuário" : "usuários"} · {formatarReais(valor)}/mês
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {e.whatsapp ? (
                   <a

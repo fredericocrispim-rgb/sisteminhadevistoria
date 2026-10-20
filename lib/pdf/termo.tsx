@@ -4,8 +4,8 @@ import { Circle, Document, Ellipse, G, Image, Page, Path, Rect, StyleSheet, Svg,
 import QRCode from "qrcode";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { iniciais } from "@/lib/cores";
-import { ALTURA, DESENHOS, LARGURA, VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
-import { NOMES_COMBUSTIVEL, PNEUS, dataHoraBR, mascararDocumento, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
+import { ALTURA, LARGURA, desenhosDo, VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
+import { NOMES_COMBUSTIVEL, dataHoraBR, nomeVeiculo, pneusDoVeiculo, mascararDocumento, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
 import { formatarTelefone } from "@/lib/formatos";
 
 type Img = { data: Buffer; format: "png" | "jpg" };
@@ -175,6 +175,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
         <View style={s.secao}>
           <Text style={s.secaoTitulo}>Veículo e cliente</Text>
           <View style={s.grade}>
+            <Campo rotulo="Veículo" valor={nomeVeiculo(v.tipo_veiculo ?? "carro")} />
             <Campo rotulo="Placa" valor={placaParaMostrar(carro.placa)} />
             <Campo rotulo="Marca / modelo" valor={[carro.marca, carro.modelo].filter(Boolean).join(" ")} />
             <Campo rotulo="Cor" valor={carro.cor} />
@@ -199,7 +200,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
           <Text style={s.secaoTitulo}>Riscos e amassados</Text>
           <View style={s.vistas}>
             {VISTAS.map(({ id }) => {
-              const desenho = DESENHOS[id as VistaAvaria];
+              const desenho = desenhosDo(v.tipo_veiculo)[id as VistaAvaria];
               const marcas = (avarias ?? []).filter((a) => a.vista === id);
               return (
                 <View key={id} style={s.vista}>
@@ -242,7 +243,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
         <View style={[s.secao, { flexDirection: "row", gap: 16 }]} wrap={false}>
           <View style={{ width: 170 }}>
             <Text style={s.secaoTitulo}>Pneus</Text>
-            {PNEUS.map((p) => {
+            {pneusDoVeiculo(v.tipo_veiculo).map((p) => {
               const estado = pneus?.find((x) => x.posicao === p.posicao)?.estado;
               return (
                 <View key={p.posicao} style={s.linha}>

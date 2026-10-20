@@ -1,5 +1,5 @@
 import type { VistaAvaria } from "@/lib/desenhos-carro";
-import type { EstadoPneu } from "@/lib/vistoria";
+import type { EstadoPneu, TipoVeiculo } from "@/lib/vistoria";
 import type { NivelCombustivel } from "@/components/vf";
 
 export type DadosCarro = {
@@ -39,6 +39,7 @@ export type Avaria = {
 export type DadosVistoria = {
   id: string;
   tipo: "ENTRADA" | "SAIDA";
+  tipoVeiculo: TipoVeiculo;
   empresaId: string;
   oficinaNome: string;
   responsavel: string;

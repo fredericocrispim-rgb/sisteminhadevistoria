@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { formatarKm, formatarPlaca, formatarTelefone } from "@/lib/formatos";
-import { FOTOS_OBRIGATORIAS, type EstadoPneu } from "@/lib/vistoria";
+import { FOTOS_OBRIGATORIAS, pneusDoVeiculo, tipoVeiculo, type EstadoPneu } from "@/lib/vistoria";
 import type { NivelCombustivel } from "@/components/vf";
 import { AssistenteVistoria } from "../_passos/assistente";
 import type { Avaria, DadosVistoria } from "../_passos/tipos";
@@ -55,6 +55,7 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
   const dados: DadosVistoria = {
     id: v.id,
     tipo: v.tipo,
+    tipoVeiculo: tipoVeiculo(v.tipo_veiculo),
     empresaId: empresa.id,
     oficinaNome: empresa.nome_fantasia,
     responsavel: (v.tipo === "ENTRADA" ? v.recebido_por : v.liberado_por) ?? usuario.nome ?? usuario.email,
@@ -94,7 +95,7 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
   if (inicial === 6) inicial = 5;
   if (!(inicial >= 1 && inicial <= 5)) {
     const faltaFoto = FOTOS_OBRIGATORIAS.some((f) => !dados.fotos.some((x) => x.categoria === f.categoria));
-    inicial = !carro ? 1 : faltaFoto ? 2 : Object.keys(dados.pneus).length < 5 ? (dados.avarias.length ? 4 : 3) : 5;
+    inicial = !carro ? 1 : faltaFoto ? 2 : Object.keys(dados.pneus).length < pneusDoVeiculo(dados.tipoVeiculo).length ? (dados.avarias.length ? 4 : 3) : 5;
   }
 
   return <AssistenteVistoria inicial={dados} passoInicial={inicial} />;

@@ -13,6 +13,7 @@ type Pendente = { x: number; y: number; existente?: Avaria };
 
 export function PassoAvarias({
   vistoriaId,
+  veiculo,
   tipo,
   iniciais,
   daEntrada,
@@ -20,6 +21,7 @@ export function PassoAvarias({
   aoTerminar,
 }: {
   vistoriaId: string;
+  veiculo: string;
   tipo: "ENTRADA" | "SAIDA";
   iniciais: Avaria[];
   daEntrada: Avaria[];
@@ -140,7 +142,7 @@ export function PassoAvarias({
       </div>
 
       <div className="rounded-3xl bg-superficie p-3">
-        <DesenhoCarro vista={vista} marcas={marcas} onToque={abrirNova} onMarca={abrirExistente} />
+        <DesenhoCarro vista={vista} veiculo={veiculo} marcas={marcas} onToque={abrirNova} onMarca={abrirExistente} />
       </div>
       <p className="flex items-center justify-center gap-2 text-center text-lg font-bold text-muted-foreground">
         <Hand aria-hidden className="size-6" /> Toque onde tem risco ou amassado

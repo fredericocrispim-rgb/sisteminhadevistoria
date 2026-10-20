@@ -33,6 +33,23 @@ export function ordemFoto(categoria: string) {
   return categoria === FOTO_EXTRA.categoria ? FOTOS_OBRIGATORIAS.length : 99;
 }
 
+/** Tipo de veículo, escolhido na primeira tela da vistoria. */
+export type TipoVeiculo = "carro" | "moto" | "caminhao";
+
+export const TIPOS_VEICULO: { id: TipoVeiculo; nome: string }[] = [
+  { id: "carro", nome: "CARRO" },
+  { id: "moto", nome: "MOTOCICLETA" },
+  { id: "caminhao", nome: "CAMINHÃO" },
+];
+
+export function tipoVeiculo(valor: unknown): TipoVeiculo {
+  return valor === "moto" || valor === "caminhao" ? valor : "carro";
+}
+
+export function nomeVeiculo(tipo: string) {
+  return TIPOS_VEICULO.find((t) => t.id === tipo)?.nome ?? "CARRO";
+}
+
 export const PNEUS = [
   { posicao: "dianteiro_esquerdo", nome: "Dianteiro esquerdo" },
   { posicao: "dianteiro_direito", nome: "Dianteiro direito" },
@@ -41,12 +58,37 @@ export const PNEUS = [
   { posicao: "estepe", nome: "Estepe" },
 ] as const;
 
+/** Moto tem só 2 pneus. */
+export const PNEUS_MOTO = [
+  { posicao: "dianteiro", nome: "Dianteiro" },
+  { posicao: "traseiro", nome: "Traseiro" },
+] as const;
+
+export type PneuPosicao = { readonly posicao: string; readonly nome: string };
+
+/** Pneus que a vistoria pede, conforme o veículo. */
+export function pneusDoVeiculo(tipo: string | null | undefined): readonly PneuPosicao[] {
+  return tipo === "moto" ? PNEUS_MOTO : PNEUS;
+}
+
 export type EstadoPneu = "bom" | "ruim" | "ausente";
 
 export const MARCAS_COMUNS = [
   "Fiat", "Volkswagen", "Chevrolet", "Toyota", "Hyundai", "Honda",
   "Renault", "Jeep", "Ford", "Nissan", "Peugeot", "Citroën",
 ];
+
+export const MARCAS_POR_TIPO: Record<TipoVeiculo, string[]> = {
+  carro: MARCAS_COMUNS,
+  moto: ["Honda", "Yamaha", "Suzuki", "Kawasaki", "BMW", "Harley-Davidson", "Triumph", "Royal Enfield", "Shineray", "Haojue", "Dafra", "Ducati"],
+  caminhao: ["Mercedes-Benz", "Volvo", "Scania", "Volkswagen", "Ford", "Iveco", "DAF", "MAN", "Hyundai", "Agrale", "International", "JAC"],
+};
+
+export const EXEMPLO_MODELO: Record<TipoVeiculo, string> = {
+  carro: "Ex.: Onix, Gol, HB20",
+  moto: "Ex.: CG 160, Biz, Fazer",
+  caminhao: "Ex.: Atego, FH 540, Constellation",
+};
 
 export const CORES_CARRO = [
   { nome: "Branco", hex: "#ffffff" },

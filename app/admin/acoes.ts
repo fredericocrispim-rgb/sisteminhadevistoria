@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { mensalidadeDaOficina } from "@/lib/mensalidade";
 
 const hoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // aaaa-mm-dd
 
@@ -22,12 +23,11 @@ export async function marcarComoPago(formData: FormData) {
   if (!/^[0-9a-f-]{36}$/.test(empresaId)) return;
 
   const admin = criarClienteAdmin();
-  const [{ data: assinatura }, { data: planos }] = await Promise.all([
+  const [{ data: assinatura }, m] = await Promise.all([
     admin.from("assinaturas").select("id, plano_id, proximo_vencimento, status").eq("empresa_id", empresaId).single(),
-    admin.from("planos").select("id, preco_mensal").eq("ativo", true).order("ordem"),
+    mensalidadeDaOficina(empresaId),
   ]);
   if (!assinatura) return;
-  const plano = planos?.find((p) => p.id === assinatura.plano_id) ?? planos?.[0];
 
   // Mantém o dia de vencimento: se pagou adiantado ou com atraso de até 5 dias, conta a partir do vencimento;
   // no fim do teste (ou atraso maior), conta a partir de hoje.
@@ -41,8 +41,8 @@ export async function marcarComoPago(formData: FormData) {
   await admin.from("faturas").insert({
     empresa_id: empresaId,
     assinatura_id: assinatura.id,
-    descricao: "Mensalidade (Pix conferido à mão)",
-    valor: plano?.preco_mensal ?? 0.01,
+    descricao: `Mensalidade (Pix conferido à mão) · ${m.usuarios} ${m.usuarios === 1 ? "usuário" : "usuários"}`,
+    valor: m.valor || 0.01,
     vencimento: hoje(),
     status: "paga",
     forma: "pix",
@@ -51,7 +51,7 @@ export async function marcarComoPago(formData: FormData) {
   });
   await admin
     .from("assinaturas")
-    .update({ status: "ativa", plano_id: plano?.id ?? null, proximo_vencimento: novoVencimento })
+    .update({ status: "ativa", plano_id: m.planoId, proximo_vencimento: novoVencimento })
     .eq("id", assinatura.id);
   await admin.from("auditoria").insert({
     empresa_id: empresaId,

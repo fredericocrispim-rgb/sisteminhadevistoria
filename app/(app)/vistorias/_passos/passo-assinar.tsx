@@ -15,7 +15,7 @@ import {
   type AssinaturaRef,
 } from "@/components/vf";
 import { pegarLocalizacao } from "@/lib/foto";
-import { FOTOS_OBRIGATORIAS, NOMES_COMBUSTIVEL, PNEUS } from "@/lib/vistoria";
+import { FOTOS_OBRIGATORIAS, NOMES_COMBUSTIVEL, nomeVeiculo, pneusDoVeiculo } from "@/lib/vistoria";
 import { textos } from "@/lib/textos";
 import { concluirVistoria } from "../acoes";
 import type { AssinaturaCliente, DadosVistoria } from "./tipos";
@@ -39,7 +39,7 @@ function Resumo({ icone, titulo, texto, onCorrigir }: { icone: ReactNode; titulo
 function faltaAntes(dados: DadosVistoria) {
   const faltamFotos = FOTOS_OBRIGATORIAS.filter((f) => !dados.fotos.some((x) => x.categoria === f.categoria)).length;
   if (faltamFotos > 0) return `Faltam ${faltamFotos} fotos. Toque em Corrigir nas fotos.`;
-  if (Object.keys(dados.pneus).length < 5) return "Falta marcar os pneus. Toque em Corrigir nos pneus.";
+  if (pneusDoVeiculo(dados.tipoVeiculo).some((p) => !dados.pneus[p.posicao])) return "Falta marcar os pneus. Toque em Corrigir nos pneus.";
   return null;
 }
 
@@ -66,7 +66,7 @@ export function PassoCliente({
 
   const chegada = dados.tipo === "ENTRADA";
   const c = dados.carro;
-  const ruins = PNEUS.filter((p) => dados.pneus[p.posicao] === "ruim").length;
+  const ruins = pneusDoVeiculo(dados.tipoVeiculo).filter((p) => dados.pneus[p.posicao] === "ruim").length;
   const faltamFotos = FOTOS_OBRIGATORIAS.filter((f) => !dados.fotos.some((x) => x.categoria === f.categoria)).length;
   const extras = dados.fotos.length - (FOTOS_OBRIGATORIAS.length - faltamFotos);
 
@@ -98,8 +98,8 @@ export function PassoCliente({
         <h2 className="text-xl font-extrabold">Confira</h2>
         <Resumo
           icone={<Car aria-hidden />}
-          titulo="Carro e cliente"
-          texto={`${c.placa} · ${[c.marca, c.modelo].filter(Boolean).join(" ")} · ${c.km} km · ${c.combustivel ? NOMES_COMBUSTIVEL[c.combustivel] : ""}`}
+          titulo="Veículo e cliente"
+          texto={`${nomeVeiculo(dados.tipoVeiculo)} · ${c.placa} · ${[c.marca, c.modelo].filter(Boolean).join(" ")} · ${c.km} km · ${c.combustivel ? NOMES_COMBUSTIVEL[c.combustivel] : ""}`}
           onCorrigir={() => irPara(1)}
         />
         <Resumo

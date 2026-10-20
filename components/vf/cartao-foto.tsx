@@ -20,6 +20,7 @@ const selo: Record<Exclude<EstadoFoto, "vazio">, { classe: string; icone: React.
 export function CartaoFoto({
   titulo,
   vista,
+  veiculo,
   estado,
   src,
   atual,
@@ -27,6 +28,8 @@ export function CartaoFoto({
 }: {
   titulo: string;
   vista: VistaFoto;
+  /** carro (padrão), moto ou caminhao: muda o desenho. */
+  veiculo?: string;
   estado: EstadoFoto;
   src?: string;
   /** Destaca a foto que deve ser tirada agora. */
@@ -49,7 +52,7 @@ export function CartaoFoto({
         {src ? (
           <img src={src} alt="" className="size-full object-cover" />
         ) : (
-          <SilhuetaCarro vista={vista} className={cn("w-[85%]", atual ? "text-oficina" : "text-muted-foreground/60")} />
+          <SilhuetaCarro vista={vista} veiculo={veiculo} className={cn("w-[85%]", atual ? "text-oficina" : "text-muted-foreground/60")} />
         )}
       </div>
       <span className="text-sm leading-tight font-bold">{titulo}</span>
