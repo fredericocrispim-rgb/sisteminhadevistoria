@@ -14,15 +14,13 @@ update public.planos
  where nome = 'Básico';
 
 -- 2. Tipo de veículo
-alter table public.vistorias add column if not exists tipo_veiculo text not null default 'carro';
-alter table public.vistorias drop constraint if exists vistorias_tipo_veiculo_check;
-alter table public.vistorias add constraint vistorias_tipo_veiculo_check check (tipo_veiculo in ('carro', 'moto', 'caminhao'));
+alter table public.vistorias add column if not exists tipo_veiculo text not null default 'carro'
+  check (tipo_veiculo in ('carro', 'moto', 'caminhao'));
 
-alter table public.veiculos add column if not exists tipo text not null default 'carro';
-alter table public.veiculos drop constraint if exists veiculos_tipo_check;
-alter table public.veiculos add constraint veiculos_tipo_check check (tipo in ('carro', 'moto', 'caminhao'));
+alter table public.veiculos add column if not exists tipo text not null default 'carro'
+  check (tipo in ('carro', 'moto', 'caminhao'));
 
--- Moto tem só 2 pneus: dianteiro e traseiro
+-- Moto tem só 2 pneus: dianteiro e traseiro (troca a regra de posições dos pneus)
 alter table public.vistoria_pneus drop constraint if exists vistoria_pneus_posicao_check;
 alter table public.vistoria_pneus add constraint vistoria_pneus_posicao_check
   check (posicao in ('dianteiro_esquerdo', 'dianteiro_direito', 'traseiro_esquerdo', 'traseiro_direito', 'estepe', 'dianteiro', 'traseiro'));
