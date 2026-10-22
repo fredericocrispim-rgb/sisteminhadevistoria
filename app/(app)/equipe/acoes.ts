@@ -5,6 +5,7 @@ import { z } from "zod";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { formatarTelefone, telefoneValido } from "@/lib/formatos";
 
 type Resultado<T = object> = ({ ok: true } & T) | { ok: false; erro: string };
 
@@ -39,6 +40,7 @@ export async function criarConvite(dados: z.input<typeof esquemaConvite>): Promi
 
 const esquemaUsuario = z.object({
   nome: z.string().trim().min(2, "Coloque o nome da pessoa").max(80),
+  whatsapp: z.string().refine(telefoneValido, "WhatsApp incompleto. Confira o DDD e o número."),
   email: z.string().trim().toLowerCase().email("E-mail incompleto. Confira.").max(160),
   senha: z.string().min(6, "A senha precisa de pelo menos 6 letras ou números").max(72),
   papel: z.enum(["vistoriador", "gerente"]),
@@ -69,7 +71,7 @@ export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): P
     email: d.email,
     password: d.senha,
     email_confirm: true,
-    user_metadata: { nome: d.nome },
+    user_metadata: { nome: d.nome, whatsapp: formatarTelefone(d.whatsapp) },
   });
   if (error || !criado.user) {
     if (error?.code === "email_exists" || /already/i.test(error?.message ?? "")) {
@@ -91,7 +93,7 @@ export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): P
     usuario_id: ctx.usuario.id,
     acao: "cadastrou_usuario",
     entidade: "usuarios_empresa",
-    detalhes: { nome: d.nome, papel: d.papel, cupom },
+    detalhes: { nome: d.nome, papel: d.papel, cupom, whatsapp: formatarTelefone(d.whatsapp) },
   });
   revalidatePath("/equipe");
   revalidatePath("/plano");

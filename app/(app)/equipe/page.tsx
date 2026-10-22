@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Users } from "lucide-react";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { valorMensalidade } from "@/lib/cobranca";
 import { formatarReais } from "@/lib/pix";
@@ -37,6 +38,18 @@ export default async function Equipe() {
   const h = await headers();
   const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
   const pendentes = convites?.length ?? 0;
+
+  // WhatsApp e e-mail de cada pessoa (ficam na conta de login), para mandar o acesso pelo WhatsApp
+  const admin = criarClienteAdmin();
+  const contatos = new Map(
+    await Promise.all(
+      (membros ?? []).map(async (p) => {
+        const { data } = await admin.auth.admin.getUserById(p.user_id);
+        const meta = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+        return [p.user_id, { email: data.user?.email ?? "", whatsapp: typeof meta.whatsapp === "string" ? meta.whatsapp : null }] as const;
+      }),
+    ),
+  );
   // Quanto vai custar se mais uma pessoa entrar (contando os convites que ainda não foram aceitos)
   const valorComMaisUm = valorMensalidade(m.preco, m.usuarios + pendentes + 1);
   // Quantas pessoas ainda cabem no plano sem pagar a mais
@@ -75,6 +88,8 @@ export default async function Equipe() {
             papel={t.papeis[p.papel as keyof typeof t.papeis] ?? p.papel}
             voce={p.user_id === usuario.id}
             cortesia={Boolean(p.cupom)}
+            whatsappPessoa={contatos.get(p.user_id)?.whatsapp}
+            mensagemAcesso={t.mensagemAcesso((p.nome ?? "").split(" ")[0], empresa.nome_fantasia, base, contatos.get(p.user_id)?.email ?? "")}
             podeTirar={p.papel !== "dono" && p.user_id !== usuario.id}
           />
         ))}

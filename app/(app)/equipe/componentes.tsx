@@ -4,12 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle, UserMinus, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
-import { BotaoPrincipal, BotaoSecundario, Campo, CampoSenha, ConfirmacaoImportante, MensagemErroCampo, SeletorGrande } from "@/components/vf";
+import { BotaoPrincipal, BotaoSecundario, Campo, CampoSenha, CampoTelefone, ConfirmacaoImportante, MensagemErroCampo, SeletorGrande } from "@/components/vf";
 import { textos } from "@/lib/textos";
+import { formatarTelefone, telefoneParaWhatsapp, telefoneValido } from "@/lib/formatos";
 import { cadastrarUsuario, cancelarConvite, tirarDaEquipe } from "./acoes";
 
 const t = textos.equipe;
 const whatsapp = (mensagem: string) => `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+/** Abre o WhatsApp já na conversa com a pessoa, com a mensagem pronta. */
+const whatsappPara = (numero: string, mensagem: string) => `https://wa.me/${telefoneParaWhatsapp(numero)}?text=${encodeURIComponent(mensagem)}`;
 
 
 export function Membro({
@@ -19,6 +22,8 @@ export function Membro({
   voce,
   cortesia,
   podeTirar,
+  whatsappPessoa,
+  mensagemAcesso,
 }: {
   id: string;
   nome: string;
@@ -26,6 +31,9 @@ export function Membro({
   voce: boolean;
   cortesia?: boolean;
   podeTirar: boolean;
+  /** WhatsApp da pessoa (para mandar o acesso de novo). */
+  whatsappPessoa?: string | null;
+  mensagemAcesso?: string;
 }) {
   const router = useRouter();
   const [confirmar, setConfirmar] = useState(false);
@@ -40,7 +48,19 @@ export function Membro({
           {papel}
           {cortesia && <span className="ml-2 rounded-full bg-acao-clara px-2 py-0.5 text-sm font-bold text-acao">{t.cortesia}</span>}
         </p>
+        <p className="text-base text-muted-foreground">{whatsappPessoa || t.semWhatsapp}</p>
       </div>
+      {!voce && whatsappPessoa && mensagemAcesso && (
+        <a
+          href={whatsappPara(whatsappPessoa, mensagemAcesso)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={t.mandarAcessoPara(nome)}
+          className="tocavel inline-flex min-h-toque items-center gap-1.5 rounded-xl bg-[#1f8f4e] px-3 text-base font-bold text-white [&_svg]:size-5"
+        >
+          <MessageCircle aria-hidden /> {t.reenviar}
+        </a>
+      )}
       {podeTirar && (
         <button
           type="button"
@@ -118,6 +138,7 @@ export function AdicionarPessoa({
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
+  const [zap, setZap] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [cupom, setCupom] = useState("");
@@ -125,10 +146,11 @@ export function AdicionarPessoa({
   const [conferir, setConferir] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string>();
-  const [pronto, setPronto] = useState<{ nome: string; email: string } | null>(null);
+  const [pronto, setPronto] = useState<{ nome: string; email: string; whatsapp: string } | null>(null);
 
   function recomecar() {
     setNome("");
+    setZap("");
     setEmail("");
     setSenha("");
     setCupom("");
@@ -150,8 +172,12 @@ export function AdicionarPessoa({
           <span className="block text-base text-muted-foreground">E-mail</span>
           <strong>{pronto.email}</strong>
         </p>
-        <BotaoPrincipal nativo href={whatsapp(t.mensagemAcesso(primeiro, oficina, base, pronto.email))} icone={<MessageCircle aria-hidden />}>
-          {t.mandarAcesso}
+        <BotaoPrincipal
+          nativo
+          href={whatsappPara(pronto.whatsapp, t.mensagemAcesso(primeiro, oficina, base, pronto.email))}
+          icone={<MessageCircle aria-hidden />}
+        >
+          {t.mandarAcessoPara(primeiro)}
         </BotaoPrincipal>
         <BotaoSecundario
           icone={<UserPlus aria-hidden />}
@@ -180,6 +206,7 @@ export function AdicionarPessoa({
   const emailOk = /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(email.trim());
   const erros = {
     nome: conferir && nome.trim().length < 2 ? "Coloque o nome da pessoa" : undefined,
+    whatsapp: conferir && !telefoneValido(zap) ? (zap ? textos.erros.telefoneInvalido : textos.erros.telefoneFalta) : undefined,
     email: conferir && !emailOk ? (email ? "E-mail incompleto. Confira." : "Coloque o e-mail") : undefined,
     senha: conferir && senha.length < 6 ? "Pelo menos 6 letras ou números" : undefined,
   };
@@ -187,12 +214,15 @@ export function AdicionarPessoa({
   async function cadastrar() {
     setConferir(true);
     setErro(undefined);
-    if (nome.trim().length < 2 || !emailOk || senha.length < 6) return;
+    if (nome.trim().length < 2 || !telefoneValido(zap) || !emailOk || senha.length < 6) {
+      requestAnimationFrame(() => document.querySelector("[aria-invalid=true]")?.scrollIntoView({ block: "center", behavior: "smooth" }));
+      return;
+    }
     setCarregando(true);
-    const r = await cadastrarUsuario({ nome, email, senha, papel, cupom });
+    const r = await cadastrarUsuario({ nome, whatsapp: zap, email, senha, papel, cupom });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
-    setPronto({ nome: nome.trim(), email: email.trim().toLowerCase() });
+    setPronto({ nome: nome.trim(), email: email.trim().toLowerCase(), whatsapp: zap });
     router.refresh();
   }
 
@@ -200,6 +230,7 @@ export function AdicionarPessoa({
     <section className="flex flex-col gap-4 rounded-3xl bg-superficie p-4">
       <h2 className="text-xl font-extrabold">{t.adicionar}</h2>
       <Campo rotulo={t.nome} autoCapitalize="words" autoComplete="off" valor={nome} onValor={setNome} erro={erros.nome} autoFocus />
+      <CampoTelefone rotulo={t.whatsapp} valor={zap} onValor={(v) => setZap(formatarTelefone(v))} erro={erros.whatsapp} />
       <Campo
         rotulo={t.email}
         type="email"
