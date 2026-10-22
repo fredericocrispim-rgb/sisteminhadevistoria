@@ -123,11 +123,16 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
               <p>
                 {empresa.nome_fantasia} · Plano <strong>{m.planoNome}</strong>
               </p>
+              {m.preco.inclusos != null && (
+                <p className="text-base text-muted-foreground">
+                  Inclui o dono + {m.preco.inclusos - 1} {m.preco.inclusos - 1 === 1 ? "pessoa" : "pessoas"}
+                  {m.preco.extra > 0 && `. Cada pessoa a mais: + ${formatarReais(m.preco.extra)}`}
+                </p>
+              )}
               <p className="text-base text-muted-foreground">
-                {m.usuarios} {m.usuarios === 1 ? "usuário" : "usuários"}
-                {m.preco.inclusos != null && ` · ${m.preco.inclusos} inclusos`}
-                {m.aMais > 0 && ` · ${m.aMais} a mais × ${formatarReais(m.preco.extra)}`}
-                {m.cortesias > 0 && ` · ${m.cortesias} cortesia (sem custo)`}
+                Sua equipe: {m.usuarios} {m.usuarios === 1 ? "pessoa" : "pessoas"}, contando você
+                {m.aMais > 0 && ` (${m.aMais} a mais × ${formatarReais(m.preco.extra)})`}
+                {m.cortesias > 0 && ` + ${m.cortesias} cortesia sem custo`}
               </p>
             </div>
           )}
