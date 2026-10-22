@@ -203,7 +203,7 @@ export function AdicionarPessoa({
     );
   }
 
-  const emailOk = /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(email.trim());
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
   const erros = {
     nome: conferir && nome.trim().length < 2 ? "Coloque o nome da pessoa" : undefined,
     whatsapp: conferir && !telefoneValido(zap) ? (zap ? textos.erros.telefoneInvalido : textos.erros.telefoneFalta) : undefined,
