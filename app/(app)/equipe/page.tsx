@@ -58,6 +58,13 @@ export default async function Equipe() {
         )}
       </div>
 
+      <AdicionarPessoa
+        oficina={empresa.nome_fantasia}
+        base={base}
+        avisoPlano={restam > 0 ? t.dentroDoPlano(restam) : null}
+        avisoPreco={valorComMaisUm > m.valor ? t.comEssaPessoa(formatarReais(valorComMaisUm)) : null}
+      />
+
       <ul className="flex flex-col gap-2">
         {membros?.map((p) => (
           <Membro
@@ -86,12 +93,6 @@ export default async function Equipe() {
         </section>
       )}
 
-      <AdicionarPessoa
-        oficina={empresa.nome_fantasia}
-        base={base}
-        avisoPlano={restam > 0 ? t.dentroDoPlano(restam) : null}
-        avisoPreco={valorComMaisUm > m.valor ? t.comEssaPessoa(formatarReais(valorComMaisUm)) : null}
-      />
     </main>
   );
 }

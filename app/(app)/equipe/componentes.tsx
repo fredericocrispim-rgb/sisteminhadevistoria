@@ -151,7 +151,7 @@ export function AdicionarPessoa({
     return (
       <>
         {avisoPlano && <p className="rounded-2xl bg-acao-clara px-4 py-3 text-base font-bold text-acao">{avisoPlano}</p>}
-        <BotaoPrincipal fixo icone={<UserPlus aria-hidden />} onClick={() => setAberto(true)}>
+        <BotaoPrincipal icone={<UserPlus aria-hidden />} onClick={() => setAberto(true)}>
           {t.adicionar}
         </BotaoPrincipal>
       </>
@@ -210,7 +210,7 @@ export function AdicionarPessoa({
         avisoPlano && <p className="rounded-2xl bg-acao-clara px-4 py-3 text-base font-bold text-acao">{avisoPlano}</p>
       )}
       {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
-      <BotaoPrincipal fixo carregando={carregando} icone={<Check aria-hidden />} onClick={cadastrar}>
+      <BotaoPrincipal carregando={carregando} icone={<Check aria-hidden />} onClick={cadastrar}>
         {t.cadastrar}
       </BotaoPrincipal>
     </section>
