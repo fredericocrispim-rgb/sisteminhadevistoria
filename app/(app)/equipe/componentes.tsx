@@ -12,7 +12,21 @@ const t = textos.equipe;
 const whatsapp = (mensagem: string) => `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
 
-export function Membro({ id, nome, papel, voce, podeTirar }: { id: string; nome: string; papel: string; voce: boolean; podeTirar: boolean }) {
+export function Membro({
+  id,
+  nome,
+  papel,
+  voce,
+  cortesia,
+  podeTirar,
+}: {
+  id: string;
+  nome: string;
+  papel: string;
+  voce: boolean;
+  cortesia?: boolean;
+  podeTirar: boolean;
+}) {
   const router = useRouter();
   const [confirmar, setConfirmar] = useState(false);
   return (
@@ -22,7 +36,10 @@ export function Membro({ id, nome, papel, voce, podeTirar }: { id: string; nome:
           {nome}
           {voce && <span className="ml-2 rounded-full bg-oficina px-2 py-0.5 text-sm font-bold text-oficina-texto">{t.voce}</span>}
         </p>
-        <p className="text-base text-muted-foreground">{papel}</p>
+        <p className="text-base text-muted-foreground">
+          {papel}
+          {cortesia && <span className="ml-2 rounded-full bg-acao-clara px-2 py-0.5 text-sm font-bold text-acao">{t.cortesia}</span>}
+        </p>
       </div>
       {podeTirar && (
         <button
@@ -103,6 +120,7 @@ export function AdicionarPessoa({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [cupom, setCupom] = useState("");
   const [papel, setPapel] = useState<Papel>("vistoriador");
   const [conferir, setConferir] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -113,6 +131,7 @@ export function AdicionarPessoa({
     setNome("");
     setEmail("");
     setSenha("");
+    setCupom("");
     setPapel("vistoriador");
     setConferir(false);
     setErro(undefined);
@@ -170,7 +189,7 @@ export function AdicionarPessoa({
     setErro(undefined);
     if (nome.trim().length < 2 || !emailOk || senha.length < 6) return;
     setCarregando(true);
-    const r = await cadastrarUsuario({ nome, email, senha, papel });
+    const r = await cadastrarUsuario({ nome, email, senha, papel, cupom });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
     setPronto({ nome: nome.trim(), email: email.trim().toLowerCase() });
@@ -205,7 +224,17 @@ export function AdicionarPessoa({
       />
       <p className="-mt-2 text-base font-semibold text-muted-foreground">{papel === "gerente" ? t.gerenteDica : t.vistoriadorDica}</p>
       {avisoPreco ? (
-        <p className="rounded-2xl bg-atencao-clara px-4 py-3 text-base font-bold text-atencao-texto">{avisoPreco}</p>
+        <>
+          <p className="rounded-2xl bg-atencao-clara px-4 py-3 text-base font-bold text-atencao-texto">{avisoPreco}</p>
+          <Campo
+            rotulo={t.cupom}
+            dica={t.cupomDica}
+            autoCapitalize="characters"
+            autoComplete="off"
+            valor={cupom}
+            onValor={(v) => setCupom(v.toUpperCase())}
+          />
+        </>
       ) : (
         avisoPlano && <p className="rounded-2xl bg-acao-clara px-4 py-3 text-base font-bold text-acao">{avisoPlano}</p>
       )}

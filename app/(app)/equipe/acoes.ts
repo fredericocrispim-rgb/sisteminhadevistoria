@@ -42,6 +42,7 @@ const esquemaUsuario = z.object({
   email: z.string().trim().toLowerCase().email("E-mail incompleto. Confira.").max(160),
   senha: z.string().min(6, "A senha precisa de pelo menos 6 letras ou números").max(72),
   papel: z.enum(["vistoriador", "gerente"]),
+  cupom: z.string().trim().toUpperCase().max(30).default(""),
 });
 
 /**
@@ -55,6 +56,14 @@ export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): P
   if (!v.success) return { ok: false, erro: v.error.issues[0].message };
   const d = v.data;
   const admin = criarClienteAdmin();
+
+  // Cupom (ex.: CORTESIA): esse usuário não entra na cobrança. Vazio = cobra normalmente.
+  let cupom: string | null = null;
+  if (d.cupom) {
+    const { data: c } = await admin.from("cupons").select("codigo").eq("codigo", d.cupom).eq("ativo", true).eq("usuario_gratis", true).maybeSingle();
+    if (!c) return { ok: false, erro: "Este cupom não existe. Confira ou deixe em branco." };
+    cupom = c.codigo;
+  }
 
   const { data: criado, error } = await admin.auth.admin.createUser({
     email: d.email,
@@ -72,7 +81,7 @@ export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): P
 
   const { error: erroEquipe } = await admin
     .from("usuarios_empresa")
-    .insert({ empresa_id: ctx.empresa.id, user_id: criado.user.id, nome: d.nome, papel: d.papel });
+    .insert({ empresa_id: ctx.empresa.id, user_id: criado.user.id, nome: d.nome, papel: d.papel, cupom });
   if (erroEquipe) {
     await admin.auth.admin.deleteUser(criado.user.id); // não deixa conta solta sem oficina
     return { ok: false, erro: FALHOU };
@@ -82,7 +91,7 @@ export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): P
     usuario_id: ctx.usuario.id,
     acao: "cadastrou_usuario",
     entidade: "usuarios_empresa",
-    detalhes: { nome: d.nome, papel: d.papel },
+    detalhes: { nome: d.nome, papel: d.papel, cupom },
   });
   revalidatePath("/equipe");
   revalidatePath("/plano");

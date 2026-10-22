@@ -22,7 +22,7 @@ export default async function Equipe() {
 
   const supabase = await criarClienteServidor();
   const [{ data: membros }, { data: convites }, m] = await Promise.all([
-    supabase.from("usuarios_empresa").select("id, user_id, nome, papel").eq("empresa_id", empresa.id).eq("ativo", true).order("criado_em"),
+    supabase.from("usuarios_empresa").select("id, user_id, nome, papel, cupom").eq("empresa_id", empresa.id).eq("ativo", true).order("criado_em"),
     supabase
       .from("convites")
       .select("id, nome, papel, token")
@@ -53,6 +53,7 @@ export default async function Equipe() {
 
       <div className="rounded-2xl bg-oficina-clara px-4 py-3">
         <p className="text-xl font-extrabold text-oficina">{t.hoje(m.usuarios, formatarReais(m.valor))}</p>
+        {m.cortesias > 0 && <p className="text-base font-bold text-acao">{t.hojeCortesia(m.cortesias)}</p>}
         {m.preco.inclusos != null && m.preco.extra > 0 && (
           <p className="text-base font-semibold">{t.precoRegra(m.preco.inclusos, formatarReais(m.preco.extra))}</p>
         )}
@@ -73,6 +74,7 @@ export default async function Equipe() {
             nome={p.nome ?? "Sem nome"}
             papel={t.papeis[p.papel as keyof typeof t.papeis] ?? p.papel}
             voce={p.user_id === usuario.id}
+            cortesia={Boolean(p.cupom)}
             podeTirar={p.papel !== "dono" && p.user_id !== usuario.id}
           />
         ))}

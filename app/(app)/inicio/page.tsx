@@ -20,7 +20,8 @@ export default async function Inicio() {
   const gestor = papel === "dono" || papel === "gerente";
 
   // Régua de cobrança: perto de vencer ou em atraso, o Pix aparece ao entrar (uma vez por dia)
-  const avisar = gestor && (plano.fase === "vence_logo" || plano.fase === "atrasado");
+  const dono = papel === "dono"; // aviso do Pix e do teste grátis: só para o dono
+  const avisar = dono && (plano.fase === "vence_logo" || plano.fase === "atrasado");
   if (avisar && (await cookies()).get("vf_aviso_pix")?.value !== hojeBR()) redirect("/plano?aviso=1");
 
   const supabaseInicio = await criarClienteServidor();
@@ -39,7 +40,7 @@ export default async function Inicio() {
   const placaRascunho = (rascunho?.veiculos as unknown as { placa: string } | null)?.placa;
 
   // A situação do plano já veio junto com o login (sem consulta a mais)
-  const diasTeste = gestor && plano.status === "teste" && plano.fase === "em_dia" ? plano.diasParaVencer + 1 : null;
+  const diasTeste = dono && plano.status === "teste" && plano.fase === "em_dia" ? plano.diasParaVencer + 1 : null;
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-3 px-4 pt-4">

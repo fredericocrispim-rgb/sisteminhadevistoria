@@ -25,7 +25,8 @@ const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   const { empresa, papel, plano, bloqueado } = await exigirOficina({ permitirBloqueado: true });
   const { aviso } = await searchParams;
-  const gestor = papel === "dono" || papel === "gerente";
+  // Plano e Pix: só o dono (gerente e vistoriador não veem; se estiver bloqueado, pedem ao dono)
+  const gestor = papel === "dono";
   if (!gestor && !bloqueado) redirect("/inicio");
 
   const admin = criarClienteAdmin();
@@ -126,6 +127,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                 {m.usuarios} {m.usuarios === 1 ? "usuário" : "usuários"}
                 {m.preco.inclusos != null && ` · ${m.preco.inclusos} inclusos`}
                 {m.aMais > 0 && ` · ${m.aMais} a mais × ${formatarReais(m.preco.extra)}`}
+                {m.cortesias > 0 && ` · ${m.cortesias} cortesia (sem custo)`}
               </p>
             </div>
           )}

@@ -31,9 +31,11 @@ export default async function Mais() {
           <Item href="/equipe" icone={<Users aria-hidden />}>
             {textos.menu.equipe}
           </Item>
-          <Item href="/plano" icone={<QrCode aria-hidden />}>
-            {textos.menu.meuPlano}
-          </Item>
+          {papel === "dono" && (
+            <Item href="/plano" icone={<QrCode aria-hidden />}>
+              {textos.menu.meuPlano}
+            </Item>
+          )}
           <Item href="/cadastro?passo=2" icone={<ImageIcon aria-hidden />}>
             Logo da empresa
           </Item>

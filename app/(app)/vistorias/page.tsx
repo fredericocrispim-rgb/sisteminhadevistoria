@@ -23,7 +23,7 @@ type Linha = {
 };
 
 export default async function Vistorias({ searchParams }: PageProps<"/vistorias">) {
-  const { empresa } = await exigirOficina();
+  const { empresa, papel, usuario } = await exigirOficina();
   const { busca } = await searchParams;
   const termo = typeof busca === "string" ? busca.trim() : "";
   const supabase = await criarClienteServidor();
@@ -34,6 +34,8 @@ export default async function Vistorias({ searchParams }: PageProps<"/vistorias"
     .eq("empresa_id", empresa.id)
     .order("iniciada_em", { ascending: false })
     .limit(60);
+  // Vistoriador vê só as vistorias que ele fez (dono e gerente veem todas)
+  if (papel === "vistoriador") consulta = consulta.eq("criado_por", usuario.id);
   if (termo) {
     const placa = placaParaBanco(termo);
     consulta = /^\d+$/.test(termo) ? consulta.eq("numero", Number(termo)) : consulta.ilike("veiculos.placa", `%${placa}%`);
