@@ -39,6 +39,8 @@ export default async function Equipe() {
   const pendentes = convites?.length ?? 0;
   // Quanto vai custar se mais uma pessoa entrar (contando os convites que ainda não foram aceitos)
   const valorComMaisUm = valorMensalidade(m.preco, m.usuarios + pendentes + 1);
+  // Quantas pessoas ainda cabem no plano sem pagar a mais
+  const restam = m.preco.inclusos == null ? 0 : Math.max(0, m.preco.inclusos - m.usuarios - pendentes);
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-8">
@@ -87,6 +89,7 @@ export default async function Equipe() {
       <AdicionarPessoa
         oficina={empresa.nome_fantasia}
         base={base}
+        avisoPlano={restam > 0 ? t.dentroDoPlano(restam) : null}
         avisoPreco={valorComMaisUm > m.valor ? t.comEssaPessoa(formatarReais(valorComMaisUm)) : null}
       />
     </main>

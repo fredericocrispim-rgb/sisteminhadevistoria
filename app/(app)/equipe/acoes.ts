@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
 
 type Resultado<T = object> = ({ ok: true } & T) | { ok: false; erro: string };
 
@@ -34,6 +35,58 @@ export async function criarConvite(dados: z.input<typeof esquemaConvite>): Promi
   if (error || !data) return { ok: false, erro: FALHOU };
   revalidatePath("/equipe");
   return { ok: true, token: data.token };
+}
+
+const esquemaUsuario = z.object({
+  nome: z.string().trim().min(2, "Coloque o nome da pessoa").max(80),
+  email: z.string().trim().toLowerCase().email("E-mail incompleto. Confira.").max(160),
+  senha: z.string().min(6, "A senha precisa de pelo menos 6 letras ou números").max(72),
+  papel: z.enum(["vistoriador", "gerente"]),
+});
+
+/**
+ * Cadastra a pessoa direto: o dono/gerente digita nome, e-mail e senha e ela já pode entrar.
+ * A conta é criada já confirmada (sem e-mail). Usuário a mais aumenta a mensalidade (lib/mensalidade.ts).
+ */
+export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): Promise<Resultado> {
+  const ctx = await gestor();
+  if (!ctx) return { ok: false, erro: FALHOU };
+  const v = esquemaUsuario.safeParse(dados);
+  if (!v.success) return { ok: false, erro: v.error.issues[0].message };
+  const d = v.data;
+  const admin = criarClienteAdmin();
+
+  const { data: criado, error } = await admin.auth.admin.createUser({
+    email: d.email,
+    password: d.senha,
+    email_confirm: true,
+    user_metadata: { nome: d.nome },
+  });
+  if (error || !criado.user) {
+    if (error?.code === "email_exists" || /already/i.test(error?.message ?? "")) {
+      return { ok: false, erro: "Este e-mail já tem conta no sistema. Use outro e-mail." };
+    }
+    if (error?.code === "weak_password") return { ok: false, erro: "Senha fraca. Use pelo menos 6 letras ou números." };
+    return { ok: false, erro: FALHOU };
+  }
+
+  const { error: erroEquipe } = await admin
+    .from("usuarios_empresa")
+    .insert({ empresa_id: ctx.empresa.id, user_id: criado.user.id, nome: d.nome, papel: d.papel });
+  if (erroEquipe) {
+    await admin.auth.admin.deleteUser(criado.user.id); // não deixa conta solta sem oficina
+    return { ok: false, erro: FALHOU };
+  }
+  await admin.from("auditoria").insert({
+    empresa_id: ctx.empresa.id,
+    usuario_id: ctx.usuario.id,
+    acao: "cadastrou_usuario",
+    entidade: "usuarios_empresa",
+    detalhes: { nome: d.nome, papel: d.papel },
+  });
+  revalidatePath("/equipe");
+  revalidatePath("/plano");
+  return { ok: true };
 }
 
 export async function cancelarConvite(id: string): Promise<Resultado> {

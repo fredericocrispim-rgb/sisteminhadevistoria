@@ -309,7 +309,8 @@ export const textos = {
 
   equipe: {
     titulo: "Equipe",
-    precoRegra: (inclusos: number, extra: string) => `Até ${inclusos} pessoas, contando você, pelo mesmo preço. Cada pessoa a mais: + ${extra} por mês.`,
+    precoRegra: (inclusos: number, extra: string) =>
+      `O plano inclui o dono + ${inclusos - 1} pessoas. Cada pessoa a mais: + ${extra} por mês.`,
     hoje: (pessoas: number, valor: string) => `Hoje: ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"} · ${valor} por mês`,
     adicionar: "Adicionar pessoa",
     nome: "Nome da pessoa",
@@ -319,6 +320,16 @@ export const textos = {
     gerente: "Gerente",
     gerenteDica: "Faz tudo, menos o plano",
     criarConvite: "Criar convite",
+    email: "E-mail da pessoa",
+    senha: "Senha para ela entrar",
+    senhaDica: "Pelo menos 6 letras ou números. Passe para a pessoa.",
+    cadastrar: "Cadastrar",
+    cadastrado: (nome: string) => `${nome} já pode entrar`,
+    cadastradoTexto: "Ela entra no site com o e-mail e a senha que você criou.",
+    mandarAcesso: "Mandar acesso no WhatsApp",
+    mensagemAcesso: (nome: string, oficina: string, link: string, email: string) =>
+      `Olá, ${nome}! Você já pode fazer vistorias da ${oficina} no Sisteminha de Vistoria. Entre em ${link} com o e-mail ${email} e a senha que eu te passei.`,
+    dentroDoPlano: (restam: number) => (restam === 1 ? "Ainda cabe 1 pessoa no plano, sem pagar a mais." : `Ainda cabem ${restam} pessoas no plano, sem pagar a mais.`),
     comEssaPessoa: (valor: string) => `Com essa pessoa, a mensalidade passa para ${valor}.`,
     conviteCriado: "Convite pronto",
     conviteCriadoTexto: "Mande o link para a pessoa. Ela cria a senha e já entra na equipe.",

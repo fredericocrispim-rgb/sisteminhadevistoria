@@ -97,5 +97,5 @@ Depois, faça o commit da etapa (mensagem em português).
 - Termos e privacidade não são mais "provisórios".
 
 ## Decisões de 20/10/2026 (Frederico)
-- Equipe (`/equipe`, menu Mais): dono/gerente convidam pessoas por link no WhatsApp. Até 3 usuários ativos (contando o dono) pelo preço do plano (`planos.limite_usuarios`); cada um a mais soma `planos.preco_usuario_extra` (R$ 9,90). Cálculo em `lib/cobranca.ts`; valor da oficina em `lib/mensalidade.ts` (usado no Pix do `/plano` e no "Marcar como pago").
+- Equipe (`/equipe`, menu Mais): dono/gerente CADASTRAM a pessoa direto (nome, e-mail, senha, papel; conta criada já confirmada, `cadastrarUsuario`). Atualizado em 22/10: plano Básico inclui o dono + 4 pessoas (`planos.limite_usuarios` = 5); cada usuário a mais soma `planos.preco_usuario_extra` (R$ 19,90). Convites por link continuam valendo para os já criados. Cálculo em `lib/cobranca.ts`; valor da oficina em `lib/mensalidade.ts` (usado no Pix do `/plano` e no "Marcar como pago").
 - Vistoria começa escolhendo o veículo: CARRO, MOTOCICLETA ou CAMINHÃO (`vistorias.tipo_veiculo`, `veiculos.tipo`). Moto tem 2 pneus (dianteiro, traseiro). Desenhos de moto/caminhão em `lib/desenhos-carro.ts` (`desenhosDo(tipo)`), usados no mapa, no PDF e no guia das fotos.

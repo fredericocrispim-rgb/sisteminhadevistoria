@@ -4,6 +4,12 @@ import { usuariosAMais, valorMensalidade } from "./cobranca";
 const basico = { base: 49.9, inclusos: 3, extra: 9.9 };
 
 describe("valorMensalidade", () => {
+  it("plano atual: dono + 4 pessoas inclusos, R$ 19,90 cada a mais", () => {
+    const plano = { base: 49.9, inclusos: 5, extra: 19.9 };
+    expect(valorMensalidade(plano, 5)).toBe(49.9);
+    expect(valorMensalidade(plano, 6)).toBe(69.8);
+    expect(valorMensalidade(plano, 7)).toBe(89.7);
+  });
   it("até 3 usuários paga só o plano", () => {
     expect(valorMensalidade(basico, 1)).toBe(49.9);
     expect(valorMensalidade(basico, 3)).toBe(49.9);

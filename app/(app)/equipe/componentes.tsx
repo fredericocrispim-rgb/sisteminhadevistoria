@@ -2,27 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, MessageCircle, UserMinus, UserPlus, X } from "lucide-react";
+import { Check, MessageCircle, UserMinus, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
-import { BotaoPrincipal, BotaoSecundario, Campo, ConfirmacaoImportante, MensagemErroCampo, SeletorGrande } from "@/components/vf";
+import { BotaoPrincipal, BotaoSecundario, Campo, CampoSenha, ConfirmacaoImportante, MensagemErroCampo, SeletorGrande } from "@/components/vf";
 import { textos } from "@/lib/textos";
-import { cancelarConvite, criarConvite, tirarDaEquipe } from "./acoes";
+import { cadastrarUsuario, cancelarConvite, tirarDaEquipe } from "./acoes";
 
 const t = textos.equipe;
 const whatsapp = (mensagem: string) => `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
 
-async function copiar(texto: string) {
-  try {
-    await navigator.clipboard.writeText(texto);
-  } catch {
-    const campo = document.createElement("textarea");
-    campo.value = texto;
-    document.body.appendChild(campo);
-    campo.select();
-    document.execCommand("copy");
-    campo.remove();
-  }
-}
 
 export function Membro({ id, nome, papel, voce, podeTirar }: { id: string; nome: string; papel: string; voce: boolean; podeTirar: boolean }) {
   const router = useRouter();
@@ -96,46 +84,56 @@ export function ConvitePendente({ id, nome, papel, mensagem }: { id: string; nom
 
 type Papel = "vistoriador" | "gerente";
 
-export function AdicionarPessoa({ oficina, base, avisoPreco }: { oficina: string; base: string; avisoPreco: string | null }) {
+/** Cadastrar pessoa direto: nome, e-mail, senha e o que ela faz. Ela já pode entrar na hora. */
+export function AdicionarPessoa({
+  oficina,
+  base,
+  avisoPlano,
+  avisoPreco,
+}: {
+  oficina: string;
+  base: string;
+  /** "Ainda cabem N pessoas no plano" (quando ainda cabe). */
+  avisoPlano: string | null;
+  /** "Com essa pessoa, a mensalidade passa para R$ X" (quando passa do plano). */
+  avisoPreco: string | null;
+}) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [papel, setPapel] = useState<Papel>("vistoriador");
   const [conferir, setConferir] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string>();
-  const [pronto, setPronto] = useState<{ nome: string; link: string } | null>(null);
-  const [copiado, setCopiado] = useState(false);
+  const [pronto, setPronto] = useState<{ nome: string; email: string } | null>(null);
 
   function recomecar() {
     setNome("");
+    setEmail("");
+    setSenha("");
     setPapel("vistoriador");
     setConferir(false);
     setErro(undefined);
     setPronto(null);
-    setCopiado(false);
   }
 
   if (pronto) {
-    const mensagem = t.mensagem(pronto.nome.split(" ")[0], oficina, pronto.link);
+    const primeiro = pronto.nome.split(" ")[0];
     return (
       <section className="flex flex-col gap-3 rounded-3xl bg-acao-clara p-4">
         <p className="flex items-center gap-2 text-xl font-extrabold text-acao">
-          <Check aria-hidden className="size-7" /> {t.conviteCriado}
+          <Check aria-hidden className="size-7" /> {t.cadastrado(primeiro)}
         </p>
-        <p className="text-lg font-semibold">{t.conviteCriadoTexto}</p>
-        <BotaoPrincipal nativo href={whatsapp(mensagem)} icone={<MessageCircle aria-hidden />}>
-          {t.enviarWhatsapp}
+        <p className="text-lg font-semibold">{t.cadastradoTexto}</p>
+        <p className="rounded-2xl bg-background px-4 py-3 text-lg break-all">
+          <span className="block text-base text-muted-foreground">E-mail</span>
+          <strong>{pronto.email}</strong>
+        </p>
+        <BotaoPrincipal nativo href={whatsapp(t.mensagemAcesso(primeiro, oficina, base, pronto.email))} icone={<MessageCircle aria-hidden />}>
+          {t.mandarAcesso}
         </BotaoPrincipal>
-        <BotaoSecundario
-          icone={copiado ? <Check aria-hidden /> : <Copy aria-hidden />}
-          onClick={async () => {
-            await copiar(pronto.link);
-            setCopiado(true);
-          }}
-        >
-          {copiado ? t.copiado : t.copiarLink}
-        </BotaoSecundario>
         <BotaoSecundario
           icone={<UserPlus aria-hidden />}
           onClick={() => {
@@ -151,45 +149,69 @@ export function AdicionarPessoa({ oficina, base, avisoPreco }: { oficina: string
 
   if (!aberto) {
     return (
-      <BotaoPrincipal fixo icone={<UserPlus aria-hidden />} onClick={() => setAberto(true)}>
-        {t.adicionar}
-      </BotaoPrincipal>
+      <>
+        {avisoPlano && <p className="rounded-2xl bg-acao-clara px-4 py-3 text-base font-bold text-acao">{avisoPlano}</p>}
+        <BotaoPrincipal fixo icone={<UserPlus aria-hidden />} onClick={() => setAberto(true)}>
+          {t.adicionar}
+        </BotaoPrincipal>
+      </>
     );
   }
 
-  const erroNome = conferir && nome.trim().length < 2 ? "Coloque o nome da pessoa" : undefined;
+  const emailOk = /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(email.trim());
+  const erros = {
+    nome: conferir && nome.trim().length < 2 ? "Coloque o nome da pessoa" : undefined,
+    email: conferir && !emailOk ? (email ? "E-mail incompleto. Confira." : "Coloque o e-mail") : undefined,
+    senha: conferir && senha.length < 6 ? "Pelo menos 6 letras ou números" : undefined,
+  };
 
-  async function criar() {
+  async function cadastrar() {
     setConferir(true);
     setErro(undefined);
-    if (nome.trim().length < 2) return;
+    if (nome.trim().length < 2 || !emailOk || senha.length < 6) return;
     setCarregando(true);
-    const r = await criarConvite({ nome, papel });
+    const r = await cadastrarUsuario({ nome, email, senha, papel });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
-    setPronto({ nome: nome.trim(), link: `${base}/convite/${r.token}` });
+    setPronto({ nome: nome.trim(), email: email.trim().toLowerCase() });
     router.refresh();
   }
 
   return (
     <section className="flex flex-col gap-4 rounded-3xl bg-superficie p-4">
       <h2 className="text-xl font-extrabold">{t.adicionar}</h2>
-      <Campo rotulo={t.nome} autoCapitalize="words" autoComplete="off" valor={nome} onValor={setNome} erro={erroNome} autoFocus />
+      <Campo rotulo={t.nome} autoCapitalize="words" autoComplete="off" valor={nome} onValor={setNome} erro={erros.nome} autoFocus />
+      <Campo
+        rotulo={t.email}
+        type="email"
+        inputMode="email"
+        autoCapitalize="none"
+        autoComplete="off"
+        valor={email}
+        onValor={setEmail}
+        erro={erros.email}
+      />
+      <CampoSenha rotulo={t.senha} dica={t.senhaDica} nova valor={senha} onValor={setSenha} erro={erros.senha} />
       <SeletorGrande
         rotulo={t.papel}
         valor={papel}
         onChange={setPapel}
         opcoes={[
-          { valor: "vistoriador", rotulo: `${t.vistoriador} · ${t.vistoriadorDica}` },
-          { valor: "gerente", rotulo: `${t.gerente} · ${t.gerenteDica}` },
+          { valor: "vistoriador", rotulo: t.vistoriador },
+          { valor: "gerente", rotulo: t.gerente },
         ]}
         colunas={2}
         compacto
       />
-      {avisoPreco && <p className="rounded-2xl bg-atencao-clara px-4 py-3 text-base font-bold text-atencao-texto">{avisoPreco}</p>}
+      <p className="-mt-2 text-base font-semibold text-muted-foreground">{papel === "gerente" ? t.gerenteDica : t.vistoriadorDica}</p>
+      {avisoPreco ? (
+        <p className="rounded-2xl bg-atencao-clara px-4 py-3 text-base font-bold text-atencao-texto">{avisoPreco}</p>
+      ) : (
+        avisoPlano && <p className="rounded-2xl bg-acao-clara px-4 py-3 text-base font-bold text-acao">{avisoPlano}</p>
+      )}
       {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
-      <BotaoPrincipal fixo carregando={carregando} icone={<Check aria-hidden />} onClick={criar}>
-        {t.criarConvite}
+      <BotaoPrincipal fixo carregando={carregando} icone={<Check aria-hidden />} onClick={cadastrar}>
+        {t.cadastrar}
       </BotaoPrincipal>
     </section>
   );
