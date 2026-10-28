@@ -17,6 +17,7 @@ import {
   UserX,
 } from "lucide-react";
 import { ConfirmacaoImportante, LogoOficina } from "@/components/vf";
+import type { Vendedor } from "./comissoes";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatarReais } from "@/lib/pix";
@@ -40,6 +41,7 @@ import {
   mudarUsuarioAtivo,
   mudarVencimento,
   registrarMensagem,
+  definirVendedor,
   type Resultado,
 } from "./acoes";
 
@@ -78,6 +80,8 @@ export type OficinaPainel = {
   equipe: PessoaPainel[];
   pagamentos: { valor: number; pagoEm: string; descricao: string | null }[];
   ultimaMensagem: string | null;
+  /** Quem vendeu (recebe a comissão); vazio = venda sua. */
+  vendedorId: string | null;
 };
 
 type Filtro = "todas" | "teste" | "pagando" | "cobrar" | "bloqueado" | "paradas";
@@ -98,7 +102,20 @@ const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 const paradaHaDias = (o: OficinaPainel, dias: number) => !o.ultimoUso || Date.now() - Date.parse(o.ultimoUso) > dias * 86400000;
 
 /** Lista de oficinas do administrador: resumo, filtros, busca e um cartão por oficina. */
-export function PainelOficinas({ oficinas, produto, linkPlano }: { oficinas: OficinaPainel[]; produto: string; linkPlano: string }) {
+export function PainelOficinas({
+  oficinas,
+  produto,
+  linkPlano,
+  vendedores,
+  comissaoAtiva,
+}: {
+  oficinas: OficinaPainel[];
+  produto: string;
+  linkPlano: string;
+  vendedores: Vendedor[];
+  /** Banco preparado para comissões. */
+  comissaoAtiva: boolean;
+}) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [ordem, setOrdem] = useState<Ordem>("uso");
   const [busca, setBusca] = useState("");
@@ -209,7 +226,7 @@ export function PainelOficinas({ oficinas, produto, linkPlano }: { oficinas: Ofi
 
       <ul className="flex flex-col gap-3">
         {lista.map((o) => (
-          <CartaoOficina key={o.id} oficina={o} onCobrar={() => setCobrar(o)} />
+          <CartaoOficina key={o.id} oficina={o} onCobrar={() => setCobrar(o)} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
         ))}
       </ul>
 
@@ -248,7 +265,18 @@ function useAcao() {
   return { rodando, rodar };
 }
 
-function CartaoOficina({ oficina: o, onCobrar }: { oficina: OficinaPainel; onCobrar: () => void }) {
+function CartaoOficina({
+  oficina: o,
+  onCobrar,
+  vendedores,
+  comissaoAtiva,
+}: {
+  oficina: OficinaPainel;
+  onCobrar: () => void;
+  vendedores: Vendedor[];
+  comissaoAtiva: boolean;
+}) {
+  const vendedor = vendedores.find((v) => v.id === o.vendedorId);
   const [aberto, setAberto] = useState(false);
   const temp = temperaturaUso(o.ultimoUso);
   const r = o.responsavel;
@@ -279,6 +307,7 @@ function CartaoOficina({ oficina: o, onCobrar }: { oficina: OficinaPainel; onCob
               .join(" · ")}
           </p>
           {o.ultimaMensagem && <p className="text-sm text-muted-foreground">Última mensagem sua: {tempoDesde(o.ultimaMensagem)}</p>}
+          {vendedor && <p className="text-sm font-bold text-oficina">Vendido por {vendedor.nome} (comissão)</p>}
         </div>
       </div>
 
@@ -301,12 +330,69 @@ function CartaoOficina({ oficina: o, onCobrar }: { oficina: OficinaPainel; onCob
         </button>
       </div>
 
-      {aberto && <DetalhesOficina oficina={o} />}
+      {aberto && <DetalhesOficina oficina={o} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />}
     </li>
   );
 }
 
-function DetalhesOficina({ oficina: o }: { oficina: OficinaPainel }) {
+/** Quem vendeu a oficina: recebe a comissão de cada pagamento dela. */
+function QuemVendeu({ oficina: o, vendedores }: { oficina: OficinaPainel; vendedores: Vendedor[] }) {
+  const { rodando, rodar } = useAcao();
+  const [escolhido, setEscolhido] = useState(o.vendedorId ?? "");
+  const [anteriores, setAnteriores] = useState(true);
+  const opcoes = vendedores.filter((v) => v.ativo || v.id === o.vendedorId);
+  const mudou = escolhido !== (o.vendedorId ?? "");
+  const temPagamentos = o.pagamentos.length > 0;
+
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-lg font-extrabold">Quem vendeu</h3>
+      {vendedores.length === 0 ? (
+        <p className="text-base text-muted-foreground">
+          Cadastre os vendedores na aba{" "}
+          <a href="/admin?aba=comissoes" className="font-bold text-oficina underline">
+            Comissões
+          </a>
+          .
+        </p>
+      ) : (
+        <>
+          <select
+            value={escolhido}
+            onChange={(e) => setEscolhido(e.target.value)}
+            aria-label="Quem vendeu esta oficina"
+            className="min-h-toque rounded-2xl bg-background px-4 text-lg font-semibold outline-none focus:ring-2 focus:ring-oficina"
+          >
+            <option value="">Eu mesmo (sem comissão)</option>
+            {opcoes.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nome}
+              </option>
+            ))}
+          </select>
+          {mudou && escolhido && temPagamentos && (
+            <label className="flex min-h-toque cursor-pointer items-center gap-3 rounded-2xl bg-background px-3 text-base">
+              <input type="checkbox" checked={anteriores} onChange={(e) => setAnteriores(e.target.checked)} className="size-5 accent-[var(--color-oficina)]" />
+              Gerar comissão dos pagamentos que já entraram
+            </label>
+          )}
+          {mudou && (
+            <button
+              type="button"
+              disabled={rodando}
+              onClick={() => rodar(() => definirVendedor(o.id, escolhido || null, anteriores), "Vendedor salvo")}
+              className="tocavel min-h-toque rounded-2xl bg-oficina px-4 text-base font-bold text-oficina-texto disabled:opacity-60"
+            >
+              Salvar vendedor
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: OficinaPainel; vendedores: Vendedor[]; comissaoAtiva: boolean }) {
   const { rodando, rodar } = useAcao();
   const [data, setData] = useState(o.situacao.vencimento ?? "");
   const [confirmarBloqueio, setConfirmarBloqueio] = useState(false);
@@ -383,6 +469,8 @@ function DetalhesOficina({ oficina: o }: { oficina: OficinaPainel }) {
           </button>
         </form>
       </section>
+
+      {comissaoAtiva && <QuemVendeu oficina={o} vendedores={vendedores} />}
 
       <section className="flex flex-col gap-2">
         <h3 className="text-lg font-extrabold">Equipe ({o.equipe.length})</h3>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
+import { criarComissoes } from "@/lib/comissoes-servidor";
 
 const hoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // aaaa-mm-dd
 
@@ -38,17 +39,23 @@ export async function marcarComoPago(formData: FormData) {
       : hoje();
   const novoVencimento = somarDias(base, 30);
 
-  await admin.from("faturas").insert({
-    empresa_id: empresaId,
-    assinatura_id: assinatura.id,
-    descricao: `Mensalidade (Pix conferido à mão) · ${m.usuarios} ${m.usuarios === 1 ? "usuário" : "usuários"}`,
-    valor: m.valor || 0.01,
-    vencimento: hoje(),
-    status: "paga",
-    forma: "pix",
-    pago_em: new Date().toISOString(),
-    confirmado_por: ctx.usuario.id,
-  });
+  const { data: fatura } = await admin
+    .from("faturas")
+    .insert({
+      empresa_id: empresaId,
+      assinatura_id: assinatura.id,
+      descricao: `Mensalidade (Pix conferido à mão) · ${m.usuarios} ${m.usuarios === 1 ? "usuário" : "usuários"}`,
+      valor: m.valor || 0.01,
+      vencimento: hoje(),
+      status: "paga",
+      forma: "pix",
+      pago_em: new Date().toISOString(),
+      confirmado_por: ctx.usuario.id,
+    })
+    .select("id")
+    .single();
+  // Oficina com vendedor: a comissão (50%) deste pagamento já fica "a pagar" no relatório
+  if (fatura) await criarComissoes(empresaId, [fatura.id]);
   await admin
     .from("assinaturas")
     .update({ status: "ativa", plano_id: m.planoId, proximo_vencimento: novoVencimento })
@@ -190,6 +197,68 @@ export async function registrarMensagem(empresaId: string, modelo: string): Prom
   const ctx = await exigirSuperadmin();
   if (!ehId(empresaId)) return { erro: "Oficina inválida" };
   await registrar(empresaId, ctx.usuario.id, "mensagem_whatsapp", { modelo: modelo.slice(0, 30) });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------
+// Comissão de venda: vendedores, quem vendeu cada oficina e pagamento das comissões
+// ---------------------------------------------------------------------
+
+const SEM_TABELAS = "Falta preparar o banco para comissões (veja as instruções no painel)";
+
+/** Cadastra ou altera um vendedor. */
+export async function salvarVendedor(dados: { id?: string; nome: string; whatsapp: string; pixChave: string }): Promise<Resultado> {
+  await exigirSuperadmin();
+  const nome = dados.nome.trim();
+  if (nome.length < 2) return { erro: "Escreva o nome do vendedor" };
+  const linha = { nome: nome.slice(0, 120), whatsapp: dados.whatsapp.trim().slice(0, 30) || null, pix_chave: dados.pixChave.trim().slice(0, 120) || null };
+  const admin = criarClienteAdmin();
+  const { error } =
+    dados.id && ehId(dados.id)
+      ? await admin.from("vendedores").update(linha).eq("id", dados.id)
+      : await admin.from("vendedores").insert(linha);
+  if (error) return { erro: SEM_TABELAS };
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Tira o vendedor da lista de escolha (as comissões dele continuam no relatório). */
+export async function mudarVendedorAtivo(id: string, ativo: boolean): Promise<Resultado> {
+  await exigirSuperadmin();
+  if (!ehId(id)) return { erro: "Vendedor inválido" };
+  const { error } = await criarClienteAdmin().from("vendedores").update({ ativo }).eq("id", id);
+  if (error) return { erro: SEM_TABELAS };
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/**
+ * Marca quem vendeu a oficina. Os próximos pagamentos geram comissão sozinhos.
+ * Com `incluirAnteriores`, também cria a comissão dos pagamentos que já entraram.
+ */
+export async function definirVendedor(empresaId: string, vendedorId: string | null, incluirAnteriores: boolean): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId) || (vendedorId && !ehId(vendedorId))) return { erro: "Escolha inválida" };
+  const { error } = await criarClienteAdmin().from("empresas").update({ vendedor_id: vendedorId }).eq("id", empresaId);
+  if (error) return { erro: SEM_TABELAS };
+  const criadas = vendedorId && incluirAnteriores ? await criarComissoes(empresaId) : 0;
+  await registrar(empresaId, ctx.usuario.id, "vendedor_definido", { vendedor: vendedorId, comissoes_anteriores: criadas });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Comissões pagas ao vendedor (ou desfaz, voltando para "a pagar"). */
+export async function marcarComissoes(ids: string[], paga: boolean): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  const validos = ids.filter(ehId).slice(0, 500);
+  if (validos.length === 0) return { erro: "Escolha pelo menos uma comissão" };
+  const { error } = await criarClienteAdmin()
+    .from("comissoes")
+    .update(paga ? { status: "paga", paga_em: new Date().toISOString(), pago_por: ctx.usuario.id } : { status: "pendente", paga_em: null, pago_por: null })
+    .in("id", validos)
+    .neq("status", "cancelada");
+  if (error) return { erro: SEM_TABELAS };
   revalidatePath("/admin");
   return { ok: true };
 }

@@ -11,6 +11,8 @@ import { situacaoOficina } from "@/lib/admin-painel";
 import { textos } from "@/lib/textos";
 import { LinkSenha } from "./link-senha";
 import { PainelOficinas, type OficinaPainel, type PessoaPainel } from "./painel";
+import { RelatorioComissoes, type Vendedor } from "./comissoes";
+import type { Comissao } from "@/lib/comissao";
 
 export const metadata: Metadata = { title: "Administrador", robots: { index: false } };
 
@@ -24,10 +26,26 @@ const maisRecente = (...datas: (string | null | undefined)[]) =>
 /**
  * Painel do administrador (Frederico): todas as oficinas, quem é o responsável, último uso,
  * situação do pagamento, gerenciar o acesso e mandar cobrança pelo WhatsApp.
+ * Aba "Comissões" (?aba=comissoes): vendedores e relatório das comissões de venda (50% do recebido).
  */
-export default async function Admin() {
+export default async function Admin({ searchParams }: PageProps<"/admin">) {
   await exigirSuperadmin();
+  const { aba } = await searchParams;
   const admin = criarClienteAdmin();
+  // Comissões em consultas separadas: se o banco ainda não foi preparado, o resto do painel funciona igual
+  const [vend, vendaPorOficina, coms] = await Promise.all([
+    admin.from("vendedores").select("id, nome, whatsapp, pix_chave, ativo").order("nome"),
+    admin.from("empresas").select("id, vendedor_id").not("vendedor_id", "is", null),
+    admin
+      .from("comissoes")
+      .select("id, vendedor_id, empresa_id, valor_recebido, recebido_em, percentual, valor, status, paga_em")
+      .order("recebido_em", { ascending: false })
+      .limit(5000),
+  ]);
+  const bancoComissoesPronto = !vend.error && !vendaPorOficina.error && !coms.error;
+  const vendedores: Vendedor[] = (vend.data ?? []).map((v) => ({ id: v.id, nome: v.nome, whatsapp: v.whatsapp, pixChave: v.pix_chave, ativo: v.ativo }));
+  const vendedorDaOficina = new Map((vendaPorOficina.data ?? []).map((e) => [e.id, e.vendedor_id as string]));
+
   const [{ data: plat }, { data: planos }, { data: empresas }, { data: vistorias }, { data: faturas }, { data: mensagens }, usuariosAuth] =
     await Promise.all([
       admin.from("plataforma").select("dias_carencia, nome_produto, pix_chave, pix_nome_recebedor, pix_cidade").single(),
@@ -150,8 +168,24 @@ export default async function Admin() {
       equipe,
       pagamentos: (pagamentos.get(e.id) ?? []).slice(0, 6),
       ultimaMensagem: ultimaMensagem.get(e.id) ?? null,
+      vendedorId: vendedorDaOficina.get(e.id) ?? null,
     };
   });
+
+  const comissoes: Comissao[] = (coms.data ?? []).map((c) => ({
+    id: c.id,
+    vendedorId: c.vendedor_id,
+    empresaId: c.empresa_id,
+    oficina: nomePorId.get(c.empresa_id) ?? "Oficina",
+    valorRecebido: Number(c.valor_recebido),
+    recebidoEm: c.recebido_em,
+    percentual: Number(c.percentual),
+    valor: Number(c.valor),
+    status: c.status as Comissao["status"],
+    pagaEm: c.paga_em,
+  }));
+  const produto = plat?.nome_produto ?? textos.produto.nome;
+  const naComissoes = aba === "comissoes";
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6">
@@ -159,8 +193,41 @@ export default async function Admin() {
         <ArrowLeft aria-hidden className="size-6" /> Voltar
       </Link>
       <h1 className="text-[1.75rem] font-extrabold">Painel do administrador</h1>
-      <PainelOficinas oficinas={oficinas} produto={plat?.nome_produto ?? textos.produto.nome} linkPlano={`${site}/plano`} />
-      <LinkSenha />
+      <nav aria-label="Partes do painel" className="grid grid-cols-2 gap-1 rounded-2xl bg-superficie p-1">
+        {[
+          { href: "/admin", nome: "Oficinas", ativo: !naComissoes },
+          { href: "/admin?aba=comissoes", nome: "Comissões", ativo: naComissoes },
+        ].map((a) => (
+          <Link
+            key={a.href}
+            href={a.href}
+            aria-current={a.ativo ? "page" : undefined}
+            className={`tocavel flex min-h-toque items-center justify-center rounded-xl text-lg font-bold ${a.ativo ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+          >
+            {a.nome}
+          </Link>
+        ))}
+      </nav>
+      {naComissoes ? (
+        <RelatorioComissoes
+          comissoes={comissoes}
+          vendedores={vendedores}
+          oficinasPorVendedor={Object.fromEntries(vendedores.map((v) => [v.id, oficinas.filter((o) => o.vendedorId === v.id).length]))}
+          produto={produto}
+          bancoPronto={bancoComissoesPronto}
+        />
+      ) : (
+        <>
+          <PainelOficinas
+            oficinas={oficinas}
+            produto={produto}
+            linkPlano={`${site}/plano`}
+            vendedores={vendedores}
+            comissaoAtiva={bancoComissoesPronto}
+          />
+          <LinkSenha />
+        </>
+      )}
     </main>
   );
 }
