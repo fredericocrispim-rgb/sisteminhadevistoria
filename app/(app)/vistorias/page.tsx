@@ -8,6 +8,7 @@ import { dataHoraBR, nomeTipo, placaParaMostrar } from "@/lib/vistoria";
 import { placaParaBanco } from "@/lib/formatos";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
+import { BotoesRascunho } from "./botoes-rascunho";
 
 export const metadata: Metadata = { title: "Vistorias" };
 
@@ -32,6 +33,7 @@ export default async function Vistorias({ searchParams }: PageProps<"/vistorias"
     .from("vistorias")
     .select("id, numero, tipo, status, iniciada_em, concluida_em, veiculos!inner (placa, modelo), clientes (nome)")
     .eq("empresa_id", empresa.id)
+    .neq("status", "cancelada") // canceladas ficam guardadas, mas não aparecem
     .order("iniciada_em", { ascending: false })
     .limit(60);
   // Vistoriador vê só as vistorias que ele fez (dono e gerente veem todas)
@@ -68,25 +70,39 @@ export default async function Vistorias({ searchParams }: PageProps<"/vistorias"
         <ul className="flex flex-col gap-2">
           {lista.map((v) => {
             const rascunho = v.status === "rascunho";
+            const placaETipo = (
+              <span className="min-w-0 flex-1">
+                <span className="block font-mono text-xl font-extrabold tracking-wider">{v.veiculos ? placaParaMostrar(v.veiculos.placa) : "—"}</span>
+                <span className="block truncate text-base text-muted-foreground">
+                  {nomeTipo(v.tipo) === "CHEGADA" ? "Chegada" : "Entrega"} · Nº {v.numero} · {dataHoraBR(v.concluida_em ?? v.iniciada_em)}
+                </span>
+              </span>
+            );
+            // Não concluída: continuar ou cancelar (abandonada polui a lista)
+            if (rascunho) {
+              return (
+                <li key={v.id} className="flex flex-col gap-2 rounded-2xl bg-superficie p-3 pl-4">
+                  <Link href={`/vistorias/${v.id}`} className="flex items-center gap-3">
+                    {placaETipo}
+                  </Link>
+                  <BotoesRascunho id={v.id} />
+                </li>
+              );
+            }
             return (
               <li key={v.id}>
                 <Link
-                  href={rascunho ? `/vistorias/${v.id}` : `/vistorias/${v.id}/pronto`}
+                  href={`/vistorias/${v.id}/pronto`}
                   className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-superficie px-4 py-3"
                 >
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-mono text-xl font-extrabold tracking-wider">{v.veiculos ? placaParaMostrar(v.veiculos.placa) : "—"}</span>
-                    <span className="block truncate text-base text-muted-foreground">
-                      {nomeTipo(v.tipo) === "CHEGADA" ? "Chegada" : "Entrega"} · Nº {v.numero} · {dataHoraBR(v.concluida_em ?? v.iniciada_em)}
-                    </span>
-                  </span>
+                  {placaETipo}
                   <span
                     className={cn(
                       "shrink-0 rounded-full px-3 py-1 text-sm font-bold",
-                      rascunho ? "bg-atencao-clara text-atencao-texto" : v.status === "enviada" ? "bg-acao-clara text-acao" : "bg-background",
+                      v.status === "enviada" ? "bg-acao-clara text-acao" : "bg-background",
                     )}
                   >
-                    {rascunho ? "Continuar" : v.status === "enviada" ? "Enviada" : "Concluída"}
+                    {v.status === "enviada" ? "Enviada" : "Concluída"}
                   </span>
                   <ChevronRight aria-hidden className="size-6 shrink-0 text-muted-foreground" />
                 </Link>

@@ -44,7 +44,7 @@ export async function buscarPorPlaca(placa: string) {
     .from("vistorias")
     .select("km")
     .eq("veiculo_id", veiculo.id)
-    .neq("status", "rascunho")
+    .in("status", ["concluida", "enviada"])
     .order("iniciada_em", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -332,7 +332,7 @@ export async function gerarPdfDeNovo(vistoriaId: string): Promise<Resultado> {
   if (!ctx) return { ok: false, erro: FALHOU };
   const supabase = await criarClienteServidor();
   const { data: v } = await supabase.from("vistorias").select("id, empresa_id, status, pdf_url, codigo_autenticidade").eq("id", vistoriaId).single();
-  if (!v || v.status === "rascunho") return { ok: false, erro: FALHOU };
+  if (!v || v.status === "rascunho" || v.status === "cancelada") return { ok: false, erro: FALHOU };
   if (!v.pdf_url) await gerarEGuardarPdf(v.id, `${v.empresa_id}/${v.id}/termo-${v.codigo_autenticidade}.pdf`);
   revalidatePath(`/vistorias/${vistoriaId}/pronto`);
   return { ok: true };
@@ -354,6 +354,37 @@ export async function apagarRascunho(vistoriaId: string): Promise<Resultado> {
   const supabase = await criarClienteServidor();
   const { error } = await supabase.from("vistorias").delete().eq("id", vistoriaId).eq("status", "rascunho");
   if (error) return { ok: false, erro: FALHOU };
+  revalidatePath("/inicio");
+  revalidatePath("/vistorias");
+  return { ok: true };
+}
+
+/**
+ * Cancela uma vistoria abandonada (que não foi concluída): some da lista, mas fica guardada.
+ * Vistoria concluída nunca é cancelada. Quem vê a vistoria pode cancelar (o vistoriador só vê as dele).
+ */
+export async function cancelarVistoria(vistoriaId: string): Promise<Resultado> {
+  return mudarRascunho(vistoriaId, "rascunho", "cancelada");
+}
+
+/** "Desfazer" do cancelamento: a vistoria volta para a lista, como estava. */
+export async function restaurarVistoria(vistoriaId: string): Promise<Resultado> {
+  return mudarRascunho(vistoriaId, "cancelada", "rascunho");
+}
+
+async function mudarRascunho(vistoriaId: string, de: "rascunho" | "cancelada", para: "rascunho" | "cancelada"): Promise<Resultado> {
+  const ctx = await contextoOficina();
+  if (!ctx || !/^[0-9a-f-]{36}$/.test(vistoriaId)) return { ok: false, erro: FALHOU };
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("vistorias")
+    .update({ status: para })
+    .eq("id", vistoriaId)
+    .eq("empresa_id", ctx.empresa.id)
+    .eq("status", de)
+    .is("concluida_em", null)
+    .select("id");
+  if (error || !data?.length) return { ok: false, erro: FALHOU };
   revalidatePath("/inicio");
   revalidatePath("/vistorias");
   return { ok: true };

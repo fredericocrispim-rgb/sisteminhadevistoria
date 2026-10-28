@@ -19,7 +19,7 @@ export default async function Resultado({ params }: PageProps<"/verificar/[codig
         .maybeSingle()
     : { data: null };
 
-  if (!v || v.status === "rascunho") {
+  if (!v || v.status === "rascunho" || v.status === "cancelada") {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-4 px-4">
         <EstadoVazio icone={<XCircle aria-hidden />} titulo="Código não encontrado" texto="Este código não corresponde a nenhuma vistoria. Confira as letras e números." />

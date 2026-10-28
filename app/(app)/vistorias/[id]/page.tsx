@@ -25,6 +25,7 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
     .eq("id", id)
     .maybeSingle();
   if (!v) notFound();
+  if (v.status === "cancelada") redirect("/vistorias");
   if (v.status !== "rascunho") redirect(`/vistorias/${id}/pronto`);
 
   const [{ data: fotos }, { data: avarias }, { data: pneus }, { data: itens }, { data: checklist }, entrada] = await Promise.all([

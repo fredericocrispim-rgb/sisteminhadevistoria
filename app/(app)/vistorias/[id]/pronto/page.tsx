@@ -22,6 +22,7 @@ export default async function Pronto({ params }: PageProps<"/vistorias/[id]/pron
     .maybeSingle();
   if (!v) notFound();
   if (v.status === "rascunho") redirect(`/vistorias/${id}`);
+  if (v.status === "cancelada") redirect("/vistorias");
 
   const carro = v.veiculos as unknown as { placa: string; modelo: string | null };
   const cliente = v.clientes as unknown as { nome: string; whatsapp: string | null } | null;

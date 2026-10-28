@@ -48,6 +48,9 @@ export const textos = {
     chegadaBotao: "CHEGOU CARRO",
     entregaBotao: "ENTREGAR CARRO",
     continuar: "Continuar",
+    cancelar: "Cancelar",
+    cancelada: "Vistoria cancelada",
+    naoDeuCancelar: "Não deu para cancelar. Tente de novo.",
     etapas: {
       veiculo: "Carro e cliente",
       fotos: "Fotos",

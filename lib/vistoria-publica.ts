@@ -15,6 +15,6 @@ export async function vistoriaPorToken(token: string) {
     )
     .eq("token_publico", token)
     .maybeSingle();
-  if (!data || data.status === "rascunho" || !data.link_publico_ativo) return null;
+  if (!data || data.status === "rascunho" || data.status === "cancelada" || !data.link_publico_ativo) return null;
   return data;
 }
