@@ -1,140 +1,166 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, MessageCircle } from "lucide-react";
-import { LogoOficina } from "@/components/vf";
+import { headers } from "next/headers";
+import { ArrowLeft } from "lucide-react";
 import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { fasePagamento, hojeBR } from "@/lib/cadastro";
-import { telefoneParaWhatsapp } from "@/lib/formatos";
+import { hojeBR } from "@/lib/cadastro";
 import { valorMensalidade } from "@/lib/cobranca";
-import { formatarReais } from "@/lib/pix";
+import { gerarPixCopiaECola } from "@/lib/pix";
+import { situacaoOficina } from "@/lib/admin-painel";
 import { textos } from "@/lib/textos";
-import { marcarComoPago } from "./acoes";
 import { LinkSenha } from "./link-senha";
+import { PainelOficinas, type OficinaPainel, type PessoaPainel } from "./painel";
 
 export const metadata: Metadata = { title: "Administrador", robots: { index: false } };
 
-type Assinatura = { status: string; fim_teste: string | null; proximo_vencimento: string | null };
+type Assinatura = { status: string; fim_teste: string | null; proximo_vencimento: string | null; plano_id: string | null };
+type Vinculo = { id: string; user_id: string; nome: string | null; papel: string; ativo: boolean; cupom: string | null; criado_em: string };
 
-const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
+const diasAtras = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
+const maisRecente = (...datas: (string | null | undefined)[]) =>
+  datas.filter((d): d is string => Boolean(d)).sort().at(-1) ?? null;
 
-function situacao(a: Assinatura | undefined, carencia: number) {
-  if (!a) return { texto: "—", classe: "bg-background" };
-  if (a.status === "cancelada" || a.status === "inadimplente") return { texto: "Bloqueado", classe: "bg-perigo-clara text-perigo" };
-  const teste = a.status === "teste";
-  const venc = (teste ? a.fim_teste : a.proximo_vencimento) ?? null;
-  const r = fasePagamento(venc, hojeBR(), carencia);
-  const d = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
-  switch (r.fase) {
-    case "em_dia":
-      return teste
-        ? { texto: `Teste: ${d(r.diasParaVencer + 1)}`, classe: "bg-oficina-clara text-oficina" }
-        : { texto: `Pago até ${dataBR(venc!)}`, classe: "bg-acao-clara text-acao" };
-    case "vence_logo":
-      return { texto: `${teste ? "Teste acaba" : "Vence"} ${r.diasParaVencer === 0 ? "hoje" : `em ${d(r.diasParaVencer)}`}`, classe: "bg-oficina-clara text-oficina" };
-    case "atrasado":
-      return { texto: `Atrasado ${d(r.diasAtraso)}`, classe: "bg-atencao-clara text-atencao-texto" };
-    default:
-      return { texto: `Bloqueado (${d(r.diasAtraso)} de atraso)`, classe: "bg-perigo-clara text-perigo" };
-  }
-}
-
-/** Painel do administrador (Frederico): oficinas, contato no WhatsApp e confirmação manual do Pix. */
+/**
+ * Painel do administrador (Frederico): todas as oficinas, quem é o responsável, último uso,
+ * situação do pagamento, gerenciar o acesso e mandar cobrança pelo WhatsApp.
+ */
 export default async function Admin() {
   await exigirSuperadmin();
   const admin = criarClienteAdmin();
-  const [{ data: plat }, { data: planos }] = await Promise.all([
-    admin.from("plataforma").select("dias_carencia").single(),
-    admin.from("planos").select("id, preco_mensal, limite_usuarios, preco_usuario_extra").eq("ativo", true).order("ordem"),
-  ]);
-  const carencia = plat?.dias_carencia ?? 5;
-  const { data: empresas } = await admin
-    .from("empresas")
-    .select(
-      "id, nome_fantasia, cidade, uf, whatsapp, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, assinaturas (status, fim_teste, proximo_vencimento, plano_id), usuarios_empresa (ativo, cupom)",
-    )
-    .order("criado_em", { ascending: false })
-    .limit(200);
+  const [{ data: plat }, { data: planos }, { data: empresas }, { data: vistorias }, { data: faturas }, { data: mensagens }, usuariosAuth] =
+    await Promise.all([
+      admin.from("plataforma").select("dias_carencia, nome_produto, pix_chave, pix_nome_recebedor, pix_cidade").single(),
+      admin.from("planos").select("id, nome, preco_mensal, limite_usuarios, preco_usuario_extra").eq("ativo", true).order("ordem"),
+      admin
+        .from("empresas")
+        .select(
+          "id, nome_fantasia, cidade, uf, whatsapp, email, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, assinaturas (status, fim_teste, proximo_vencimento, plano_id), usuarios_empresa (id, user_id, nome, papel, ativo, cupom, criado_em)",
+        )
+        .order("criado_em", { ascending: false })
+        .limit(500),
+      admin.from("vistorias").select("empresa_id, iniciada_em, status").order("iniciada_em", { ascending: false }).limit(10000),
+      admin.from("faturas").select("empresa_id, valor, pago_em, descricao").eq("status", "paga").order("pago_em", { ascending: false }).limit(2000),
+      admin
+        .from("auditoria")
+        .select("empresa_id, data_hora")
+        .eq("acao", "mensagem_whatsapp")
+        .order("data_hora", { ascending: false })
+        .limit(2000),
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+    ]);
 
+  const carencia = plat?.dias_carencia ?? 5;
+  const hoje = hojeBR();
+  const h = await headers();
+  const site = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
   const nomePorId = new Map((empresas ?? []).map((e) => [e.id, e.nome_fantasia]));
+  const contas = new Map((usuariosAuth.data?.users ?? []).map((u) => [u.id, u]));
+
+  // Vistorias por oficina: total, últimos 30 dias e a mais recente
+  const limite30 = diasAtras(30);
+  const usoVistorias = new Map<string, { total: number; mes: number; ultima: string | null }>();
+  for (const v of vistorias ?? []) {
+    const u = usoVistorias.get(v.empresa_id) ?? { total: 0, mes: 0, ultima: null };
+    if (v.status !== "cancelada") {
+      u.total++;
+      if (v.iniciada_em >= limite30) u.mes++;
+    }
+    u.ultima = maisRecente(u.ultima, v.iniciada_em);
+    usoVistorias.set(v.empresa_id, u);
+  }
+  const pagamentos = new Map<string, { valor: number; pagoEm: string; descricao: string | null }[]>();
+  for (const f of faturas ?? []) {
+    if (!f.pago_em) continue;
+    const lista = pagamentos.get(f.empresa_id) ?? [];
+    lista.push({ valor: Number(f.valor), pagoEm: f.pago_em, descricao: f.descricao });
+    pagamentos.set(f.empresa_id, lista);
+  }
+  const ultimaMensagem = new Map<string, string>();
+  for (const m of mensagens ?? []) if (m.empresa_id && !ultimaMensagem.has(m.empresa_id)) ultimaMensagem.set(m.empresa_id, m.data_hora);
+
+  const oficinas: OficinaPainel[] = (empresas ?? []).map((e) => {
+    const bruto = e.assinaturas as unknown as Assinatura[] | Assinatura | null;
+    const a = (Array.isArray(bruto) ? bruto[0] : bruto) ?? null;
+    const situacao = situacaoOficina(a, hoje, carencia);
+
+    const equipe: PessoaPainel[] = (e.usuarios_empresa as unknown as Vinculo[])
+      .map((v) => {
+        const conta = contas.get(v.user_id);
+        const meta = (conta?.user_metadata ?? {}) as Record<string, unknown>;
+        const appMeta = (conta?.app_metadata ?? {}) as Record<string, unknown>;
+        return {
+          vinculoId: v.id,
+          nome: v.nome ?? (typeof meta.nome === "string" ? meta.nome : null),
+          email: conta?.email ?? null,
+          whatsapp: typeof meta.whatsapp === "string" ? meta.whatsapp : null,
+          papel: v.papel,
+          ativo: v.ativo,
+          cortesia: Boolean(v.cupom),
+          ultimoUso: maisRecente(typeof appMeta.ultimo_acesso === "string" ? appMeta.ultimo_acesso : null, conta?.last_sign_in_at),
+        };
+      })
+      .sort((x, y) => (x.papel === "dono" ? -1 : y.papel === "dono" ? 1 : (y.ultimoUso ?? "").localeCompare(x.ultimoUso ?? "")));
+
+    const ativos = equipe.filter((p) => p.ativo);
+    const cortesias = ativos.filter((p) => p.cortesia).length;
+    const usuarios = Math.max(1, ativos.length - cortesias); // quem tem cupom não é cobrado
+    const pl = planos?.find((x) => x.id === a?.plano_id) ?? planos?.[0];
+    const valor = pl
+      ? valorMensalidade({ base: Number(pl.preco_mensal), inclusos: pl.limite_usuarios, extra: Number(pl.preco_usuario_extra ?? 0) }, usuarios)
+      : 0;
+    const pix =
+      plat?.pix_chave && plat.pix_nome_recebedor && plat.pix_cidade && valor > 0
+        ? gerarPixCopiaECola({
+            chave: plat.pix_chave,
+            nome: plat.pix_nome_recebedor,
+            cidade: plat.pix_cidade,
+            valor,
+            descricao: plat.nome_produto ?? textos.produto.nome,
+          })
+        : null;
+
+    const dono = equipe.find((p) => p.papel === "dono");
+    const uso = usoVistorias.get(e.id) ?? { total: 0, mes: 0, ultima: null };
+    return {
+      id: e.id,
+      nome: e.nome_fantasia,
+      logo: e.logo_app_url,
+      cidade: [e.cidade, e.uf].filter(Boolean).join("/"),
+      criadoEm: e.criado_em,
+      codigo: e.codigo_indicacao,
+      indicadaPor: e.indicada_por_empresa_id ? (nomePorId.get(e.indicada_por_empresa_id) ?? "outra oficina") : null,
+      responsavel: {
+        nome: dono?.nome ?? e.responsavel_nome ?? null,
+        whatsapp: dono?.whatsapp ?? e.whatsapp ?? null,
+        email: dono?.email ?? e.email ?? null,
+      },
+      whatsappOficina: e.whatsapp,
+      situacao,
+      teste: !a || a.status === "teste",
+      planoNome: pl?.nome ?? "",
+      usuarios,
+      cortesias,
+      valor,
+      pix,
+      ultimoUso: maisRecente(uso.ultima, ...equipe.map((p) => p.ultimoUso)),
+      vistoriasTotal: uso.total,
+      vistoriasMes: uso.mes,
+      ultimaVistoria: uso.ultima,
+      equipe,
+      pagamentos: (pagamentos.get(e.id) ?? []).slice(0, 6),
+      ultimaMensagem: ultimaMensagem.get(e.id) ?? null,
+    };
+  });
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6">
       <Link href="/mais" className="inline-flex min-h-toque items-center gap-1.5 self-start text-lg font-bold">
         <ArrowLeft aria-hidden className="size-6" /> Voltar
       </Link>
+      <h1 className="text-[1.75rem] font-extrabold">Painel do administrador</h1>
+      <PainelOficinas oficinas={oficinas} produto={plat?.nome_produto ?? textos.produto.nome} linkPlano={`${site}/plano`} />
       <LinkSenha />
-      <h1 className="text-[1.75rem] font-extrabold">Oficinas ({empresas?.length ?? 0})</h1>
-      <p className="text-base text-muted-foreground">
-        Quando o Pix cair na conta, toque em <strong>Marcar como pago</strong>: libera mais 30 dias.
-      </p>
-      <ul className="flex flex-col gap-3">
-        {empresas?.map((e) => {
-          const bruto = e.assinaturas as unknown as Assinatura[] | Assinatura | null;
-          const a = (Array.isArray(bruto) ? bruto[0] : bruto) ?? undefined;
-          const s = situacao(a, carencia);
-          const equipe = (e.usuarios_empresa as unknown as { ativo: boolean; cupom: string | null }[]).filter((u) => u.ativo);
-          const cortesias = equipe.filter((u) => u.cupom).length;
-          const usuarios = Math.max(1, equipe.length - cortesias); // quem tem cupom não é cobrado
-          const pl = planos?.find((x) => x.id === (a as { plano_id?: string } | undefined)?.plano_id) ?? planos?.[0];
-          const valor = pl
-            ? valorMensalidade({ base: Number(pl.preco_mensal), inclusos: pl.limite_usuarios, extra: Number(pl.preco_usuario_extra ?? 0) }, usuarios)
-            : 0;
-          const primeiroNome = e.responsavel_nome?.split(" ")[0] ?? "";
-          const mensagem = `Olá${primeiroNome ? `, ${primeiroNome}` : ""}! Aqui é o Frederico, do ${textos.produto.nome}. Tudo certo com o teste da ${e.nome_fantasia}?`;
-          return (
-            <li key={e.id} className="flex flex-col gap-3 rounded-2xl bg-superficie p-4">
-              <div className="flex items-center gap-3">
-                <LogoOficina nome={e.nome_fantasia} url={e.logo_app_url} tamanho="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-lg font-bold">{e.nome_fantasia}</p>
-                  <p className="text-base text-muted-foreground">
-                    {[e.responsavel_nome, [e.cidade, e.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Desde {new Date(e.criado_em).toLocaleDateString("pt-BR")} · Código {e.codigo_indicacao}
-                  </p>
-                  {e.indicada_por_empresa_id && (
-                    <p className="text-sm font-bold text-oficina">
-                      Indicada por {nomePorId.get(e.indicada_por_empresa_id) ?? "outra oficina"}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-3 py-1 text-base font-bold ${s.classe}`}>{s.texto}</span>
-                <span className="text-base font-semibold text-muted-foreground">
-                  {usuarios} {usuarios === 1 ? "usuário" : "usuários"}
-                  {cortesias > 0 && ` + ${cortesias} cortesia`} · {formatarReais(valor)}/mês
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {e.whatsapp ? (
-                  <a
-                    href={`https://wa.me/${telefoneParaWhatsapp(e.whatsapp)}?text=${encodeURIComponent(mensagem)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-[#1f8f4e] px-3 text-base font-bold text-white"
-                  >
-                    <MessageCircle aria-hidden className="size-6" /> WhatsApp
-                  </a>
-                ) : (
-                  <span />
-                )}
-                <form action={marcarComoPago}>
-                  <input type="hidden" name="empresa_id" value={e.id} />
-                  <button
-                    type="submit"
-                    className="tocavel inline-flex min-h-toque w-full items-center justify-center gap-2 rounded-2xl bg-acao px-3 text-base font-bold text-acao-texto"
-                  >
-                    <BadgeCheck aria-hidden className="size-6" /> Marcar como pago
-                  </button>
-                </form>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
     </main>
   );
 }

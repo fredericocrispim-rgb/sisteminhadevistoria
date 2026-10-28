@@ -1,0 +1,631 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
+import {
+  BadgeCheck,
+  CalendarClock,
+  ChevronDown,
+  Copy,
+  Lock,
+  LockOpen,
+  Mail,
+  MessageCircle,
+  Phone,
+  Search,
+  UserCheck,
+  UserX,
+} from "lucide-react";
+import { ConfirmacaoImportante, LogoOficina } from "@/components/vf";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { formatarReais } from "@/lib/pix";
+import { formatarTelefone, telefoneParaWhatsapp } from "@/lib/formatos";
+import {
+  MODELOS,
+  dataBR,
+  mensagemWhatsapp,
+  modeloSugerido,
+  temperaturaUso,
+  tempoDesde,
+  type GrupoSituacao,
+  type ModeloMensagem,
+  type Situacao,
+} from "@/lib/admin-painel";
+import {
+  bloquearAcesso,
+  darMaisDias,
+  liberarAcesso,
+  marcarComoPago,
+  mudarUsuarioAtivo,
+  mudarVencimento,
+  registrarMensagem,
+  type Resultado,
+} from "./acoes";
+
+export type PessoaPainel = {
+  vinculoId: string;
+  nome: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  papel: string;
+  ativo: boolean;
+  cortesia: boolean;
+  ultimoUso: string | null;
+};
+
+export type OficinaPainel = {
+  id: string;
+  nome: string;
+  logo: string | null;
+  cidade: string;
+  criadoEm: string;
+  codigo: string;
+  indicadaPor: string | null;
+  responsavel: { nome: string | null; whatsapp: string | null; email: string | null };
+  whatsappOficina: string | null;
+  situacao: Situacao;
+  teste: boolean;
+  planoNome: string;
+  usuarios: number;
+  cortesias: number;
+  valor: number;
+  pix: string | null;
+  ultimoUso: string | null;
+  vistoriasTotal: number;
+  vistoriasMes: number;
+  ultimaVistoria: string | null;
+  equipe: PessoaPainel[];
+  pagamentos: { valor: number; pagoEm: string; descricao: string | null }[];
+  ultimaMensagem: string | null;
+};
+
+type Filtro = "todas" | "teste" | "pagando" | "cobrar" | "bloqueado" | "paradas";
+type Ordem = "uso" | "vencimento" | "novas" | "nome";
+
+const COR_SITUACAO: Record<GrupoSituacao, string> = {
+  teste: "bg-oficina-clara text-oficina",
+  pagando: "bg-acao-clara text-acao",
+  vence_logo: "bg-atencao-clara text-atencao-texto",
+  atrasado: "bg-atencao-clara text-atencao-texto",
+  bloqueado: "bg-perigo-clara text-perigo",
+};
+const COR_USO = { quente: "bg-acao", morno: "bg-atencao", frio: "bg-perigo" };
+const PAPEL: Record<string, string> = { dono: "Dono", gerente: "Gerente", vistoriador: "Vistoriador" };
+const diaHora = (iso: string) =>
+  new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const paradaHaDias = (o: OficinaPainel, dias: number) => !o.ultimoUso || Date.now() - Date.parse(o.ultimoUso) > dias * 86400000;
+
+/** Lista de oficinas do administrador: resumo, filtros, busca e um cartão por oficina. */
+export function PainelOficinas({ oficinas, produto, linkPlano }: { oficinas: OficinaPainel[]; produto: string; linkPlano: string }) {
+  const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [ordem, setOrdem] = useState<Ordem>("uso");
+  const [busca, setBusca] = useState("");
+  const [cobrar, setCobrar] = useState<OficinaPainel | null>(null);
+
+  const conta = (f: Filtro) => oficinas.filter((o) => passa(o, f)).length;
+  const pagantes = oficinas.filter((o) => o.situacao.grupo !== "teste" && !o.teste);
+  const receitaMes = pagantes.filter((o) => o.situacao.grupo !== "bloqueado").reduce((s, o) => s + o.valor, 0);
+  const [desde30] = useState(() => Date.now() - 30 * 86400000);
+  const recebido30 = oficinas.flatMap((o) => o.pagamentos).filter((p) => Date.parse(p.pagoEm) >= desde30).reduce((s, p) => s + p.valor, 0);
+
+  const lista = useMemo(() => {
+    const q = semAcento(busca.trim());
+    const digitos = busca.replace(/\D/g, "");
+    return oficinas
+      .filter((o) => passa(o, filtro))
+      .filter((o) => {
+        if (!q) return true;
+        const texto = semAcento(
+          [o.nome, o.cidade, o.codigo, o.responsavel.nome, o.responsavel.email, ...o.equipe.flatMap((p) => [p.nome, p.email])].filter(Boolean).join(" "),
+        );
+        const fones = [o.responsavel.whatsapp, o.whatsappOficina, ...o.equipe.map((p) => p.whatsapp)].join(" ").replace(/\D/g, "");
+        return texto.includes(q) || (digitos.length >= 4 && fones.includes(digitos));
+      })
+      .sort((a, b) => {
+        if (ordem === "uso") return (b.ultimoUso ?? "").localeCompare(a.ultimoUso ?? "");
+        if (ordem === "vencimento") return (a.situacao.vencimento ?? "9999").localeCompare(b.situacao.vencimento ?? "9999");
+        if (ordem === "nome") return a.nome.localeCompare(b.nome, "pt-BR");
+        return b.criadoEm.localeCompare(a.criadoEm);
+      });
+  }, [oficinas, filtro, busca, ordem]);
+
+  const blocos: { id: Filtro; nome: string; valor: number; classe: string }[] = [
+    { id: "todas", nome: "Oficinas", valor: oficinas.length, classe: "text-foreground" },
+    { id: "teste", nome: "Em teste", valor: conta("teste"), classe: "text-oficina" },
+    { id: "pagando", nome: "Pagando", valor: conta("pagando"), classe: "text-acao" },
+    { id: "cobrar", nome: "Para cobrar", valor: conta("cobrar"), classe: "text-atencao-texto" },
+    { id: "bloqueado", nome: "Bloqueadas", valor: conta("bloqueado"), classe: "text-perigo" },
+    { id: "paradas", nome: "Sem uso 7 dias", valor: conta("paradas"), classe: "text-muted-foreground" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <section aria-label="Resumo" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {blocos.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => setFiltro(b.id)}
+            aria-pressed={filtro === b.id}
+            className={cn(
+              "tocavel flex flex-col items-start rounded-2xl bg-superficie p-3 text-left outline-offset-2",
+              filtro === b.id && "ring-2 ring-oficina",
+            )}
+          >
+            <span className={cn("text-3xl font-extrabold", b.classe)}>{b.valor}</span>
+            <span className="text-base font-semibold">{b.nome}</span>
+          </button>
+        ))}
+      </section>
+      <section aria-label="Dinheiro" className="grid grid-cols-2 gap-2">
+        <div className="rounded-2xl bg-acao-clara p-3">
+          <p className="text-2xl font-extrabold text-acao">{formatarReais(receitaMes)}</p>
+          <p className="text-base font-semibold">Por mês (quem paga)</p>
+        </div>
+        <div className="rounded-2xl bg-superficie p-3">
+          <p className="text-2xl font-extrabold">{formatarReais(recebido30)}</p>
+          <p className="text-base font-semibold">Recebido em 30 dias</p>
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <label className="flex min-h-toque flex-1 items-center gap-2 rounded-2xl bg-superficie px-4 focus-within:ring-2 focus-within:ring-oficina">
+          <Search aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar oficina, pessoa, cidade ou telefone"
+            aria-label="Buscar"
+            className="min-w-0 flex-1 bg-transparent text-lg outline-none"
+          />
+        </label>
+        <select
+          value={ordem}
+          onChange={(e) => setOrdem(e.target.value as Ordem)}
+          aria-label="Ordenar"
+          className="min-h-toque rounded-2xl bg-superficie px-4 text-lg font-semibold outline-none focus:ring-2 focus:ring-oficina"
+        >
+          <option value="uso">Usou por último</option>
+          <option value="vencimento">Vence primeiro</option>
+          <option value="novas">Mais novas</option>
+          <option value="nome">Nome (A-Z)</option>
+        </select>
+      </div>
+
+      <p className="text-base text-muted-foreground">
+        {lista.length} {lista.length === 1 ? "oficina" : "oficinas"}
+        {filtro !== "todas" && (
+          <>
+            {" · "}
+            <button type="button" className="font-bold text-oficina underline" onClick={() => setFiltro("todas")}>
+              mostrar todas
+            </button>
+          </>
+        )}
+      </p>
+
+      <ul className="flex flex-col gap-3">
+        {lista.map((o) => (
+          <CartaoOficina key={o.id} oficina={o} onCobrar={() => setCobrar(o)} />
+        ))}
+      </ul>
+
+      <JanelaWhatsapp oficina={cobrar} produto={produto} linkPlano={linkPlano} onFechar={() => setCobrar(null)} />
+    </div>
+  );
+}
+
+function passa(o: OficinaPainel, f: Filtro) {
+  const g = o.situacao.grupo;
+  switch (f) {
+    case "todas":
+      return true;
+    case "teste":
+      return g === "teste" || (o.teste && g === "vence_logo");
+    case "pagando":
+      return g === "pagando" || (!o.teste && g === "vence_logo");
+    case "cobrar":
+      return g === "vence_logo" || g === "atrasado";
+    case "bloqueado":
+      return g === "bloqueado";
+    case "paradas":
+      return paradaHaDias(o, 7);
+  }
+}
+
+/** Roda uma ação do servidor e avisa o resultado. */
+function useAcao() {
+  const [rodando, iniciar] = useTransition();
+  const rodar = (fazer: () => Promise<Resultado | void>, sucesso: string) =>
+    iniciar(async () => {
+      const r = await fazer();
+      if (r && r.erro) toast.error(r.erro);
+      else toast.success(sucesso);
+    });
+  return { rodando, rodar };
+}
+
+function CartaoOficina({ oficina: o, onCobrar }: { oficina: OficinaPainel; onCobrar: () => void }) {
+  const [aberto, setAberto] = useState(false);
+  const temp = temperaturaUso(o.ultimoUso);
+  const r = o.responsavel;
+
+  return (
+    <li className="flex flex-col gap-3 rounded-2xl bg-superficie p-4">
+      <div className="flex items-start gap-3">
+        <LogoOficina nome={o.nome} url={o.logo} tamanho="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="truncate text-lg font-extrabold">{o.nome}</p>
+            <span className={cn("rounded-full px-3 py-0.5 text-sm font-bold", COR_SITUACAO[o.situacao.grupo])}>{o.situacao.texto}</span>
+          </div>
+          <p className="text-base">
+            <span className="text-muted-foreground">Responsável: </span>
+            <strong>{r.nome ?? "sem nome"}</strong>
+            {r.whatsapp && <span className="text-muted-foreground"> · {formatarTelefone(r.whatsapp)}</span>}
+          </p>
+          <p className="flex items-center gap-2 text-base">
+            <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", COR_USO[temp])} />
+            <span>
+              Último uso: <strong>{tempoDesde(o.ultimoUso)}</strong>
+            </span>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {[o.cidade, `${o.vistoriasMes} vistorias no mês (${o.vistoriasTotal} no total)`, `${formatarReais(o.valor)}/mês`]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          {o.ultimaMensagem && <p className="text-sm text-muted-foreground">Última mensagem sua: {tempoDesde(o.ultimaMensagem)}</p>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onCobrar}
+          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-[#1f8f4e] px-3 text-base font-bold text-white"
+        >
+          <MessageCircle aria-hidden className="size-6" /> WhatsApp
+        </button>
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-background px-3 text-base font-bold"
+        >
+          {aberto ? "Fechar" : "Gerenciar"}
+          <ChevronDown aria-hidden className={cn("size-5 transition-transform", aberto && "rotate-180")} />
+        </button>
+      </div>
+
+      {aberto && <DetalhesOficina oficina={o} />}
+    </li>
+  );
+}
+
+function DetalhesOficina({ oficina: o }: { oficina: OficinaPainel }) {
+  const { rodando, rodar } = useAcao();
+  const [data, setData] = useState(o.situacao.vencimento ?? "");
+  const [confirmarBloqueio, setConfirmarBloqueio] = useState(false);
+  const [confirmarPago, setConfirmarPago] = useState(false);
+  const s = o.situacao;
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-border pt-4">
+      <section className="flex flex-col gap-2">
+        <h3 className="text-lg font-extrabold">Acesso e pagamento</h3>
+        <p className="text-base text-muted-foreground">
+          {o.teste ? "Teste grátis" : `Plano ${o.planoNome}`}
+          {s.vencimento && ` · ${o.teste ? "teste acaba" : "vence"} em ${dataBR(s.vencimento)}`}
+          {` · ${o.usuarios} ${o.usuarios === 1 ? "usuário pago" : "usuários pagos"}`}
+          {o.cortesias > 0 && ` + ${o.cortesias} cortesia`}
+          {` · ${formatarReais(o.valor)}/mês`}
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={() => setConfirmarPago(true)}
+            className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-acao px-3 text-base font-bold text-acao-texto disabled:opacity-60"
+          >
+            <BadgeCheck aria-hidden className="size-6" /> Marcar como pago (+30 dias)
+          </button>
+          {s.grupo === "bloqueado" ? (
+            <button
+              type="button"
+              disabled={rodando}
+              onClick={() => rodar(() => liberarAcesso(o.id), "Acesso liberado")}
+              className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-oficina px-3 text-base font-bold text-oficina-texto disabled:opacity-60"
+            >
+              <LockOpen aria-hidden className="size-6" /> Liberar acesso
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={rodando}
+              onClick={() => setConfirmarBloqueio(true)}
+              className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-perigo-clara px-3 text-base font-bold text-perigo disabled:opacity-60"
+            >
+              <Lock aria-hidden className="size-6" /> Bloquear acesso
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[7, 30].map((d) => (
+            <button
+              key={d}
+              type="button"
+              disabled={rodando}
+              onClick={() => rodar(() => darMaisDias(o.id, d), `Mais ${d} dias liberados`)}
+              className="tocavel min-h-toque rounded-2xl bg-background px-3 text-base font-bold disabled:opacity-60"
+            >
+              + {d} dias {o.teste ? "de teste" : "grátis"}
+            </button>
+          ))}
+        </div>
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            rodar(() => mudarVencimento(o.id, data), "Data salva");
+          }}
+        >
+          <label className="flex min-h-toque flex-1 items-center gap-2 rounded-2xl bg-background px-3">
+            <CalendarClock aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+            <span className="sr-only">{o.teste ? "Fim do teste" : "Vencimento"}</span>
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="min-w-0 flex-1 bg-transparent text-lg outline-none" />
+          </label>
+          <button type="submit" disabled={rodando || !data} className="tocavel min-h-toque whitespace-nowrap rounded-2xl bg-oficina px-4 text-base font-bold text-oficina-texto disabled:opacity-60">
+            Mudar data
+          </button>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="text-lg font-extrabold">Equipe ({o.equipe.length})</h3>
+        <ul className="flex flex-col gap-2">
+          {o.equipe.map((p) => (
+            <li key={p.vinculoId} className={cn("flex flex-col gap-1 rounded-2xl bg-background p-3", !p.ativo && "opacity-60")}>
+              <div className="flex flex-wrap items-center gap-2">
+                <strong className="text-base">{p.nome ?? "sem nome"}</strong>
+                <span className="rounded-full bg-superficie px-2 py-0.5 text-sm font-bold">{PAPEL[p.papel] ?? p.papel}</span>
+                {p.cortesia && <span className="rounded-full bg-oficina-clara px-2 py-0.5 text-sm font-bold text-oficina">Cortesia</span>}
+                {!p.ativo && <span className="rounded-full bg-perigo-clara px-2 py-0.5 text-sm font-bold text-perigo">Desligado</span>}
+              </div>
+              <p className="flex items-center gap-2 text-sm">
+                <span aria-hidden className={cn("size-2 shrink-0 rounded-full", COR_USO[temperaturaUso(p.ultimoUso)])} />
+                Último uso: {tempoDesde(p.ultimoUso)}
+                {p.ultimoUso && <span className="text-muted-foreground">({diaHora(p.ultimoUso)})</span>}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {p.email && (
+                  <a href={`mailto:${p.email}`} className="inline-flex items-center gap-1 break-all text-oficina underline">
+                    <Mail aria-hidden className="size-4" /> {p.email}
+                  </a>
+                )}
+                {p.whatsapp && (
+                  <a
+                    href={`https://wa.me/${telefoneParaWhatsapp(p.whatsapp)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-oficina underline"
+                  >
+                    <Phone aria-hidden className="size-4" /> {formatarTelefone(p.whatsapp)}
+                  </a>
+                )}
+              </div>
+              {p.papel !== "dono" && (
+                <button
+                  type="button"
+                  disabled={rodando}
+                  onClick={() => rodar(() => mudarUsuarioAtivo(p.vinculoId, !p.ativo), p.ativo ? "Pessoa desligada" : "Pessoa religada")}
+                  className="tocavel mt-1 inline-flex min-h-11 items-center gap-2 self-start rounded-xl bg-superficie px-3 text-sm font-bold disabled:opacity-60"
+                >
+                  {p.ativo ? <UserX aria-hidden className="size-4" /> : <UserCheck aria-hidden className="size-4" />}
+                  {p.ativo ? "Tirar acesso" : "Devolver acesso"}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="text-lg font-extrabold">Pagamentos</h3>
+        {o.pagamentos.length === 0 ? (
+          <p className="text-base text-muted-foreground">Nenhum pagamento ainda.</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {o.pagamentos.map((p) => (
+              <li key={p.pagoEm} className="flex justify-between gap-2 rounded-xl bg-background px-3 py-2 text-base">
+                <span>{diaHora(p.pagoEm)}</span>
+                <strong>{formatarReais(p.valor)}</strong>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <p className="text-sm text-muted-foreground">
+        Cadastrada em {new Date(o.criadoEm).toLocaleDateString("pt-BR")} · Código {o.codigo}
+        {o.indicadaPor && ` · Indicada por ${o.indicadaPor}`}
+        {o.ultimaVistoria && ` · Última vistoria ${tempoDesde(o.ultimaVistoria)}`}
+      </p>
+
+      <ConfirmacaoImportante
+        aberto={confirmarBloqueio}
+        onAberto={setConfirmarBloqueio}
+        titulo="Bloquear esta oficina?"
+        texto={`A equipe da ${o.nome} só vai ver a tela do Pix até você liberar.`}
+        textoConfirmar="Bloquear"
+        perigo
+        onConfirmar={() => {
+          setConfirmarBloqueio(false);
+          rodar(() => bloquearAcesso(o.id), "Oficina bloqueada");
+        }}
+      />
+      <ConfirmacaoImportante
+        aberto={confirmarPago}
+        onAberto={setConfirmarPago}
+        titulo="O Pix caiu na conta?"
+        texto={`Registra ${formatarReais(o.valor)} pago pela ${o.nome} e libera mais 30 dias.`}
+        textoConfirmar="Sim, marcar como pago"
+        onConfirmar={() => {
+          setConfirmarPago(false);
+          const f = new FormData();
+          f.set("empresa_id", o.id);
+          rodar(() => marcarComoPago(f), "Pagamento registrado");
+        }}
+      />
+    </div>
+  );
+}
+
+/** Escolhe para quem mandar e o modelo da mensagem; abre o WhatsApp com o texto pronto. */
+function JanelaWhatsapp({
+  oficina,
+  produto,
+  linkPlano,
+  onFechar,
+}: {
+  oficina: OficinaPainel | null;
+  produto: string;
+  linkPlano: string;
+  onFechar: () => void;
+}) {
+  return (
+    <Dialog open={Boolean(oficina)} onOpenChange={(a) => !a && onFechar()}>
+      <DialogContent className="max-h-[92dvh] gap-4 overflow-y-auto rounded-3xl p-5 sm:max-w-lg">
+        {oficina && <ConteudoWhatsapp key={oficina.id} oficina={oficina} produto={produto} linkPlano={linkPlano} onFechar={onFechar} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ConteudoWhatsapp({ oficina: o, produto, linkPlano, onFechar }: { oficina: OficinaPainel; produto: string; linkPlano: string; onFechar: () => void }) {
+  // Para quem mandar: o responsável primeiro, depois o WhatsApp da oficina e o resto da equipe
+  const destinos = useMemo(() => {
+    const vistos = new Set<string>();
+    const lista: { nome: string | null; rotulo: string; fone: string }[] = [];
+    const add = (nome: string | null, rotulo: string, fone: string | null) => {
+      if (!fone) return;
+      const n = telefoneParaWhatsapp(fone);
+      if (vistos.has(n)) return;
+      vistos.add(n);
+      lista.push({ nome, rotulo, fone: n });
+    };
+    add(o.responsavel.nome, "Responsável", o.responsavel.whatsapp);
+    add(o.responsavel.nome, "Oficina", o.whatsappOficina);
+    o.equipe.filter((p) => p.ativo).forEach((p) => add(p.nome, PAPEL[p.papel] ?? p.papel, p.whatsapp));
+    return lista;
+  }, [o]);
+
+  const [destino, setDestino] = useState(0);
+  const [modelo, setModelo] = useState<ModeloMensagem>(() => (paradaHaDias(o, 7) && o.situacao.grupo === "teste" ? "sumiu" : modeloSugerido(o.situacao)));
+  const textoDo = (m: ModeloMensagem, i: number) =>
+    mensagemWhatsapp(m, {
+      nomePessoa: destinos[i]?.nome ?? o.responsavel.nome,
+      oficina: o.nome,
+      produto,
+      teste: o.teste,
+      valor: o.valor,
+      vencimento: o.situacao.vencimento,
+      diasParaVencer: o.situacao.diasParaVencer,
+      diasAtraso: o.situacao.diasAtraso,
+      pix: o.pix,
+      linkPlano,
+    });
+  const [texto, setTexto] = useState(() => textoDo(modelo, 0));
+  const escolher = (m: ModeloMensagem, i: number) => {
+    setModelo(m);
+    setDestino(i);
+    setTexto(textoDo(m, i));
+  };
+  const fone = destinos[destino]?.fone;
+
+  return (
+    <>
+      <DialogTitle className="text-2xl font-extrabold">Mensagem para {o.nome}</DialogTitle>
+      <DialogDescription className="text-base">
+        Situação: <strong>{o.situacao.texto}</strong> · {formatarReais(o.valor)}/mês
+      </DialogDescription>
+
+      {destinos.length === 0 ? (
+        <p className="rounded-2xl bg-atencao-clara p-3 font-bold text-atencao-texto">Ninguém desta oficina tem WhatsApp cadastrado.</p>
+      ) : (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-base font-bold">Para quem</legend>
+          {destinos.map((d, i) => (
+            <label key={d.fone} className={cn("flex min-h-toque cursor-pointer items-center gap-3 rounded-2xl bg-superficie px-3", destino === i && "ring-2 ring-oficina")}>
+              <input type="radio" name="destino" checked={destino === i} onChange={() => escolher(modelo, i)} className="size-5 accent-[var(--color-oficina)]" />
+              <span className="text-base">
+                <strong>{d.nome ?? "sem nome"}</strong> <span className="text-muted-foreground">({d.rotulo})</span>
+                <br />
+                {formatarTelefone(d.fone.slice(2))}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <p className="text-base font-bold">Modelo</p>
+        <div className="flex flex-wrap gap-2">
+          {MODELOS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => escolher(m.id, destino)}
+              aria-pressed={modelo === m.id}
+              className={cn("tocavel min-h-11 rounded-full px-3 text-sm font-bold", modelo === m.id ? "bg-oficina text-oficina-texto" : "bg-superficie")}
+            >
+              {m.nome}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-base font-bold">Texto (pode mudar)</span>
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          rows={9}
+          className="rounded-2xl bg-superficie p-3 text-base outline-none focus:ring-2 focus:ring-oficina"
+        />
+      </label>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={async () => {
+            await navigator.clipboard.writeText(texto);
+            toast.success("Texto copiado");
+          }}
+          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-superficie px-3 text-base font-bold"
+        >
+          <Copy aria-hidden className="size-5" /> Copiar
+        </button>
+        {fone ? (
+          <a
+            href={`https://wa.me/${fone}?text=${encodeURIComponent(texto)}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => {
+              void registrarMensagem(o.id, modelo);
+              onFechar();
+            }}
+            className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-[#1f8f4e] px-3 text-base font-bold text-white"
+          >
+            <MessageCircle aria-hidden className="size-6" /> Abrir WhatsApp
+          </a>
+        ) : (
+          <span />
+        )}
+      </div>
+    </>
+  );
+}

@@ -79,3 +79,117 @@ export async function gerarLinkSenha(_: unknown, formData: FormData): Promise<{ 
   const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
   return { email, link: `${base}/auth/confirmar?token_hash=${data.properties.hashed_token}&type=recovery&voltar=/nova-senha` };
 }
+
+// ---------------------------------------------------------------------
+// Gerenciar o acesso de cada oficina (painel do administrador)
+// ---------------------------------------------------------------------
+
+export type Resultado = { ok?: boolean; erro?: string };
+
+const ehId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
+const ehData = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00Z`));
+
+async function registrar(empresaId: string, usuarioId: string, acao: string, detalhes: Record<string, unknown>) {
+  await criarClienteAdmin().from("auditoria").insert({
+    empresa_id: empresaId,
+    usuario_id: usuarioId,
+    acao,
+    entidade: "empresas",
+    entidade_id: empresaId,
+    detalhes,
+  });
+}
+
+/** Data que vale agora para a oficina: fim do teste ou vencimento da mensalidade. */
+async function lerAssinatura(empresaId: string) {
+  const { data } = await criarClienteAdmin()
+    .from("assinaturas")
+    .select("id, status, fim_teste, proximo_vencimento")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  return data;
+}
+
+/** Muda a data de vencimento (ou de fim do teste). Também tira o bloqueio manual. */
+export async function mudarVencimento(empresaId: string, data: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId) || !ehData(data)) return { erro: "Data inválida" };
+  const a = await lerAssinatura(empresaId);
+  if (!a) return { erro: "Oficina sem assinatura" };
+  const teste = a.status === "teste" || (a.status !== "ativa" && !a.proximo_vencimento);
+  const { error } = await criarClienteAdmin()
+    .from("assinaturas")
+    .update(teste ? { status: "teste", fim_teste: data } : { status: "ativa", proximo_vencimento: data })
+    .eq("id", a.id);
+  if (error) return { erro: "Não consegui salvar. Tente de novo." };
+  await registrar(empresaId, ctx.usuario.id, "vencimento_alterado", { para: data, teste });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Dá mais dias de uso (a partir de hoje ou do vencimento, o que for mais tarde). */
+export async function darMaisDias(empresaId: string, dias: number): Promise<Resultado> {
+  await exigirSuperadmin();
+  if (!ehId(empresaId) || !Number.isInteger(dias) || dias < 1 || dias > 365) return { erro: "Número de dias inválido" };
+  const a = await lerAssinatura(empresaId);
+  if (!a) return { erro: "Oficina sem assinatura" };
+  const atual = (a.status === "teste" ? a.fim_teste : a.proximo_vencimento) ?? hoje();
+  return mudarVencimento(empresaId, somarDias(atual > hoje() ? atual : hoje(), dias));
+}
+
+/** Bloqueia na hora (a oficina só vê a tela do Pix), mesmo que a data ainda não tenha vencido. */
+export async function bloquearAcesso(empresaId: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId)) return { erro: "Oficina inválida" };
+  const a = await lerAssinatura(empresaId);
+  if (!a) return { erro: "Oficina sem assinatura" };
+  await criarClienteAdmin().from("assinaturas").update({ status: "cancelada" }).eq("id", a.id);
+  await registrar(empresaId, ctx.usuario.id, "acesso_bloqueado", { status_anterior: a.status });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/**
+ * Tira o bloqueio. Se a data já passou da carência (continuaria bloqueado),
+ * dá 7 dias a partir de hoje para a oficina ter tempo de pagar.
+ */
+export async function liberarAcesso(empresaId: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId)) return { erro: "Oficina inválida" };
+  const a = await lerAssinatura(empresaId);
+  if (!a) return { erro: "Oficina sem assinatura" };
+  const teste = !a.proximo_vencimento;
+  const venc = (teste ? a.fim_teste : a.proximo_vencimento) ?? null;
+  const limite = somarDias(hoje(), -5);
+  const novaData = !venc || venc < limite ? somarDias(hoje(), 7) : venc;
+  await criarClienteAdmin()
+    .from("assinaturas")
+    .update(teste ? { status: "teste", fim_teste: novaData } : { status: "ativa", proximo_vencimento: novaData })
+    .eq("id", a.id);
+  await registrar(empresaId, ctx.usuario.id, "acesso_liberado", { ate: novaData });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Liga ou desliga uma pessoa da equipe (o dono não pode ser desligado por aqui). */
+export async function mudarUsuarioAtivo(vinculoId: string, ativo: boolean): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(vinculoId)) return { erro: "Pessoa inválida" };
+  const admin = criarClienteAdmin();
+  const { data: v } = await admin.from("usuarios_empresa").select("empresa_id, papel, nome").eq("id", vinculoId).maybeSingle();
+  if (!v) return { erro: "Pessoa não encontrada" };
+  if (v.papel === "dono" && !ativo) return { erro: "Para tirar o acesso do dono, bloqueie a oficina" };
+  await admin.from("usuarios_empresa").update({ ativo }).eq("id", vinculoId);
+  await registrar(v.empresa_id, ctx.usuario.id, ativo ? "usuario_religado" : "usuario_desligado", { vinculo: vinculoId, nome: v.nome });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Anota que uma mensagem de cobrança foi aberta no WhatsApp (aparece como "Última mensagem"). */
+export async function registrarMensagem(empresaId: string, modelo: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId)) return { erro: "Oficina inválida" };
+  await registrar(empresaId, ctx.usuario.id, "mensagem_whatsapp", { modelo: modelo.slice(0, 30) });
+  revalidatePath("/admin");
+  return { ok: true };
+}
