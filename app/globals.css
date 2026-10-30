@@ -169,3 +169,50 @@
     transform: scale(0.97);
   }
 }
+
+/* Texto corrido das páginas do site (inicial, conteúdo e blog) */
+@layer components {
+  .texto-site {
+    font-size: 1.15rem;
+    line-height: 1.65;
+  }
+  .texto-site h2 {
+    margin-top: 2.6rem;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .texto-site h3 {
+    margin-top: 1.6rem;
+    font-size: 1.3rem;
+    line-height: 1.25;
+    font-weight: 800;
+  }
+  .texto-site p {
+    margin-top: 0.9rem;
+  }
+  .texto-site ul,
+  .texto-site ol {
+    margin-top: 0.9rem;
+    padding-left: 1.4rem;
+  }
+  .texto-site ul {
+    list-style: disc;
+  }
+  .texto-site ol {
+    list-style: decimal;
+  }
+  .texto-site li {
+    margin-top: 0.4rem;
+  }
+  .texto-site a {
+    color: var(--cor-oficina);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .texto-site strong {
+    font-weight: 800;
+  }
+}
