@@ -16,6 +16,7 @@ export type VistaFoto =
   | "diagonal-traseira-direita"
   | "painel"
   | "placa"
+  | "motor"
   | "extra";
 
 const traco = {
@@ -168,6 +169,32 @@ function Placa() {
   );
 }
 
+/** Motor: carro de lado com o capô levantado (apoiado na vareta) e o motor à mostra. */
+function Motor() {
+  return (
+    <g>
+      {/* capô aberto, preso perto do para-brisa */}
+      <path d="M150 43 L184 6 Q187 3 190 6 L192 9 L158 46 Z" {...lataria} fillOpacity={0.3} />
+      <path d="M186 50 L177 14" {...traco} strokeWidth={2} />
+      {/* carro de lado, sem a tampa do capô */}
+      <path
+        d="M16 62 Q14 52 22 48 Q30 45 52 43 L66 27 Q72 20 84 20 L124 20 Q136 20 144 28 L155 41 L156 50 L186 50 Q188 53 188 60 L187 66 Q186 69 182 69 L160 69 A17 17 0 0 0 126 69 L74 69 A17 17 0 0 0 40 69 L20 69 Q16 69 16 62 Z"
+        {...lataria}
+      />
+      <path d="M70 41 L80 29 Q84 25 90 25 L101 25 L101 41 Z" {...vidro} />
+      <path d="M107 25 L123 25 Q131 25 136 30 L146 41 L107 41 Z" {...vidro} />
+      <path d="M104 46 L104 64" {...linha} />
+      <path d="M86 50 L94 50 M116 50 L124 50" {...linha} />
+      <rect x="18" y="50" width="11" height="6" rx="3" fill="#fff" {...traco} strokeWidth={2} />
+      {/* motor à mostra */}
+      <rect x="160" y="36" width="24" height="15" rx="3" fill="#fff" {...traco} strokeWidth={2.5} />
+      <path d="M166 40 L166 47 M172 40 L172 47 M178 40 L178 47" {...traco} strokeWidth={2} />
+      <Roda cx={57} cy={69} />
+      <Roda cx={143} cy={69} />
+    </g>
+  );
+}
+
 /** Desenha formas do mapa de avarias no estilo do guia (rodas cheias, vidros preenchidos). */
 function DeFormas({ formas }: { formas: Forma[] }) {
   return (
@@ -242,6 +269,9 @@ export function SilhuetaCarro({ vista, veiculo = "carro", className }: { vista: 
       break;
     case "placa":
       desenho = <Placa />;
+      break;
+    case "motor":
+      desenho = <Motor />;
       break;
     case "extra":
       desenho = <Extra />;

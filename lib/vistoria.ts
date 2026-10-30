@@ -10,7 +10,7 @@ export const FOTOS_OBRIGATORIAS: { categoria: string; titulo: string; vista: Vis
   { categoria: "lateral_esquerda", titulo: "Lado esquerdo", vista: "lateral-esquerda", dica: "Pegue o carro inteiro, de lado" },
   { categoria: "lateral_direita", titulo: "Lado direito", vista: "lateral-direita", dica: "Pegue o carro inteiro, de lado" },
   { categoria: "painel", titulo: "Painel", vista: "painel", dica: "Carro ligado. Mostre o km e o combustível" },
-  { categoria: "placa", titulo: "Placa", vista: "placa", dica: "Chegue perto. A placa deve dar para ler" },
+  { categoria: "motor", titulo: "Motor (capô aberto)", vista: "motor", dica: "Abra o capô. Mostre o motor todo" },
 ];
 
 /** Foto a mais, que o usuário tira se quiser (não é obrigatória). */
@@ -20,6 +20,7 @@ export const FOTO_EXTRA = { categoria: "extra", titulo: "Outra foto", vista: "ex
 const NOMES_FOTOS_ANTIGAS: Record<string, string> = {
   diagonal_dianteira: "Canto da frente",
   diagonal_traseira: "Canto de trás",
+  placa: "Placa", // pedida até 30/10/2026; trocada pelo Motor (capô aberto)
 };
 
 export function tituloFoto(categoria: string) {

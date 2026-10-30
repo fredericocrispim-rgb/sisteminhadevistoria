@@ -185,7 +185,7 @@ const fotos: { titulo: string; vista: VistaFoto; dica: string }[] = [
   { titulo: "Lado esquerdo", vista: "lateral-esquerda", dica: "Pegue o carro inteiro, de lado" },
   { titulo: "Lado direito", vista: "lateral-direita", dica: "Pegue o carro inteiro, de lado" },
   { titulo: "Painel", vista: "painel", dica: "Carro ligado. Mostre o km e o combustível" },
-  { titulo: "Placa", vista: "placa", dica: "Chegue perto. A placa deve dar para ler" },
+  { titulo: "Motor (capô aberto)", vista: "motor", dica: "Abra o capô. Mostre o motor todo" },
 ];
 
 function TelaFotos() {

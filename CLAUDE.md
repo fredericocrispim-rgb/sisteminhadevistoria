@@ -66,7 +66,7 @@ Equipe, Minha oficina, Meu plano, Ajuda. Evite: check-in, upload, dashboard, sin
 - Segurança: RLS em todas as tabelas; chaves só em variáveis de ambiente (`.env.local`, nunca no git); nada secreto no navegador.
 
 ## Resumo do produto
-Vistoria em 6 passos: Veículo e cliente → Fotos guiadas (6 obrigatórias: frente, traseira, 2 laterais, painel, placa; + 1 "Outra foto" opcional, categoria `extra`) → Riscos e amassados (mapa em 5 vistas)
+Vistoria em 6 passos: Veículo e cliente → Fotos guiadas (6 obrigatórias: frente, traseira, 2 laterais, painel, motor com capô aberto (até 30/10/2026 era a placa); + 1 "Outra foto" opcional, categoria `extra`) → Riscos e amassados (mapa em 5 vistas)
 → Pneus e itens → Cliente confere e assina → Oficina assina e conclui (assinaturas em telas separadas). Ao concluir: vistoria travada (correções só por adendo), PDF com logo da oficina,
 código de autenticidade + SHA-256 + QR Code, envio por WhatsApp e e-mail, link público e página /verificar.
 Negócio: mensalidade paga por Pix (fase de validação); cada documento divulga, com discrição, o produto e o fornecedor.
