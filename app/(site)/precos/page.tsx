@@ -75,7 +75,8 @@ export default async function Pagina() {
       <h2>Por que vale a pena</h2>
       <p>
         Uma única reclamação de risco que a oficina não causou pode custar um reparo de funilaria ou um cliente perdido. Com a vistoria digital, a oficina tem foto
-        com data e a assinatura do cliente para mostrar. Além disso, o termo com a sua logo no WhatsApp passa uma imagem de oficina organizada e confiável.
+        com data e a assinatura do cliente para mostrar. Além disso, o termo com a sua logo no WhatsApp passa uma imagem de oficina organizada e confiável. E a equipe ganha tempo, porque não precisa
+        preencher ficha à mão nem procurar papel na gaveta quando o cliente pergunta alguma coisa.
       </p>
       <p>
         Veja <Link href="/como-funciona">como funciona o app</Link> ou leia sobre a <Link href="/vistoria-digital-para-oficinas">vistoria digital para oficinas</Link>.
