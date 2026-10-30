@@ -2,6 +2,9 @@
  * Páginas do site de divulgação (sem nada do servidor: pode ser usado também nas telas do navegador).
  */
 
+/** Instagram da Vistoria Rápida (rodapé e dados estruturados "sameAs"). */
+export const INSTAGRAM = { usuario: "@sisteminha.digital", link: "https://www.instagram.com/sisteminha.digital/" };
+
 /** Menu do topo (na ordem em que aparece). */
 export const MENU_SITE = [
   { caminho: "/como-funciona", nome: "Como funciona" },

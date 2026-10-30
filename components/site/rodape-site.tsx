@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
+import { AtSign, MessageCircle } from "lucide-react";
 import { LogoProduto } from "@/components/vf";
 import { contatoSuporte } from "@/lib/site";
-import { RODAPE_SITE } from "@/lib/site-paginas";
+import { INSTAGRAM, RODAPE_SITE } from "@/lib/site-paginas";
 import { textos } from "@/lib/textos";
 
 /** Rodapé das páginas públicas: links de todas as páginas, WhatsApp do suporte e Entrar. */
@@ -24,6 +24,9 @@ export async function RodapeSite() {
               <MessageCircle aria-hidden className="size-5" /> Falar no WhatsApp
             </a>
           )}
+          <a href={INSTAGRAM.link} target="_blank" rel="noopener" className="inline-flex min-h-11 w-fit items-center gap-2 text-base font-bold text-muted-foreground hover:text-foreground">
+            <AtSign aria-hidden className="size-5" /> Instagram {INSTAGRAM.usuario}
+          </a>
         </div>
         <nav aria-label="Páginas do site">
           <ul className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">

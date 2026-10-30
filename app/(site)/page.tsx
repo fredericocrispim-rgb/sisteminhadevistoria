@@ -8,6 +8,7 @@ import { FOTOS_OBRIGATORIAS } from "@/lib/vistoria";
 import { obterContexto } from "@/lib/sessao";
 import { contatoSuporte, ENDERECO_SITE, metadadosPagina } from "@/lib/site";
 import { PERGUNTAS_INICIO } from "@/lib/conteudo/perguntas";
+import { INSTAGRAM } from "@/lib/site-paginas";
 import { textos } from "@/lib/textos";
 
 export const metadata: Metadata = metadadosPagina({
@@ -42,7 +43,7 @@ export default async function Inicio() {
     ...(contato && {
       contactPoint: { "@type": "ContactPoint", contactType: "customer support", telephone: contato.telefoneSchema, availableLanguage: "Portuguese", areaServed: "BR" },
     }),
-    // TODO(Frederico): sameAs com o link do Instagram quando existir.
+    sameAs: [INSTAGRAM.link],
   };
   const servico = {
     "@type": "Service",
