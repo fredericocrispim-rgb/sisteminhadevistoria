@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Camera, Check, FileText, MessageCircle, PenLine, ShieldCheck } from "lucide-react";
@@ -5,6 +6,12 @@ import { LogoProduto, SilhuetaCarro } from "@/components/vf";
 import { FOTOS_OBRIGATORIAS } from "@/lib/vistoria";
 import { obterContexto } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
+import { previaLink } from "@/lib/previa-link";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: { ...previaLink, url: "/" },
+};
 
 /** Página de entrada (quem já está logado vai direto para o início do app). */
 export default async function Inicio() {

@@ -4,6 +4,7 @@ import { scriptModoSol } from "@/components/vf/modo-sol";
 import { RegistrarApp } from "@/components/vf/instalar-app";
 import { BarraMarca } from "@/components/vf/barra-marca";
 import { textos } from "@/lib/textos";
+import { ENDERECO_SITE, previaLink } from "@/lib/previa-link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,16 +13,10 @@ export const metadata: Metadata = {
     template: `%s · ${textos.produto.nome}`,
   },
   description: textos.produto.slogan,
-  // Prévia do link no WhatsApp: título, texto e a imagem fixa app/opengraph-image.jpg (1200 x 630)
-  metadataBase: new URL("https://www.vistoriarapida.digital"),
-  openGraph: {
-    type: "website",
-    locale: "pt_BR",
-    siteName: `${textos.produto.nome}${textos.produto.sufixo}`,
-    title: textos.produto.tituloLink,
-    description: textos.produto.slogan,
-  },
-  twitter: { card: "summary_large_image", title: textos.produto.tituloLink, description: textos.produto.slogan },
+  // Prévia do link no WhatsApp (lib/previa-link.ts)
+  metadataBase: new URL(ENDERECO_SITE),
+  openGraph: previaLink,
+  twitter: { card: "summary_large_image", title: previaLink.title, description: previaLink.description, images: previaLink.images },
   // iPhone: ao pôr na Tela de Início, abre sem a barra do Safari, como app, com o nome curto
   appleWebApp: { capable: true, title: "Vistoria", statusBarStyle: "default" },
 };
