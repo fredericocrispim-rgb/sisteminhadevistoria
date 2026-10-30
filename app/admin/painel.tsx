@@ -48,6 +48,7 @@ import {
   registrarMensagem,
   definirVendedor,
   inativarOficina,
+  mudarGratuita,
   reativarOficina,
   type Resultado,
 } from "./acoes";
@@ -92,12 +93,14 @@ export type OficinaPainel = {
   /** Inativada no painel: some da lista principal e a equipe não usa o sistema. */
   ativa: boolean;
   inativadaEm: string | null;
+  /** Uso gratuito (marcado no painel): fora da receita e dos pagantes. O acesso não muda. */
+  gratuita: boolean;
   pagamento: FormaPainel;
 };
 
 export type FormaPainel = "pix_manual" | "asaas_pix" | "asaas_cartao";
 
-type Situ = "todas" | "teste" | "pagando" | "cobrar" | "bloqueado" | "inativas";
+type Situ = "todas" | "teste" | "pagando" | "cobrar" | "gratis" | "bloqueado" | "inativas";
 type FiltroPagamento = "todas" | FormaPainel;
 type FiltroUso = "todos" | "recente" | "7" | "30" | "sem_vistoria";
 type FiltroCadastro = "todos" | "7" | "30" | "90";
@@ -116,7 +119,7 @@ export const NOME_PAGAMENTO: Record<FormaPainel, string> = { pix_manual: "Pix ma
 const diaHora = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const dia = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const semAcento = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const paradaHaDias = (o: OficinaPainel, dias: number) => !o.ultimoUso || Date.now() - Date.parse(o.ultimoUso) > dias * 86400000;
 const novaHaDias = (o: OficinaPainel, dias: number) => Date.now() - Date.parse(o.criadoEm) <= dias * 86400000;
 
@@ -125,6 +128,7 @@ const NOME_SITU: Record<Situ, string> = {
   teste: "Prazo de pagar",
   pagando: "Pagando",
   cobrar: "Para cobrar",
+  gratis: "Grátis",
   bloqueado: "Bloqueadas",
   inativas: "Inativas",
 };
@@ -145,8 +149,12 @@ const NOME_ORDEM: Record<Ordem, string> = {
   nome: "Nome (A-Z)",
 };
 
-/** Texto da situação: inativa tem prioridade. */
-const textoSituacao = (o: OficinaPainel) => (o.ativa ? o.situacao.texto : "Inativa");
+/** Texto da situação: inativa e grátis têm prioridade. */
+const textoSituacao = (o: OficinaPainel) => (!o.ativa ? "Inativa" : o.gratuita ? "Grátis" : o.situacao.texto);
+/** Mensalidade na lista: oficina grátis não paga. */
+const textoValor = (o: OficinaPainel) => (o.gratuita ? "Grátis" : formatarReais(o.valor));
+/** Conta como pagante (receita): ativa, não grátis, já passou do prazo do 1º pagamento e não bloqueada. */
+const ehPagante = (o: OficinaPainel) => o.ativa && !o.gratuita && !o.teste && o.situacao.grupo !== "teste" && o.situacao.grupo !== "bloqueado";
 
 /** Lista de oficinas do administrador: números, abas, filtros, tabela e painel lateral de cada oficina. */
 export function PainelOficinas({
@@ -178,10 +186,12 @@ export function PainelOficinas({
 
   const ativas = oficinas.filter((o) => o.ativa);
   const conta = (f: Situ) => oficinas.filter((o) => passaSituacao(o, f)).length;
-  const pagantes = ativas.filter((o) => o.situacao.grupo !== "teste" && !o.teste && o.situacao.grupo !== "bloqueado");
+  const pagantes = oficinas.filter(ehPagante);
   const receitaMes = pagantes.reduce((s, o) => s + o.valor, 0);
   const [desde30] = useState(() => Date.now() - 30 * 86400000);
-  const recebido30 = oficinas.flatMap((o) => o.pagamentos).filter((p) => Date.parse(p.pagoEm) >= desde30).reduce((s, p) => s + p.valor, 0);
+  const recebido30 = oficinas
+    .filter((o) => !o.gratuita)
+    .flatMap((o) => o.pagamentos).filter((p) => Date.parse(p.pagoEm) >= desde30).reduce((s, p) => s + p.valor, 0);
   const vistoriasMes = ativas.reduce((s, o) => s + o.vistoriasMes, 0);
   const semUso7 = ativas.filter((o) => paradaHaDias(o, 7)).length;
 
@@ -268,13 +278,13 @@ export function PainelOficinas({
           pagamento: NOME_PAGAMENTO[o.pagamento],
           ultimoUso: tempoDesde(o.ultimoUso),
           vistorias: `${o.vistoriasMes} / ${o.vistoriasTotal}`,
-          valor: formatarReais(o.valor),
+          valor: textoValor(o),
           cadastro: dia(o.criadoEm),
           vendedor: vendedores.find((v) => v.id === o.vendedorId)?.nome ?? "",
         })),
         resumo: {
           oficinas: lista.length,
-          mensalidades: formatarReais(lista.filter((o) => o.ativa && !o.teste && o.situacao.grupo !== "bloqueado").reduce((s, o) => s + o.valor, 0)),
+          mensalidades: formatarReais(lista.filter(ehPagante).reduce((s, o) => s + o.valor, 0)),
           vistoriasMes: lista.reduce((s, o) => s + o.vistoriasMes, 0),
         },
       });
@@ -293,7 +303,7 @@ export function PainelOficinas({
     }
   }
 
-  const abas: Situ[] = ["todas", "teste", "pagando", "cobrar", "bloqueado", "inativas"];
+  const abas: Situ[] = ["todas", "teste", "pagando", "cobrar", "gratis", "bloqueado", "inativas"];
 
   return (
     <div className="flex flex-col gap-5">
@@ -441,7 +451,7 @@ export function PainelOficinas({
                     <td className="px-3 py-3 text-right tabular-nums">
                       <strong>{o.vistoriasMes}</strong> <span className="text-muted-foreground">/ {o.vistoriasTotal}</span>
                     </td>
-                    <td className="px-3 py-3 text-right font-bold whitespace-nowrap tabular-nums">{formatarReais(o.valor)}</td>
+                    <td className="px-3 py-3 text-right font-bold whitespace-nowrap tabular-nums">{textoValor(o)}</td>
                     <td className="hidden max-w-48 px-3 py-3 lg:table-cell">
                       <p className="truncate">{o.responsavel.nome ?? "sem nome"}</p>
                       {o.responsavel.whatsapp && <p className="text-xs text-muted-foreground">{formatarTelefone(o.responsavel.whatsapp)}</p>}
@@ -492,7 +502,7 @@ export function PainelOficinas({
                           <span aria-hidden className={cn("size-1.5 rounded-full", COR_USO[temperaturaUso(o.ultimoUso)])} />
                           {tempoDesde(o.ultimoUso)}
                         </span>
-                        <span>{formatarReais(o.valor)}</span>
+                        <span>{textoValor(o)}</span>
                       </span>
                     </span>
                     <ChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
@@ -531,7 +541,7 @@ function Selo({ oficina: o }: { oficina: OficinaPainel }) {
     <span
       className={cn(
         "inline-flex rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap",
-        o.ativa ? COR_SITUACAO[o.situacao.grupo] : "bg-superficie text-muted-foreground",
+        !o.ativa ? "bg-superficie text-muted-foreground" : o.gratuita ? "bg-oficina-clara text-oficina" : COR_SITUACAO[o.situacao.grupo],
       )}
     >
       {textoSituacao(o)}
@@ -558,10 +568,11 @@ function Escolha({ rotulo, valor, onValor, children }: { rotulo: string; valor: 
 function passaSituacao(o: OficinaPainel, f: Situ) {
   if (f === "inativas") return !o.ativa;
   if (!o.ativa) return false; // inativas só aparecem na aba delas
+  if (f === "gratis") return o.gratuita;
   const g = o.situacao.grupo;
+  if (f === "todas") return true;
+  if (o.gratuita && f !== "bloqueado") return false; // grátis não entra em prazo, pagando nem cobrar
   switch (f) {
-    case "todas":
-      return true;
     case "teste":
       return g === "teste" || (o.teste && g === "vence_logo");
     case "pagando":
@@ -622,7 +633,7 @@ function PainelLateral({
                 <Dado rotulo="Vistorias (mês / total)">
                   {o.vistoriasMes} / {o.vistoriasTotal}
                 </Dado>
-                <Dado rotulo="Mensalidade">{formatarReais(o.valor)}</Dado>
+                <Dado rotulo="Mensalidade">{textoValor(o)}</Dado>
                 <Dado rotulo="Cadastro">{dia(o.criadoEm)}</Dado>
               </dl>
               <button
@@ -858,6 +869,26 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
         {o.indicadaPor && ` · Indicada por ${o.indicadaPor}`}
         {o.ultimaVistoria && ` · Última vistoria ${tempoDesde(o.ultimaVistoria)}`}
       </p>
+
+      <section className="flex flex-col gap-2 rounded-2xl border border-border p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-extrabold">Uso gratuito</h3>
+            <p className="text-sm text-muted-foreground">Fica fora da receita e dos pagantes. O pagamento continua possível.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={o.gratuita}
+            aria-label="Uso gratuito"
+            disabled={rodando}
+            onClick={() => rodar(() => mudarGratuita(o.id, !o.gratuita), o.gratuita ? "Voltou a contar como pagante" : "Marcada como grátis")}
+            className={cn("relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-60", o.gratuita ? "bg-oficina" : "bg-muted-foreground/30")}
+          >
+            <span aria-hidden className={cn("absolute top-1 left-1 size-6 rounded-full bg-white shadow transition-transform", o.gratuita && "translate-x-6")} />
+          </button>
+        </div>
+      </section>
 
       <section className="flex flex-col gap-2 rounded-2xl border border-dashed border-border p-3">
         <h3 className="text-lg font-extrabold">{o.ativa ? "Inativar oficina" : "Oficina inativa"}</h3>

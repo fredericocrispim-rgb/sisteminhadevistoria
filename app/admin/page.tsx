@@ -40,7 +40,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
   const { aba } = await searchParams;
   const admin = criarClienteAdmin();
   // Comissões em consultas separadas: se o banco ainda não foi preparado, o resto do painel funciona igual
-  const [vend, vendaPorOficina, coms] = await Promise.all([
+  const [vend, vendaPorOficina, coms, gratis] = await Promise.all([
     admin.from("vendedores").select("id, nome, whatsapp, pix_chave, ativo").order("nome"),
     admin.from("empresas").select("id, vendedor_id").not("vendedor_id", "is", null),
     admin
@@ -48,7 +48,10 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       .select("id, vendedor_id, empresa_id, valor_recebido, recebido_em, percentual, valor, status, paga_em")
       .order("recebido_em", { ascending: false })
       .limit(5000),
+    // Separado: antes da migração da coluna "gratuita", o painel funciona igual (ninguém gratuito)
+    admin.from("empresas").select("id").eq("gratuita", true),
   ]);
+  const gratuitas = new Set((gratis.data ?? []).map((e) => e.id));
   const bancoComissoesPronto = !vend.error && !vendaPorOficina.error && !coms.error;
   const vendedores: Vendedor[] = (vend.data ?? []).map((v) => ({ id: v.id, nome: v.nome, whatsapp: v.whatsapp, pixChave: v.pix_chave, ativo: v.ativo }));
   const vendedorDaOficina = new Map((vendaPorOficina.data ?? []).map((e) => [e.id, e.vendedor_id as string]));
@@ -177,6 +180,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       ultimaMensagem: ultimaMensagem.get(e.id) ?? null,
       vendedorId: vendedorDaOficina.get(e.id) ?? null,
       ativa: e.ativa !== false,
+      gratuita: gratuitas.has(e.id),
       inativadaEm: e.inativada_em ?? null,
       pagamento: a?.provedor === "asaas" ? (a.forma_pagamento === "CREDIT_CARD" ? "asaas_cartao" : "asaas_pix") : "pix_manual",
     };

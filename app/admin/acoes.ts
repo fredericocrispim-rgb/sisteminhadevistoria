@@ -230,6 +230,17 @@ export async function reativarOficina(empresaId: string): Promise<Resultado> {
   return { ok: true };
 }
 
+/** Marca (ou desmarca) a oficina como de uso gratuito: sai da receita e dos pagantes do painel. O acesso não muda. */
+export async function mudarGratuita(empresaId: string, gratuita: boolean): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId)) return { erro: "Oficina inválida" };
+  const { error } = await criarClienteAdmin().from("empresas").update({ gratuita }).eq("id", empresaId);
+  if (error) return { erro: "Não consegui salvar. O banco já foi preparado?" };
+  await registrar(empresaId, ctx.usuario.id, gratuita ? "oficina_gratuita" : "oficina_pagante", {});
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
 /** Anota que uma mensagem de cobrança foi aberta no WhatsApp (aparece como "Última mensagem"). */
 export async function registrarMensagem(empresaId: string, modelo: string): Promise<Resultado> {
   const ctx = await exigirSuperadmin();

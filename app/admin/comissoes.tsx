@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { createElement, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, BadgeCheck, Copy, Download, MessageCircle, Pencil, Plus, Undo2, UserCheck, UserX } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Copy, Download, FileDown, Loader2, MessageCircle, Pencil, Plus, Undo2, UserCheck, UserX } from "lucide-react";
 import { ConfirmacaoImportante } from "@/components/vf";
 import { cn } from "@/lib/utils";
 import { formatarReais } from "@/lib/pix";
@@ -58,7 +58,8 @@ export function RelatorioComissoes({
   const nomeVendedor = (id: string) => vendedores.find((v) => v.id === id)?.nome ?? "Vendedor";
   const aPagar = somaComissoes(filtrarComissoes(comissoes, { vendedorId: "", status: "pendente", mes: "" }));
   const [mesAtual] = useState(() => mesDe(new Date().toISOString()));
-  const pagoNoMes = somaComissoes(comissoes.filter((c) => c.status === "paga" && c.pagaEm && mesDe(c.pagaEm) === mesAtual));
+  const [gerandoPdf, setGerandoPdf] = useState(false);
+  const pagoNoMes =somaComissoes(comissoes.filter((c) => c.status === "paga" && c.pagaEm && mesDe(c.pagaEm) === mesAtual));
 
   // Um bloco por vendedor, na ordem de quem tem mais a receber
   const grupos = useMemo(() => {
@@ -86,6 +87,52 @@ export function RelatorioComissoes({
     a.click();
     URL.revokeObjectURL(a.href);
   };
+
+  /** PDF das comissões como estão na tela (mesmos filtros). */
+  async function exportarPdf() {
+    setGerandoPdf(true);
+    try {
+      const filtros = [
+        `Situação: ${{ pendente: "A pagar", paga: "Pagas", todas: "Todas" }[filtro.status]}`,
+        `Vendedor: ${filtro.vendedorId ? nomeVendedor(filtro.vendedorId) : "Todos"}`,
+        `Mês: ${filtro.mes ? nomeMes(filtro.mes) : "Todos"}`,
+      ];
+      const ordenada = lista.slice().sort((a, b) => nomeVendedor(a.vendedorId).localeCompare(nomeVendedor(b.vendedorId), "pt-BR") || a.recebidoEm.localeCompare(b.recebidoEm));
+      const [{ pdf }, { RelatorioComissoesPdf }] = await Promise.all([import("@react-pdf/renderer"), import("./relatorio-pdf")]);
+      const documento = createElement(RelatorioComissoesPdf, {
+        produto,
+        filtros,
+        comissoes: ordenada.map((c) => ({
+          vendedor: nomeVendedor(c.vendedorId),
+          oficina: c.oficina,
+          recebidoEm: dataBR(c.recebidoEm),
+          valorRecebido: formatarReais(c.valorRecebido),
+          percentual: `${c.percentual}%`,
+          valor: formatarReais(c.valor),
+          situacao: c.status === "paga" ? "Paga" : "A pagar",
+          pagaEm: c.pagaEm ? dataBR(c.pagaEm) : "",
+        })),
+        resumo: {
+          quantidade: lista.length,
+          total: formatarReais(somaComissoes(lista)),
+          aPagar: formatarReais(somaComissoes(lista.filter((c) => c.status === "pendente"))),
+          pagas: formatarReais(somaComissoes(lista.filter((c) => c.status === "paga"))),
+        },
+      });
+      const blob = await pdf(documento as Parameters<typeof pdf>[0]).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `comissoes${filtro.mes ? `-${filtro.mes}` : ""}.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (erro) {
+      console.error(erro);
+      toast.error("Não consegui gerar o PDF. Tente de novo.");
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -153,9 +200,20 @@ export function RelatorioComissoes({
             {lista.length} {lista.length === 1 ? "comissão" : "comissões"} · <strong>{formatarReais(somaComissoes(lista))}</strong>
           </p>
           {lista.length > 0 && (
-            <button type="button" onClick={baixar} className="tocavel inline-flex min-h-12 items-center gap-2 rounded-xl bg-background px-3 text-base font-bold">
-              <Download aria-hidden className="size-5" /> Baixar planilha
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={baixar} className="tocavel inline-flex min-h-12 items-center gap-2 rounded-xl bg-background px-3 text-base font-bold">
+                <Download aria-hidden className="size-5" /> Baixar planilha
+              </button>
+              <button
+                type="button"
+                onClick={exportarPdf}
+                disabled={gerandoPdf}
+                className="tocavel inline-flex min-h-12 items-center gap-2 rounded-xl bg-foreground px-3 text-base font-bold text-background disabled:opacity-50"
+              >
+                {gerandoPdf ? <Loader2 aria-hidden className="size-5 animate-spin" /> : <FileDown aria-hidden className="size-5" />}
+                {gerandoPdf ? "Gerando..." : "Exportar PDF"}
+              </button>
+            </div>
           )}
         </div>
       </section>

@@ -129,3 +129,101 @@ export function RelatorioOficinasPdf({
     </Document>
   );
 }
+
+/** Uma linha do relatório de comissões, já em texto. */
+export type LinhaComissao = {
+  vendedor: string;
+  oficina: string;
+  recebidoEm: string;
+  valorRecebido: string;
+  percentual: string;
+  valor: string;
+  situacao: string;
+  pagaEm: string;
+};
+
+const COL_C = { vendedor: "18%", oficina: "24%", recebidoEm: "11%", valorRecebido: "12%", percentual: "6%", valor: "11%", situacao: "9%", pagaEm: "9%" } as const;
+
+/** PDF com as comissões que estão na tela (aba Comissões do administrador). */
+export function RelatorioComissoesPdf({
+  produto,
+  filtros,
+  comissoes,
+  resumo,
+}: {
+  produto: string;
+  filtros: string[];
+  comissoes: LinhaComissao[];
+  resumo: { quantidade: number; total: string; aPagar: string; pagas: string };
+}) {
+  const geradoEm = new Date().toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return (
+    <Document title={`Comissões - ${produto}`} author={produto}>
+      <Page size="A4" orientation="landscape" style={s.pagina}>
+        <View style={s.topo}>
+          <View>
+            <Text style={s.titulo}>Relatório de comissões</Text>
+            <Text style={s.sub}>{produto}</Text>
+          </View>
+          <Text style={s.sub}>Gerado em {geradoEm}</Text>
+        </View>
+        <View style={s.faixa} />
+        <Text style={s.filtros}>{filtros.join("   ·   ")}</Text>
+
+        <View style={s.resumo}>
+          <View style={s.numero}>
+            <Text style={s.numeroRotulo}>Comissões na lista</Text>
+            <Text style={s.numeroValor}>{resumo.quantidade}</Text>
+          </View>
+          <View style={s.numero}>
+            <Text style={s.numeroRotulo}>Total</Text>
+            <Text style={s.numeroValor}>{resumo.total}</Text>
+          </View>
+          <View style={s.numero}>
+            <Text style={s.numeroRotulo}>A pagar</Text>
+            <Text style={s.numeroValor}>{resumo.aPagar}</Text>
+          </View>
+          <View style={[s.numero, { borderRightWidth: 0 }]}>
+            <Text style={s.numeroRotulo}>Já pagas</Text>
+            <Text style={s.numeroValor}>{resumo.pagas}</Text>
+          </View>
+        </View>
+
+        <View style={s.cabecalho} fixed>
+          <Text style={[s.th, { width: COL_C.vendedor }]}>Vendedor</Text>
+          <Text style={[s.th, { width: COL_C.oficina }]}>Oficina</Text>
+          <Text style={[s.th, { width: COL_C.recebidoEm }]}>Recebido em</Text>
+          <Text style={[s.th, { width: COL_C.valorRecebido, textAlign: "right" }]}>Valor recebido</Text>
+          <Text style={[s.th, { width: COL_C.percentual, textAlign: "right" }]}>%</Text>
+          <Text style={[s.th, { width: COL_C.valor, textAlign: "right" }]}>Comissão</Text>
+          <Text style={[s.th, { width: COL_C.situacao }]}>Situação</Text>
+          <Text style={[s.th, { width: COL_C.pagaEm }]}>Paga em</Text>
+        </View>
+        {comissoes.map((c, i) => (
+          <View key={i} style={s.linha} wrap={false}>
+            <Text style={[s.td, s.forte, { width: COL_C.vendedor }]}>{c.vendedor}</Text>
+            <Text style={[s.td, { width: COL_C.oficina }]}>{c.oficina}</Text>
+            <Text style={[s.td, { width: COL_C.recebidoEm }]}>{c.recebidoEm}</Text>
+            <Text style={[s.td, { width: COL_C.valorRecebido, textAlign: "right" }]}>{c.valorRecebido}</Text>
+            <Text style={[s.td, { width: COL_C.percentual, textAlign: "right" }]}>{c.percentual}</Text>
+            <Text style={[s.td, s.forte, { width: COL_C.valor, textAlign: "right" }]}>{c.valor}</Text>
+            <Text style={[s.td, { width: COL_C.situacao }]}>{c.situacao}</Text>
+            <Text style={[s.td, { width: COL_C.pagaEm }]}>{c.pagaEm}</Text>
+          </View>
+        ))}
+
+        <View style={s.rodape} fixed>
+          <Text>{produto} · Relatório interno</Text>
+          <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
+        </View>
+      </Page>
+    </Document>
+  );
+}
