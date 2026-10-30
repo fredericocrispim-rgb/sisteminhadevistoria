@@ -26,7 +26,7 @@ export default async function PaginaCadastro({ searchParams }: PageProps<"/cadas
       passoInicial={somenteEdicao ? 2 : inicial}
       usuario={{ nome: ctx.usuario.nome ?? "", whatsapp: ctx.usuario.whatsapp ?? "", email: ctx.usuario.email }}
       empresaInicial={ctx.empresa ? { id: ctx.empresa.id, nome: ctx.empresa.nome_fantasia, logo: ctx.empresa.logo_app_url } : null}
-      diasTeste={plat?.dias_teste ?? 7}
+      diasTeste={plat?.dias_teste ?? 1}
       somenteEdicao={somenteEdicao}
     />
   );

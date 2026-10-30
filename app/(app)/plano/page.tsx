@@ -18,6 +18,7 @@ const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 
 /**
  * Meu plano / tela do Pix (régua de cobrança):
+ * - cadastro novo: 1 dia para pagar; passou o dia, bloqueia (sem carência);
  * - faltando 3 dias ou menos: aparece ao entrar, com "Continuar para o sistema";
  * - vencido até 5 dias: "Mensalidade em atraso", ainda pode continuar;
  * - mais de 5 dias: bloqueado, só esta tela.
@@ -58,7 +59,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
         icone: <Lock aria-hidden />,
         titulo: "Acesso bloqueado",
         texto: gestor
-          ? `${teste ? "O teste grátis" : "A mensalidade"} venceu em ${venc}. Pague pelo Pix para liberar.`
+          ? `${teste ? "O prazo para pagar" : "A mensalidade"} venceu em ${venc}. Pague pelo Pix para liberar.`
           : "Peça ao dono da oficina para pagar a mensalidade.",
         classe: "bg-perigo-clara text-perigo",
       };
@@ -66,7 +67,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
     case "atrasado":
       situacao = {
         icone: <AlertTriangle aria-hidden />,
-        titulo: teste ? "Seu teste grátis acabou" : "Mensalidade em atraso",
+        titulo: "Mensalidade em atraso",
         texto: `Venceu em ${venc}. O acesso será bloqueado em ${dias(faltamParaBloquear)}.`,
         classe: "bg-atencao-clara text-atencao-texto",
       };
@@ -77,12 +78,14 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
         titulo:
           plano.diasParaVencer === 0
             ? teste
-              ? "Seu teste grátis acaba hoje"
+              ? "Hoje é o último dia para pagar"
               : "Sua mensalidade vence hoje"
             : teste
-              ? `Seu teste grátis acaba em ${dias(plano.diasParaVencer)}`
+              ? plano.diasParaVencer === 1
+                ? "Pague pelo Pix até amanhã"
+                : `Pague pelo Pix em até ${dias(plano.diasParaVencer)}`
               : `Sua mensalidade vence em ${dias(plano.diasParaVencer)}`,
-        texto: `Vencimento: ${venc}. Pague pelo Pix para não ser bloqueado.`,
+        texto: teste ? `Prazo: ${venc}. Sem pagamento, o acesso é bloqueado.` : `Vencimento: ${venc}. Pague pelo Pix para não ser bloqueado.`,
         classe: "bg-oficina-clara text-oficina",
       };
       break;
@@ -90,8 +93,8 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
       situacao = teste
         ? {
             icone: <Clock aria-hidden />,
-            titulo: `Teste grátis: ${dias(plano.diasParaVencer + 1)}`,
-            texto: `Até ${venc}`,
+            titulo: "Pague pelo Pix",
+            texto: `Prazo: ${venc}`,
             classe: "bg-oficina-clara text-oficina",
           }
         : {

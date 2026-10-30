@@ -90,7 +90,8 @@ export type SituacaoPlano = {
 };
 
 /**
- * Situação do plano da oficina (Pix manual). O fim do teste de 7 dias funciona como um vencimento:
+ * Situação do plano da oficina (Pix manual). Quem se cadastra tem 1 dia para pagar (fim_teste):
+ * passou esse dia sem pagar, bloqueia na hora. Para as mensalidades:
  * - faltando 3 dias ou menos: mostra o Pix ao entrar (pode continuar);
  * - vencido há até 5 dias: mostra o Pix com "Mensalidade em atraso" (pode continuar);
  * - vencido há mais de 5 dias: bloqueado (só a tela do Pix).
@@ -103,7 +104,8 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     admin.from("plataforma").select("dias_carencia").single(),
   ]);
   const status = (a?.status ?? "teste") as SituacaoPlano["status"];
-  const carencia = plat?.dias_carencia ?? 5;
+  // Primeiro pagamento (fim do prazo de 1 dia): sem carência, bloqueia assim que vence
+  const carencia = status === "teste" ? 0 : (plat?.dias_carencia ?? 5);
   const vencimento = (status === "teste" ? a?.fim_teste : a?.proximo_vencimento) ?? null;
   const r = fasePagamento(vencimento, hojeBR(), carencia);
   const fase: FasePagamento = status === "cancelada" || status === "inadimplente" ? "bloqueado" : r.fase;

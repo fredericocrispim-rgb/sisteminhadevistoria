@@ -150,7 +150,7 @@ export const textos = {
 
   conta: {
     entrarTitulo: "Entrar",
-    criarTitulo: "Criar conta grátis",
+    criarTitulo: "Criar conta",
     email: "Seu e-mail",
     senha: "Senha",
     novaSenha: "Crie uma senha",
@@ -273,8 +273,8 @@ export const textos = {
     pronto: {
       titulo: "Tudo pronto!",
       texto: "Sua oficina já está no sistema.",
-      teste: (dias: number) => `Você tem ${dias} dias grátis para testar.`,
-      comecar: "Ir para o início",
+      prazo: (dias: number) => (dias === 1 ? "Pague pelo Pix até amanhã." : `Pague pelo Pix em até ${dias} dias.`),
+      comecar: "Pagar pelo Pix",
     },
     continuar: "Continuar",
   },
@@ -369,7 +369,7 @@ export const textos = {
     indicadas: "Oficinas que você indicou",
     nenhuma: "Nenhuma ainda. Mande seu link para um colega.",
     mensagem: (link: string) =>
-      `Uso o Sisteminha de Vistoria na minha oficina: fotos do carro, assinatura do cliente e PDF no WhatsApp em 3 minutos. Acabou a discussão de risco! Teste 7 dias grátis: ${link}`,
+      `Uso o Sisteminha de Vistoria na minha oficina: fotos do carro, assinatura do cliente e PDF no WhatsApp em 3 minutos. Acabou a discussão de risco! Conheça: ${link}`,
   },
 } as const;
 

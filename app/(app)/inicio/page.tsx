@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { AlertTriangle, CarFront, ChevronRight, Clock, LogIn, LogOut } from "lucide-react";
+import { AlertTriangle, CarFront, ChevronRight, Clock, LogIn, LogOut, QrCode } from "lucide-react";
 import { InstalarApp, LogoOficina } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { hojeBR } from "@/lib/cadastro";
@@ -96,9 +96,15 @@ export default async function Inicio() {
             plano.fase === "atrasado" ? "bg-atencao-clara text-atencao-texto" : "bg-oficina-clara text-oficina",
           )}
         >
-          <AlertTriangle aria-hidden className="size-7 shrink-0" />
+          {plano.status === "teste" ? <QrCode aria-hidden className="size-7 shrink-0" /> : <AlertTriangle aria-hidden className="size-7 shrink-0" />}
           <span className="flex-1 text-lg font-extrabold">
-            {plano.fase === "atrasado"
+            {plano.status === "teste" // cadastro novo: o QR Code do Pix fica sempre a um toque
+              ? plano.diasParaVencer === 0
+                ? "Último dia. Pagar pelo Pix"
+                : plano.diasParaVencer === 1
+                  ? "Pagar pelo Pix até amanhã"
+                  : `Pagar pelo Pix em ${plano.diasParaVencer} dias`
+              : plano.fase === "atrasado"
               ? `Mensalidade em atraso. Bloqueia em ${Math.max(0, plano.carencia - plano.diasAtraso + 1)} ${plano.carencia - plano.diasAtraso + 1 === 1 ? "dia" : "dias"}`
               : plano.diasParaVencer === 0
                 ? "Vence hoje. Pague pelo Pix"

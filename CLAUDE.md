@@ -91,10 +91,14 @@ Depois, faça o commit da etapa (mensagem em português).
 ## Decisões de 13/10/2026 (Frederico)
 - Cadastro em 2 passos: (1) seu nome, seu WhatsApp, nome da oficina e aceite; (2) logo ("Logo da empresa"). Sem CNPJ/endereço, sem cor, sem equipe.
 - Cores: SEMPRE as do Sisteminha (azul #2563eb). A coluna `empresas.cor_primaria` não é mais usada nas telas nem no PDF.
-- Teste grátis: 7 dias (`plataforma.dias_teste`). Régua de cobrança (fim do teste = vencimento; vale para cada mensalidade), em `lib/cadastro.ts` `fasePagamento()`:
+- (Até 30/10/2026 havia teste grátis de 7 dias; veja abaixo.) Régua de cobrança (fim do teste = vencimento; vale para cada mensalidade), em `lib/cadastro.ts` `fasePagamento()`:
   3 dias antes → Pix aparece ao entrar (1x por dia, cookie vf_aviso_pix) com "Continuar para o sistema"; vencido até 5 dias (`plataforma.dias_carencia`) → Pix com "Mensalidade em atraso", ainda usa; mais de 5 dias → bloqueado (`exigirOficina()` manda para `/plano`, ações de vistoria recusam). Superadmin nunca é bloqueado.
 - Login: e-mail + senha, sem nenhum e-mail enviado (conta criada já confirmada no servidor). Esqueci a senha → WhatsApp do suporte + link gerado no /admin.
 - Termos e privacidade não são mais "provisórios".
+
+## Decisões de 30/10/2026 (Frederico)
+- ACABOU o teste grátis de 7 dias. Quem se cadastra tem 1 dia para pagar (`plataforma.dias_teste` = 1; a coluna `fim_teste` e o status `teste` continuam, agora significando "prazo do 1º pagamento").
+  Passou o prazo sem pagar → bloqueado na hora (sem os 5 dias de carência, que valem só para as mensalidades). O QR Code do Pix fica à mão: o fim do cadastro já abre `/plano`, e o Início mostra "Pagar pelo Pix" o tempo todo para o dono. Oficinas que já estavam no teste mantêm a data antiga.
 
 ## Decisões de 20/10/2026 (Frederico)
 - Equipe (`/equipe`, menu Mais): dono/gerente CADASTRAM a pessoa direto (nome, WhatsApp, e-mail, senha, papel; WhatsApp obrigatório, guardado em user_metadata.whatsapp; botão manda o acesso direto para o WhatsApp da pessoa; conta criada já confirmada, `cadastrarUsuario`). Atualizado em 22/10: plano Básico inclui o dono + 3 pessoas (`planos.limite_usuarios` = 4); cada usuário a mais soma `planos.preco_usuario_extra` (R$ 19,90). Cupom no cadastro (campo CUPOM, aparece quando passa do plano): código válido na tabela `cupons` (ex.: CORTESIA) grava `usuarios_empresa.cupom` e esse usuário não é cobrado (`lib/mensalidade.ts` conta só `cupom is null`).

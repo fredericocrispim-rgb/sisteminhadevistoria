@@ -30,7 +30,7 @@ export function situacaoOficina(
 ): Situacao {
   const teste = !a || a.status === "teste";
   const vencimento = (teste ? a?.fim_teste : a?.proximo_vencimento) ?? null;
-  const r = fasePagamento(vencimento, hoje, carencia);
+  const r = fasePagamento(vencimento, hoje, teste ? 0 : carencia); // 1º pagamento: sem carência
   const base = { vencimento, diasParaVencer: r.diasParaVencer, diasAtraso: r.diasAtraso, bloqueioManual: false };
   if (a && (a.status === "cancelada" || a.status === "inadimplente")) {
     return { ...base, grupo: "bloqueado", texto: "Bloqueado por você", bloqueioManual: true };

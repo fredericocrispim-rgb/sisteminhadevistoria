@@ -17,6 +17,10 @@ describe("situacaoOficina", () => {
     expect(situacaoOficina({ status: "ativa", fim_teste: null, proximo_vencimento: "2026-10-25" }, hoje, 5).grupo).toBe("atrasado");
     expect(situacaoOficina({ status: "ativa", fim_teste: null, proximo_vencimento: "2026-10-20" }, hoje, 5).grupo).toBe("bloqueado");
   });
+  it("prazo de 1 dia do cadastro: venceu ontem, já bloqueia (sem carência)", () => {
+    expect(situacaoOficina({ status: "teste", fim_teste: "2026-10-28", proximo_vencimento: null }, hoje, 5).grupo).toBe("vence_logo");
+    expect(situacaoOficina({ status: "teste", fim_teste: "2026-10-27", proximo_vencimento: null }, hoje, 5).grupo).toBe("bloqueado");
+  });
   it("bloqueio manual vence qualquer data", () => {
     const s = situacaoOficina({ status: "cancelada", fim_teste: null, proximo_vencimento: "2027-01-01" }, hoje, 5);
     expect(s.grupo).toBe("bloqueado");
