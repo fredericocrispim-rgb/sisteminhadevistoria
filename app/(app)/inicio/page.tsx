@@ -21,7 +21,9 @@ export default async function Inicio() {
 
   // Régua de cobrança: perto de vencer ou em atraso, o Pix aparece ao entrar (uma vez por dia)
   const dono = papel === "dono"; // aviso do Pix e do teste grátis: só para o dono
-  const avisar = dono && (plano.fase === "vence_logo" || plano.fase === "atrasado");
+  // Cartão no Asaas renova sozinho: só avisa se atrasar
+  const cartaoAutomatico = plano.provedor === "asaas" && plano.formaPagamento === "CREDIT_CARD";
+  const avisar = dono && (plano.fase === "atrasado" || (plano.fase === "vence_logo" && !cartaoAutomatico));
   if (avisar && (await cookies()).get("vf_aviso_pix")?.value !== hojeBR()) redirect("/plano?aviso=1");
 
   const supabaseInicio = await criarClienteServidor();

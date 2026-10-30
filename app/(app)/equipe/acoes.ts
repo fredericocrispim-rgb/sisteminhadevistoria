@@ -6,6 +6,7 @@ import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { formatarTelefone, telefoneValido } from "@/lib/formatos";
+import { atualizarValorAsaas } from "@/lib/pagamentos/servidor";
 
 type Resultado<T = object> = ({ ok: true } & T) | { ok: false; erro: string };
 
@@ -95,6 +96,7 @@ export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): P
     entidade: "usuarios_empresa",
     detalhes: { nome: d.nome, papel: d.papel, cupom, whatsapp: formatarTelefone(d.whatsapp) },
   });
+  await atualizarValorAsaas(ctx.empresa.id); // pessoa a mais muda a mensalidade
   revalidatePath("/equipe");
   revalidatePath("/plano");
   return { ok: true };
@@ -121,6 +123,7 @@ export async function tirarDaEquipe(id: string): Promise<Resultado> {
   if (membro.user_id === ctx.usuario.id) return { ok: false, erro: "Você não pode tirar a si mesmo." };
   const { error } = await supabase.from("usuarios_empresa").update({ ativo: false }).eq("id", id).eq("empresa_id", ctx.empresa.id);
   if (error) return { ok: false, erro: FALHOU };
+  await atualizarValorAsaas(ctx.empresa.id);
   revalidatePath("/equipe");
   revalidatePath("/plano");
   return { ok: true };

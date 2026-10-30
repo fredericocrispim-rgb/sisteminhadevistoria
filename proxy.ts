@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 
 /** Páginas que exigem login. */
-const PROTEGIDAS = ["/inicio", "/vistorias", "/patio", "/mais", "/plano", "/cadastro", "/admin", "/nova-senha", "/indicar", "/equipe"];
+const PROTEGIDAS = ["/inicio", "/vistorias", "/patio", "/mais", "/plano", "/assinar", "/pagamento", "/cadastro", "/admin", "/nova-senha", "/indicar", "/equipe"];
 
 /**
  * Roda antes de cada página:

@@ -1,7 +1,8 @@
 import "server-only";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarComissoes } from "@/lib/comissoes-servidor";
-import type { CobrancaAsaas } from "./asaas";
+import { mensalidadeDaOficina } from "@/lib/mensalidade";
+import { asaasLigado, atualizarAssinatura, type CobrancaAsaas } from "./asaas";
 import { PROVEDOR_ASAAS } from "./config";
 import { somarDias, somarUmMes, type AcaoWebhook, type Deps, type EventoAsaas } from "./webhook";
 
@@ -10,7 +11,7 @@ import { somarDias, somarUmMes, type AcaoWebhook, type Deps, type EventoAsaas } 
  * Cobrança do Asaas = linha em `faturas` (id_externo = id da cobrança).
  */
 
-type Assinatura = { id: string; empresa_id: string; status: string; proximo_vencimento: string | null };
+export type Assinatura = { id: string; empresa_id: string; status: string; proximo_vencimento: string | null };
 
 const STATUS_FATURA: Record<string, string> = {
   PENDING: "pendente",
@@ -147,6 +148,23 @@ export async function aplicarAcao(acao: AcaoWebhook) {
       return;
     default:
       return;
+  }
+}
+
+/**
+ * A equipe mudou: acerta o valor da assinatura no Asaas (plano + pessoas a mais), inclusive da cobrança em aberto.
+ * Não trava o cadastro da pessoa se o Asaas falhar (fica no log; o valor é acertado na próxima mudança).
+ */
+export async function atualizarValorAsaas(empresaId: string) {
+  if (!asaasLigado()) return;
+  const admin = criarClienteAdmin();
+  const { data: a } = await admin.from("assinaturas").select("provedor, status, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle();
+  if (a?.provedor !== PROVEDOR_ASAAS || !a.id_assinatura_externa || a.status === "cancelada") return;
+  try {
+    const m = await mensalidadeDaOficina(empresaId);
+    if (m.valor > 0) await atualizarAssinatura(a.id_assinatura_externa, { valor: m.valor });
+  } catch (erro) {
+    console.error("Asaas: falha ao atualizar o valor da assinatura", erro);
   }
 }
 

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, Lock, LogOut } from "lucide-react";
-import { PagarPix } from "@/components/vf";
+import Link from "next/link";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, ExternalLink, FileText, Lock, LogOut, XCircle } from "lucide-react";
+import { BotaoPrincipal, PagarPix } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { formatarReais, gerarPixCopiaECola } from "@/lib/pix";
@@ -10,8 +11,19 @@ import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { textos } from "@/lib/textos";
 import { sair } from "../mais/acoes";
 import { continuarSemPagar } from "./acoes";
+import { asaasLigado } from "@/lib/pagamentos/asaas";
+import { PROVEDOR_ASAAS, nomeForma } from "@/lib/pagamentos/config";
+import { BotoesAssinatura } from "./botoes-assinatura";
 
 export const metadata: Metadata = { title: "Meu plano" };
+
+const STATUS_FATURA: Record<string, { nome: string; classe: string }> = {
+  paga: { nome: "Paga", classe: "text-acao" },
+  pendente: { nome: "Em aberto", classe: "text-oficina" },
+  vencida: { nome: "Vencida", classe: "text-perigo" },
+  cancelada: { nome: "Cancelada", classe: "text-muted-foreground" },
+  estornada: { nome: "Estornada", classe: "text-perigo" },
+};
 
 const dataBR = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR");
 const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
@@ -30,11 +42,28 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   const gestor = papel === "dono";
   if (!gestor && !bloqueado) redirect("/inicio");
 
+  // Pagamento automático (Asaas) ligado: quem ainda não assinou (ou cancelou) escolhe Pix ou cartão em /assinar
+  const automatico = asaasLigado();
+  const doAsaas = automatico && plano.provedor === PROVEDOR_ASAAS && Boolean(plano.idAssinaturaExterna);
+  const precisaAssinar = automatico && (!doAsaas || plano.status === "cancelada" || plano.status === "inadimplente");
+  if (gestor && bloqueado && precisaAssinar) redirect("/assinar");
+
   const admin = criarClienteAdmin();
-  const [{ data: plat }, m] = await Promise.all([
+  const [{ data: plat }, m, { data: faturas }] = await Promise.all([
     admin.from("plataforma").select("nome_produto, pix_chave, pix_nome_recebedor, pix_cidade").single(),
     mensalidadeDaOficina(empresa.id),
+    doAsaas && gestor
+      ? admin
+          .from("faturas")
+          .select("id, valor, vencimento, status, forma, link_fatura, link_comprovante, pago_em")
+          .eq("empresa_id", empresa.id)
+          .not("id_externo", "is", null)
+          .order("vencimento", { ascending: false })
+          .limit(12)
+      : Promise.resolve({ data: null }),
   ]);
+  const emAberto = faturas?.find((f) => f.status === "pendente" || f.status === "vencida");
+  const cartao = doAsaas && plano.formaPagamento === "CREDIT_CARD";
   // O valor (e o QR Code) acompanha o tamanho da equipe: usuário a mais soma na mensalidade
   const valor = m.valor;
   const codigo =
@@ -53,7 +82,8 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   const faltamParaBloquear = Math.max(0, plano.carencia - plano.diasAtraso + 1);
 
   let situacao: { icone: ReactNode; titulo: string; texto?: string; classe: string };
-  switch (plano.fase) {
+  // Cartão renova sozinho: perto de vencer não é aviso, é "Plano em dia"
+  switch (cartao && plano.fase === "vence_logo" ? "em_dia" : plano.fase) {
     case "bloqueado":
       situacao = {
         icone: <Lock aria-hidden />,
@@ -90,7 +120,14 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
       };
       break;
     default:
-      situacao = teste
+      situacao = plano.status === "cancelada"
+        ? {
+            icone: <XCircle aria-hidden />,
+            titulo: "Assinatura cancelada",
+            texto: plano.acessoAte ? `Você usa até ${dataBR(plano.acessoAte)}` : undefined,
+            classe: "bg-superficie text-foreground",
+          }
+        : teste
         ? {
             icone: <Clock aria-hidden />,
             titulo: "Pague pelo Pix",
@@ -100,7 +137,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
         : {
             icone: <CheckCircle2 aria-hidden />,
             titulo: "Plano em dia",
-            texto: venc ? `Próximo pagamento: ${venc}` : undefined,
+            texto: venc ? `${cartao ? "Próxima cobrança no cartão" : "Próximo pagamento"}: ${venc}` : undefined,
             classe: "bg-acao-clara text-acao",
           };
   }
@@ -109,7 +146,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6">
-      <h1 className="text-[1.75rem] font-extrabold">{textos.menu.meuPlano}</h1>
+      <h1 className="text-[1.75rem] font-extrabold">{doAsaas ? textos.assinatura.minha : textos.menu.meuPlano}</h1>
 
       <div className={`flex items-center gap-3 rounded-2xl px-4 py-4 [&_svg]:size-8 [&_svg]:shrink-0 ${situacao.classe}`}>
         {situacao.icone}
@@ -139,7 +176,72 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
               </p>
             </div>
           )}
-          {codigo ? (
+          {doAsaas && !precisaAssinar ? (
+            <>
+              <div className="rounded-2xl bg-superficie px-4 py-3 text-lg">
+                <p>
+                  Pagamento: <strong>{nomeForma(plano.formaPagamento)}</strong>
+                  {cartao && " (renova sozinho)"}
+                </p>
+                <p>
+                  Valor: <strong>{formatarReais(valor)}</strong> por mês
+                </p>
+              </div>
+              {emAberto &&
+                (emAberto.forma === "cartao" && emAberto.link_fatura ? (
+                  <BotaoPrincipal href={emAberto.link_fatura} nativo icone={<ExternalLink aria-hidden />}>
+                    Pagar {formatarReais(Number(emAberto.valor))} no cartão
+                  </BotaoPrincipal>
+                ) : (
+                  <BotaoPrincipal href={`/pagamento/${emAberto.id}`} icone={<ArrowRight aria-hidden />}>
+                    Pagar {formatarReais(Number(emAberto.valor))} pelo Pix
+                  </BotaoPrincipal>
+                ))}
+              {faturas && faturas.length > 0 && (
+                <section aria-labelledby="pagamentos" className="flex flex-col gap-2">
+                  <h2 id="pagamentos" className="text-xl font-extrabold">
+                    {textos.assinatura.historico}
+                  </h2>
+                  <ul className="flex flex-col gap-2">
+                    {faturas.map((f) => {
+                      const s = STATUS_FATURA[f.status] ?? STATUS_FATURA.pendente;
+                      const link = f.status === "paga" ? (f.link_comprovante ?? f.link_fatura) : f.link_fatura;
+                      return (
+                        <li key={f.id} className="flex items-center gap-3 rounded-2xl bg-superficie px-4 py-3">
+                          <div className="flex-1">
+                            <p className="text-lg font-bold">
+                              {dataBR(f.vencimento)} · {formatarReais(Number(f.valor))}
+                            </p>
+                            <p className={`text-base font-bold ${s.classe}`}>
+                              {s.nome} · {f.forma === "cartao" ? "Cartão" : "Pix"}
+                            </p>
+                          </div>
+                          {link && (
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noopener"
+                              className="tocavel inline-flex min-h-toque items-center gap-2 rounded-2xl px-3 text-base font-bold text-oficina [&_svg]:size-6"
+                            >
+                              <FileText aria-hidden /> {f.status === "paga" ? "Recibo" : "Fatura"}
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              )}
+              <BotoesAssinatura forma={plano.formaPagamento} />
+            </>
+          ) : precisaAssinar ? (
+            <Link
+              href="/assinar"
+              className="tocavel flex min-h-toque-grande w-full items-center justify-center gap-3 rounded-2xl bg-acao px-5 text-xl font-bold text-acao-texto hover:bg-acao-escura [&_svg]:size-7"
+            >
+              {plano.status === "cancelada" ? textos.assinatura.assinarDeNovo : "Pagar: Pix ou cartão"} <ArrowRight aria-hidden />
+            </Link>
+          ) : codigo ? (
             <PagarPix codigo={codigo} valor={valor} descricao="Mensalidade" />
           ) : (
             <p className="rounded-2xl bg-superficie px-4 py-4 text-lg">Pagamento ainda não disponível. Fale com o suporte.</p>

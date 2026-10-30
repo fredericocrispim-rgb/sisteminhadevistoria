@@ -22,6 +22,8 @@ export default function robots(): MetadataRoute.Robots {
         "/patio",
         "/mais",
         "/plano",
+        "/assinar",
+        "/pagamento/",
         "/equipe",
         "/indicar",
         "/admin",

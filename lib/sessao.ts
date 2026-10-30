@@ -87,6 +87,12 @@ export type SituacaoPlano = {
   carencia: number;
   /** Mais de `carencia` dias de atraso: só a tela de pagamento abre. */
   bloqueado: boolean;
+  /** pix_manual (Pix conferido à mão) ou asaas (Pix/cartão com liberação automática). */
+  provedor: string;
+  formaPagamento: "PIX" | "CREDIT_CARD" | null;
+  /** Até quando usa (Asaas): vencimento do ciclo pago + carência. Assinatura cancelada usa até esta data. */
+  acessoAte: string | null;
+  idAssinaturaExterna: string | null;
 };
 
 /**
@@ -95,20 +101,27 @@ export type SituacaoPlano = {
  * - faltando 3 dias ou menos: mostra o Pix ao entrar (pode continuar);
  * - vencido há até 5 dias: mostra o Pix com "Mensalidade em atraso" (pode continuar);
  * - vencido há mais de 5 dias: bloqueado (só a tela do Pix).
- * Cancelada / inadimplente (marcado à mão): bloqueado.
+ * Inadimplente (marcado à mão, estorno ou chargeback no Asaas): bloqueado.
+ * Cancelada: usa até acesso_ate (fim do período já pago); sem essa data, bloqueado.
+ * Só o webhook do Asaas (ou o /admin) muda status e datas; nada vindo do navegador libera acesso.
  */
 export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPlano> => {
   const admin = criarClienteAdmin(); // vistoriador não lê "assinaturas", mas precisa saber se está bloqueado
   const [{ data: a }, { data: plat }] = await Promise.all([
-    admin.from("assinaturas").select("status, fim_teste, proximo_vencimento").eq("empresa_id", empresaId).maybeSingle(),
+    admin
+      .from("assinaturas")
+      .select("status, fim_teste, proximo_vencimento, provedor, forma_pagamento, acesso_ate, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle(),
     admin.from("plataforma").select("dias_carencia").single(),
   ]);
   const status = (a?.status ?? "teste") as SituacaoPlano["status"];
   // Primeiro pagamento (fim do prazo de 1 dia): sem carência, bloqueia assim que vence
   const carencia = status === "teste" ? 0 : (plat?.dias_carencia ?? 5);
   const vencimento = (status === "teste" ? a?.fim_teste : a?.proximo_vencimento) ?? null;
-  const r = fasePagamento(vencimento, hojeBR(), carencia);
-  const fase: FasePagamento = status === "cancelada" || status === "inadimplente" ? "bloqueado" : r.fase;
+  const r =
+    status === "cancelada"
+      ? fasePagamento(a?.acesso_ate ?? null, hojeBR(), 0) // sem data: bloqueado
+      : fasePagamento(vencimento, hojeBR(), carencia);
+  const fase: FasePagamento = status === "inadimplente" ? "bloqueado" : r.fase;
   return {
     status,
     fimTeste: a?.fim_teste ?? null,
@@ -119,8 +132,17 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     diasAtraso: r.diasAtraso,
     carencia,
     bloqueado: fase === "bloqueado",
+    provedor: a?.provedor ?? "pix_manual",
+    formaPagamento: (a?.forma_pagamento as SituacaoPlano["formaPagamento"]) ?? null,
+    acessoAte: a?.acesso_ate ?? null,
+    idAssinaturaExterna: a?.id_assinatura_externa ?? null,
   };
 });
+
+/** A oficina pode usar o sistema (fazer vistoria)? Sem assinatura em dia, entra, mas só vê a tela de pagamento. */
+export async function temAssinaturaAtiva(empresaId: string) {
+  return !(await situacaoPlano(empresaId)).bloqueado;
+}
 
 type ContextoOficina = Contexto & { empresa: EmpresaResumo; papel: Papel; plano: SituacaoPlano; bloqueado: boolean };
 

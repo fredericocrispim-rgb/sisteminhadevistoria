@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { obterContexto, situacaoPlano } from "@/lib/sessao";
+import { obterContexto, temAssinaturaAtiva } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { placaParaBanco, placaValida, telefoneValido, kmParaNumero } from "@/lib/formatos";
@@ -20,11 +20,11 @@ async function contextoOficina() {
   return ctx as typeof ctx & { empresa: NonNullable<typeof ctx.empresa> };
 }
 
-const BLOQUEADO = "Acesso bloqueado: mensalidade atrasada há mais de 5 dias. Abra Meu plano e pague pelo Pix.";
+const BLOQUEADO = "Acesso bloqueado: falta pagar a mensalidade. Abra Meu plano para pagar.";
 
-/** Mais de 5 dias de atraso: não deixa fazer vistoria nova (o administrador nunca é bloqueado). */
+/** Sem assinatura em dia (temAssinaturaAtiva): não deixa fazer vistoria nova (o administrador nunca é bloqueado). */
 async function bloqueado(ctx: NonNullable<Awaited<ReturnType<typeof contextoOficina>>>) {
-  return !ctx.superadmin && (await situacaoPlano(ctx.empresa.id)).bloqueado;
+  return !ctx.superadmin && !(await temAssinaturaAtiva(ctx.empresa.id));
 }
 
 /* ---------- Buscar carro pela placa (preenchimento automático) ---------- */
