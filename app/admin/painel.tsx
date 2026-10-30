@@ -1,9 +1,20 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
+  Archive,
+  ArchiveRestore,
   BadgeCheck,
+  Building2,
+  CheckCircle2,
+  ClipboardCheck,
+  Hourglass,
+  Moon,
+  TrendingUp,
+  Wallet,
+  X,
   CalendarClock,
   ChevronDown,
   Copy,
@@ -42,6 +53,8 @@ import {
   mudarVencimento,
   registrarMensagem,
   definirVendedor,
+  inativarOficina,
+  reativarOficina,
   type Resultado,
 } from "./acoes";
 
@@ -82,10 +95,19 @@ export type OficinaPainel = {
   ultimaMensagem: string | null;
   /** Quem vendeu (recebe a comissão); vazio = venda sua. */
   vendedorId: string | null;
+  /** Inativada no painel: some da lista principal e a equipe não usa o sistema. */
+  ativa: boolean;
+  inativadaEm: string | null;
+  pagamento: FormaPainel;
 };
 
-type Filtro = "todas" | "teste" | "pagando" | "cobrar" | "bloqueado" | "paradas";
-type Ordem = "uso" | "vencimento" | "novas" | "nome";
+export type FormaPainel = "pix_manual" | "asaas_pix" | "asaas_cartao";
+
+type Situ = "todas" | "teste" | "pagando" | "cobrar" | "bloqueado" | "inativas";
+type FiltroPagamento = "todas" | FormaPainel;
+type FiltroUso = "todos" | "recente" | "7" | "30" | "sem_vistoria";
+type FiltroCadastro = "todos" | "7" | "30" | "90";
+type Ordem = "uso" | "vencimento" | "novas" | "nome" | "vistorias" | "valor";
 
 const COR_SITUACAO: Record<GrupoSituacao, string> = {
   teste: "bg-oficina-clara text-oficina",
@@ -96,12 +118,14 @@ const COR_SITUACAO: Record<GrupoSituacao, string> = {
 };
 const COR_USO = { quente: "bg-acao", morno: "bg-atencao", frio: "bg-perigo" };
 const PAPEL: Record<string, string> = { dono: "Dono", gerente: "Gerente", vistoriador: "Vistoriador" };
+const NOME_PAGAMENTO: Record<FormaPainel, string> = { pix_manual: "Pix manual", asaas_pix: "Asaas · Pix", asaas_cartao: "Asaas · Cartão" };
 const diaHora = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const paradaHaDias = (o: OficinaPainel, dias: number) => !o.ultimoUso || Date.now() - Date.parse(o.ultimoUso) > dias * 86400000;
+const novaHaDias = (o: OficinaPainel, dias: number) => Date.now() - Date.parse(o.criadoEm) <= dias * 86400000;
 
-/** Lista de oficinas do administrador: resumo, filtros, busca e um cartão por oficina. */
+/** Lista de oficinas do administrador: números, filtros, busca e um cartão por oficina. */
 export function PainelOficinas({
   oficinas,
   produto,
@@ -116,22 +140,56 @@ export function PainelOficinas({
   /** Banco preparado para comissões. */
   comissaoAtiva: boolean;
 }) {
-  const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [situ, setSitu] = useState<Situ>("todas");
+  const [pagamento, setPagamento] = useState<FiltroPagamento>("todas");
+  const [uso, setUso] = useState<FiltroUso>("todos");
+  const [vendedor, setVendedor] = useState("todos");
+  const [cadastro, setCadastro] = useState<FiltroCadastro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("uso");
   const [busca, setBusca] = useState("");
   const [cobrar, setCobrar] = useState<OficinaPainel | null>(null);
 
-  const conta = (f: Filtro) => oficinas.filter((o) => passa(o, f)).length;
-  const pagantes = oficinas.filter((o) => o.situacao.grupo !== "teste" && !o.teste);
+  const ativas = oficinas.filter((o) => o.ativa);
+  const conta = (f: Situ) => oficinas.filter((o) => passaSituacao(o, f)).length;
+  const pagantes = ativas.filter((o) => o.situacao.grupo !== "teste" && !o.teste);
   const receitaMes = pagantes.filter((o) => o.situacao.grupo !== "bloqueado").reduce((s, o) => s + o.valor, 0);
   const [desde30] = useState(() => Date.now() - 30 * 86400000);
   const recebido30 = oficinas.flatMap((o) => o.pagamentos).filter((p) => Date.parse(p.pagoEm) >= desde30).reduce((s, p) => s + p.valor, 0);
+  const vistoriasMes = ativas.reduce((s, o) => s + o.vistoriasMes, 0);
+  const semUso7 = ativas.filter((o) => paradaHaDias(o, 7)).length;
+
+  const filtrando = situ !== "todas" || pagamento !== "todas" || uso !== "todos" || vendedor !== "todos" || cadastro !== "todos" || busca.trim() !== "";
+  const limpar = () => {
+    setSitu("todas");
+    setPagamento("todas");
+    setUso("todos");
+    setVendedor("todos");
+    setCadastro("todos");
+    setBusca("");
+  };
 
   const lista = useMemo(() => {
     const q = semAcento(busca.trim());
     const digitos = busca.replace(/\D/g, "");
     return oficinas
-      .filter((o) => passa(o, filtro))
+      .filter((o) => passaSituacao(o, situ))
+      .filter((o) => pagamento === "todas" || o.pagamento === pagamento)
+      .filter((o) => {
+        switch (uso) {
+          case "recente":
+            return !paradaHaDias(o, 2);
+          case "7":
+            return paradaHaDias(o, 7);
+          case "30":
+            return paradaHaDias(o, 30);
+          case "sem_vistoria":
+            return o.vistoriasTotal === 0;
+          default:
+            return true;
+        }
+      })
+      .filter((o) => vendedor === "todos" || (vendedor === "eu" ? !o.vendedorId : o.vendedorId === vendedor))
+      .filter((o) => cadastro === "todos" || novaHaDias(o, Number(cadastro)))
       .filter((o) => {
         if (!q) return true;
         const texto = semAcento(
@@ -141,54 +199,75 @@ export function PainelOficinas({
         return texto.includes(q) || (digitos.length >= 4 && fones.includes(digitos));
       })
       .sort((a, b) => {
-        if (ordem === "uso") return (b.ultimoUso ?? "").localeCompare(a.ultimoUso ?? "");
-        if (ordem === "vencimento") return (a.situacao.vencimento ?? "9999").localeCompare(b.situacao.vencimento ?? "9999");
-        if (ordem === "nome") return a.nome.localeCompare(b.nome, "pt-BR");
-        return b.criadoEm.localeCompare(a.criadoEm);
+        switch (ordem) {
+          case "uso":
+            return (b.ultimoUso ?? "").localeCompare(a.ultimoUso ?? "");
+          case "vencimento":
+            return (a.situacao.vencimento ?? "9999").localeCompare(b.situacao.vencimento ?? "9999");
+          case "nome":
+            return a.nome.localeCompare(b.nome, "pt-BR");
+          case "vistorias":
+            return b.vistoriasMes - a.vistoriasMes || b.vistoriasTotal - a.vistoriasTotal;
+          case "valor":
+            return b.valor - a.valor;
+          default:
+            return b.criadoEm.localeCompare(a.criadoEm);
+        }
       });
-  }, [oficinas, filtro, busca, ordem]);
+  }, [oficinas, situ, pagamento, uso, vendedor, cadastro, busca, ordem]);
 
-  const blocos: { id: Filtro; nome: string; valor: number; classe: string }[] = [
-    { id: "todas", nome: "Oficinas", valor: oficinas.length, classe: "text-foreground" },
-    { id: "teste", nome: "Em teste", valor: conta("teste"), classe: "text-oficina" },
-    { id: "pagando", nome: "Pagando", valor: conta("pagando"), classe: "text-acao" },
-    { id: "cobrar", nome: "Para cobrar", valor: conta("cobrar"), classe: "text-atencao-texto" },
-    { id: "bloqueado", nome: "Bloqueadas", valor: conta("bloqueado"), classe: "text-perigo" },
-    { id: "paradas", nome: "Sem uso 7 dias", valor: conta("paradas"), classe: "text-muted-foreground" },
+  const blocos: { id: Situ; nome: string; valor: number; icone: ReactNode; cor: string }[] = [
+    { id: "todas", nome: "Ativas", valor: ativas.length, icone: <Building2 aria-hidden />, cor: "bg-superficie text-foreground" },
+    { id: "teste", nome: "Prazo de pagar", valor: conta("teste"), icone: <Hourglass aria-hidden />, cor: "bg-oficina-clara text-oficina" },
+    { id: "pagando", nome: "Pagando", valor: conta("pagando"), icone: <CheckCircle2 aria-hidden />, cor: "bg-acao-clara text-acao" },
+    { id: "cobrar", nome: "Para cobrar", valor: conta("cobrar"), icone: <AlertTriangle aria-hidden />, cor: "bg-atencao-clara text-atencao-texto" },
+    { id: "bloqueado", nome: "Bloqueadas", valor: conta("bloqueado"), icone: <Lock aria-hidden />, cor: "bg-perigo-clara text-perigo" },
+    { id: "inativas", nome: "Inativas", valor: conta("inativas"), icone: <Archive aria-hidden />, cor: "bg-superficie text-muted-foreground" },
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <section aria-label="Resumo" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="flex flex-col gap-5">
+      <section aria-label="Dinheiro e uso" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Numero titulo="Por mês (quem paga)" valor={formatarReais(receitaMes)} icone={<Wallet aria-hidden />} destaque />
+        <Numero titulo="Recebido em 30 dias" valor={formatarReais(recebido30)} icone={<TrendingUp aria-hidden />} />
+        <Numero titulo="Vistorias no mês" valor={String(vistoriasMes)} icone={<ClipboardCheck aria-hidden />} />
+        <Numero
+          titulo="Sem uso há 7 dias"
+          valor={String(semUso7)}
+          icone={<Moon aria-hidden />}
+          onClick={() => {
+            setSitu("todas");
+            setUso("7");
+          }}
+        />
+      </section>
+
+      <section
+        aria-label="Situação"
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6"
+      >
         {blocos.map((b) => (
           <button
             key={b.id}
             type="button"
-            onClick={() => setFiltro(b.id)}
-            aria-pressed={filtro === b.id}
+            onClick={() => setSitu(b.id)}
+            aria-pressed={situ === b.id}
             className={cn(
-              "tocavel flex flex-col items-start rounded-2xl bg-superficie p-3 text-left outline-offset-2",
-              filtro === b.id && "ring-2 ring-oficina",
+              "tocavel flex min-w-[9.5rem] shrink-0 items-center gap-3 rounded-2xl border bg-background p-3 text-left shadow-sm transition-shadow hover:shadow-md",
+              situ === b.id ? "border-oficina ring-2 ring-oficina" : "border-border",
             )}
           >
-            <span className={cn("text-3xl font-extrabold", b.classe)}>{b.valor}</span>
-            <span className="text-base font-semibold">{b.nome}</span>
+            <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl [&_svg]:size-5", b.cor)}>{b.icone}</span>
+            <span className="flex flex-col leading-tight">
+              <span className="text-2xl font-extrabold">{b.valor}</span>
+              <span className="text-sm font-semibold text-muted-foreground">{b.nome}</span>
+            </span>
           </button>
         ))}
       </section>
-      <section aria-label="Dinheiro" className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl bg-acao-clara p-3">
-          <p className="text-2xl font-extrabold text-acao">{formatarReais(receitaMes)}</p>
-          <p className="text-base font-semibold">Por mês (quem paga)</p>
-        </div>
-        <div className="rounded-2xl bg-superficie p-3">
-          <p className="text-2xl font-extrabold">{formatarReais(recebido30)}</p>
-          <p className="text-base font-semibold">Recebido em 30 dias</p>
-        </div>
-      </section>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <label className="flex min-h-toque flex-1 items-center gap-2 rounded-2xl bg-superficie px-4 focus-within:ring-2 focus-within:ring-oficina">
+      <section aria-label="Filtros" className="flex flex-col gap-3 rounded-3xl border border-border bg-background p-4 shadow-sm">
+        <label className="flex min-h-toque items-center gap-2 rounded-2xl bg-superficie px-4 focus-within:ring-2 focus-within:ring-oficina">
           <Search aria-hidden className="size-5 shrink-0 text-muted-foreground" />
           <input
             type="search"
@@ -199,43 +278,126 @@ export function PainelOficinas({
             className="min-w-0 flex-1 bg-transparent text-lg outline-none"
           />
         </label>
-        <select
-          value={ordem}
-          onChange={(e) => setOrdem(e.target.value as Ordem)}
-          aria-label="Ordenar"
-          className="min-h-toque rounded-2xl bg-superficie px-4 text-lg font-semibold outline-none focus:ring-2 focus:ring-oficina"
-        >
-          <option value="uso">Usou por último</option>
-          <option value="vencimento">Vence primeiro</option>
-          <option value="novas">Mais novas</option>
-          <option value="nome">Nome (A-Z)</option>
-        </select>
-      </div>
-
-      <p className="text-base text-muted-foreground">
-        {lista.length} {lista.length === 1 ? "oficina" : "oficinas"}
-        {filtro !== "todas" && (
-          <>
-            {" · "}
-            <button type="button" className="font-bold text-oficina underline" onClick={() => setFiltro("todas")}>
-              mostrar todas
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
+          <Escolha rotulo="Pagamento" valor={pagamento} onValor={(v) => setPagamento(v as FiltroPagamento)}>
+            <option value="todas">Todos</option>
+            <option value="pix_manual">Pix manual</option>
+            <option value="asaas_pix">Asaas · Pix</option>
+            <option value="asaas_cartao">Asaas · Cartão</option>
+          </Escolha>
+          <Escolha rotulo="Uso" valor={uso} onValor={(v) => setUso(v as FiltroUso)}>
+            <option value="todos">Todos</option>
+            <option value="recente">Usou nos últimos 2 dias</option>
+            <option value="7">Sem uso há 7 dias</option>
+            <option value="30">Sem uso há 30 dias</option>
+            <option value="sem_vistoria">Nunca fez vistoria</option>
+          </Escolha>
+          <Escolha rotulo="Quem vendeu" valor={vendedor} onValor={setVendedor}>
+            <option value="todos">Todos</option>
+            <option value="eu">Eu mesmo</option>
+            {vendedores.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nome}
+              </option>
+            ))}
+          </Escolha>
+          <Escolha rotulo="Cadastro" valor={cadastro} onValor={(v) => setCadastro(v as FiltroCadastro)}>
+            <option value="todos">Qualquer data</option>
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+          </Escolha>
+          <Escolha rotulo="Ordenar" valor={ordem} onValor={(v) => setOrdem(v as Ordem)} className="col-span-2 lg:col-span-1">
+            <option value="uso">Usou por último</option>
+            <option value="vencimento">Vence primeiro</option>
+            <option value="novas">Mais novas</option>
+            <option value="vistorias">Mais vistorias</option>
+            <option value="valor">Maior mensalidade</option>
+            <option value="nome">Nome (A-Z)</option>
+          </Escolha>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-base font-semibold text-muted-foreground" aria-live="polite">
+            {lista.length} {lista.length === 1 ? "oficina" : "oficinas"}
+          </p>
+          {filtrando && (
+            <button type="button" onClick={limpar} className="tocavel inline-flex min-h-11 items-center gap-1.5 rounded-full bg-superficie px-4 text-sm font-bold">
+              <X aria-hidden className="size-4" /> Limpar filtros
             </button>
-          </>
-        )}
-      </p>
+          )}
+        </div>
+      </section>
 
-      <ul className="flex flex-col gap-3">
-        {lista.map((o) => (
-          <CartaoOficina key={o.id} oficina={o} onCobrar={() => setCobrar(o)} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
-        ))}
-      </ul>
+      {lista.length === 0 ? (
+        <p className="rounded-3xl border border-dashed border-border bg-background p-8 text-center text-lg text-muted-foreground">
+          Nenhuma oficina com esses filtros.
+        </p>
+      ) : (
+        <ul className="grid gap-3 xl:grid-cols-2">
+          {lista.map((o) => (
+            <CartaoOficina key={o.id} oficina={o} onCobrar={() => setCobrar(o)} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
+          ))}
+        </ul>
+      )}
 
       <JanelaWhatsapp oficina={cobrar} produto={produto} linkPlano={linkPlano} onFechar={() => setCobrar(null)} />
     </div>
   );
 }
 
-function passa(o: OficinaPainel, f: Filtro) {
+/** Número do resumo (dinheiro e uso). Com onClick, vira atalho de filtro. */
+function Numero({ titulo, valor, icone, destaque, onClick }: { titulo: string; valor: string; icone: ReactNode; destaque?: boolean; onClick?: () => void }) {
+  const conteudo = (
+    <>
+      <span className={cn("grid size-10 place-items-center rounded-xl [&_svg]:size-5", destaque ? "bg-white/20" : "bg-superficie text-oficina")}>{icone}</span>
+      <span className="text-2xl font-extrabold">{valor}</span>
+      <span className={cn("text-sm font-semibold", destaque ? "text-white/85" : "text-muted-foreground")}>{titulo}</span>
+    </>
+  );
+  const classe = cn(
+    "flex flex-col items-start gap-1 rounded-3xl p-4 text-left shadow-sm",
+    destaque ? "bg-gradient-to-br from-marca-azul to-oficina text-white" : "border border-border bg-background",
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className={cn(classe, "tocavel transition-shadow hover:shadow-md")}>
+      {conteudo}
+    </button>
+  ) : (
+    <div className={classe}>{conteudo}</div>
+  );
+}
+
+/** Lista de escolha dos filtros, com o nome em cima. */
+function Escolha({
+  rotulo,
+  valor,
+  onValor,
+  className,
+  children,
+}: {
+  rotulo: string;
+  valor: string;
+  onValor: (v: string) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className={cn("flex min-w-0 flex-col gap-1", className)}>
+      <span className="px-1 text-sm font-bold text-muted-foreground">{rotulo}</span>
+      <select
+        value={valor}
+        onChange={(e) => onValor(e.target.value)}
+        className="min-h-toque w-full min-w-0 rounded-2xl bg-superficie px-3 text-base font-semibold outline-none focus:ring-2 focus:ring-oficina"
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function passaSituacao(o: OficinaPainel, f: Situ) {
+  if (f === "inativas") return !o.ativa;
+  if (!o.ativa) return false; // inativas só aparecem no filtro delas
   const g = o.situacao.grupo;
   switch (f) {
     case "todas":
@@ -248,8 +410,6 @@ function passa(o: OficinaPainel, f: Filtro) {
       return g === "vence_logo" || g === "atrasado";
     case "bloqueado":
       return g === "bloqueado";
-    case "paradas":
-      return paradaHaDias(o, 7);
   }
 }
 
@@ -282,34 +442,56 @@ function CartaoOficina({
   const r = o.responsavel;
 
   return (
-    <li className="flex flex-col gap-3 rounded-2xl bg-superficie p-4">
+    <li
+      className={cn(
+        "flex flex-col gap-4 rounded-3xl border border-border bg-background p-4 shadow-sm transition-shadow hover:shadow-md",
+        aberto && "xl:col-span-2",
+      )}
+    >
       <div className="flex items-start gap-3">
         <LogoOficina nome={o.nome} url={o.logo} tamanho="sm" />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="truncate text-lg font-extrabold">{o.nome}</p>
-            <span className={cn("rounded-full px-3 py-0.5 text-sm font-bold", COR_SITUACAO[o.situacao.grupo])}>{o.situacao.texto}</span>
+          <p className="truncate text-lg font-extrabold">{o.nome}</p>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {o.ativa ? (
+              <span className={cn("rounded-full px-2.5 py-0.5 text-sm font-bold", COR_SITUACAO[o.situacao.grupo])}>{o.situacao.texto}</span>
+            ) : (
+              <span className="rounded-full bg-foreground px-2.5 py-0.5 text-sm font-bold text-background">
+                Inativa{o.inativadaEm && ` desde ${new Date(o.inativadaEm).toLocaleDateString("pt-BR")}`}
+              </span>
+            )}
+            <span className="rounded-full bg-superficie px-2.5 py-0.5 text-sm font-bold text-muted-foreground">{NOME_PAGAMENTO[o.pagamento]}</span>
+            {vendedor && <span className="rounded-full bg-oficina-clara px-2.5 py-0.5 text-sm font-bold text-oficina">Vendedor: {vendedor.nome}</span>}
           </div>
-          <p className="text-base">
-            <span className="text-muted-foreground">Responsável: </span>
-            <strong>{r.nome ?? "sem nome"}</strong>
-            {r.whatsapp && <span className="text-muted-foreground"> · {formatarTelefone(r.whatsapp)}</span>}
-          </p>
-          <p className="flex items-center gap-2 text-base">
-            <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", COR_USO[temp])} />
-            <span>
-              Último uso: <strong>{tempoDesde(o.ultimoUso)}</strong>
-            </span>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {[o.cidade, `${o.vistoriasMes} vistorias no mês (${o.vistoriasTotal} no total)`, `${formatarReais(o.valor)}/mês`]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          {o.ultimaMensagem && <p className="text-sm text-muted-foreground">Última mensagem sua: {tempoDesde(o.ultimaMensagem)}</p>}
-          {vendedor && <p className="text-sm font-bold text-oficina">Vendido por {vendedor.nome} (comissão)</p>}
         </div>
       </div>
+
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Dado rotulo="Último uso">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", COR_USO[temp])} />
+            {tempoDesde(o.ultimoUso)}
+          </span>
+        </Dado>
+        <Dado rotulo="Vistorias no mês">
+          {o.vistoriasMes} <span className="font-semibold text-muted-foreground">/ {o.vistoriasTotal}</span>
+        </Dado>
+        <Dado rotulo="Mensalidade">{formatarReais(o.valor)}</Dado>
+        <Dado rotulo="Responsável">
+          <span className="block truncate">{r.nome ?? "sem nome"}</span>
+        </Dado>
+      </dl>
+
+      <p className="text-sm text-muted-foreground">
+        {[
+          o.cidade,
+          r.whatsapp && formatarTelefone(r.whatsapp),
+          `cadastro ${new Date(o.criadoEm).toLocaleDateString("pt-BR")}`,
+          o.ultimaMensagem && `sua última mensagem ${tempoDesde(o.ultimaMensagem)}`,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
 
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -323,7 +505,7 @@ function CartaoOficina({
           type="button"
           onClick={() => setAberto((v) => !v)}
           aria-expanded={aberto}
-          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-background px-3 text-base font-bold"
+          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-superficie px-3 text-base font-bold"
         >
           {aberto ? "Fechar" : "Gerenciar"}
           <ChevronDown aria-hidden className={cn("size-5 transition-transform", aberto && "rotate-180")} />
@@ -332,6 +514,15 @@ function CartaoOficina({
 
       {aberto && <DetalhesOficina oficina={o} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />}
     </li>
+  );
+}
+
+function Dado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-2xl bg-superficie px-3 py-2">
+      <dt className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{rotulo}</dt>
+      <dd className="text-base font-extrabold">{children}</dd>
+    </div>
   );
 }
 
@@ -361,7 +552,7 @@ function QuemVendeu({ oficina: o, vendedores }: { oficina: OficinaPainel; vended
             value={escolhido}
             onChange={(e) => setEscolhido(e.target.value)}
             aria-label="Quem vendeu esta oficina"
-            className="min-h-toque rounded-2xl bg-background px-4 text-lg font-semibold outline-none focus:ring-2 focus:ring-oficina"
+            className="min-h-toque rounded-2xl bg-superficie px-4 text-lg font-semibold outline-none focus:ring-2 focus:ring-oficina"
           >
             <option value="">Eu mesmo (sem comissão)</option>
             {opcoes.map((v) => (
@@ -371,7 +562,7 @@ function QuemVendeu({ oficina: o, vendedores }: { oficina: OficinaPainel; vended
             ))}
           </select>
           {mudou && escolhido && temPagamentos && (
-            <label className="flex min-h-toque cursor-pointer items-center gap-3 rounded-2xl bg-background px-3 text-base">
+            <label className="flex min-h-toque cursor-pointer items-center gap-3 rounded-2xl bg-superficie px-3 text-base">
               <input type="checkbox" checked={anteriores} onChange={(e) => setAnteriores(e.target.checked)} className="size-5 accent-[var(--color-oficina)]" />
               Gerar comissão dos pagamentos que já entraram
             </label>
@@ -397,6 +588,7 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
   const [data, setData] = useState(o.situacao.vencimento ?? "");
   const [confirmarBloqueio, setConfirmarBloqueio] = useState(false);
   const [confirmarPago, setConfirmarPago] = useState(false);
+  const [confirmarInativar, setConfirmarInativar] = useState(false);
   const s = o.situacao;
 
   return (
@@ -446,7 +638,7 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
               type="button"
               disabled={rodando}
               onClick={() => rodar(() => darMaisDias(o.id, d), `Mais ${d} dias liberados`)}
-              className="tocavel min-h-toque rounded-2xl bg-background px-3 text-base font-bold disabled:opacity-60"
+              className="tocavel min-h-toque rounded-2xl bg-superficie px-3 text-base font-bold disabled:opacity-60"
             >
               + {d} dias {o.teste ? "de teste" : "grátis"}
             </button>
@@ -459,7 +651,7 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
             rodar(() => mudarVencimento(o.id, data), "Data salva");
           }}
         >
-          <label className="flex min-h-toque flex-1 items-center gap-2 rounded-2xl bg-background px-3">
+          <label className="flex min-h-toque flex-1 items-center gap-2 rounded-2xl bg-superficie px-3">
             <CalendarClock aria-hidden className="size-5 shrink-0 text-muted-foreground" />
             <span className="sr-only">{o.teste ? "Fim do teste" : "Vencimento"}</span>
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="min-w-0 flex-1 bg-transparent text-lg outline-none" />
@@ -476,10 +668,10 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
         <h3 className="text-lg font-extrabold">Equipe ({o.equipe.length})</h3>
         <ul className="flex flex-col gap-2">
           {o.equipe.map((p) => (
-            <li key={p.vinculoId} className={cn("flex flex-col gap-1 rounded-2xl bg-background p-3", !p.ativo && "opacity-60")}>
+            <li key={p.vinculoId} className={cn("flex flex-col gap-1 rounded-2xl bg-superficie p-3", !p.ativo && "opacity-60")}>
               <div className="flex flex-wrap items-center gap-2">
                 <strong className="text-base">{p.nome ?? "sem nome"}</strong>
-                <span className="rounded-full bg-superficie px-2 py-0.5 text-sm font-bold">{PAPEL[p.papel] ?? p.papel}</span>
+                <span className="rounded-full bg-background px-2 py-0.5 text-sm font-bold">{PAPEL[p.papel] ?? p.papel}</span>
                 {p.cortesia && <span className="rounded-full bg-oficina-clara px-2 py-0.5 text-sm font-bold text-oficina">Cortesia</span>}
                 {!p.ativo && <span className="rounded-full bg-perigo-clara px-2 py-0.5 text-sm font-bold text-perigo">Desligado</span>}
               </div>
@@ -510,7 +702,7 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
                   type="button"
                   disabled={rodando}
                   onClick={() => rodar(() => mudarUsuarioAtivo(p.vinculoId, !p.ativo), p.ativo ? "Pessoa desligada" : "Pessoa religada")}
-                  className="tocavel mt-1 inline-flex min-h-11 items-center gap-2 self-start rounded-xl bg-superficie px-3 text-sm font-bold disabled:opacity-60"
+                  className="tocavel mt-1 inline-flex min-h-11 items-center gap-2 self-start rounded-xl bg-background px-3 text-sm font-bold disabled:opacity-60"
                 >
                   {p.ativo ? <UserX aria-hidden className="size-4" /> : <UserCheck aria-hidden className="size-4" />}
                   {p.ativo ? "Tirar acesso" : "Devolver acesso"}
@@ -528,7 +720,7 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
         ) : (
           <ul className="flex flex-col gap-1">
             {o.pagamentos.map((p) => (
-              <li key={p.pagoEm} className="flex justify-between gap-2 rounded-xl bg-background px-3 py-2 text-base">
+              <li key={p.pagoEm} className="flex justify-between gap-2 rounded-xl bg-superficie px-3 py-2 text-base">
                 <span>{diaHora(p.pagoEm)}</span>
                 <strong>{formatarReais(p.valor)}</strong>
               </li>
@@ -543,6 +735,46 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
         {o.ultimaVistoria && ` · Última vistoria ${tempoDesde(o.ultimaVistoria)}`}
       </p>
 
+      <section className="flex flex-col gap-2 rounded-2xl border border-dashed border-border p-3">
+        <h3 className="text-lg font-extrabold">{o.ativa ? "Inativar oficina" : "Oficina inativa"}</h3>
+        <p className="text-base text-muted-foreground">
+          {o.ativa
+            ? "Some da lista, a equipe para de usar e a cobrança do Asaas é cancelada. Nada é apagado."
+            : "Reative para a equipe voltar a usar. O acesso segue as datas de pagamento."}
+        </p>
+        {o.ativa ? (
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={() => setConfirmarInativar(true)}
+            className="tocavel inline-flex min-h-toque items-center justify-center gap-2 self-start rounded-2xl bg-superficie px-4 text-base font-bold disabled:opacity-60"
+          >
+            <Archive aria-hidden className="size-5" /> Inativar oficina
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={rodando}
+            onClick={() => rodar(() => reativarOficina(o.id), "Oficina reativada")}
+            className="tocavel inline-flex min-h-toque items-center justify-center gap-2 self-start rounded-2xl bg-oficina px-4 text-base font-bold text-oficina-texto disabled:opacity-60"
+          >
+            <ArchiveRestore aria-hidden className="size-5" /> Reativar oficina
+          </button>
+        )}
+      </section>
+
+      <ConfirmacaoImportante
+        aberto={confirmarInativar}
+        onAberto={setConfirmarInativar}
+        titulo="Inativar esta oficina?"
+        texto={`A equipe da ${o.nome} para de usar o sistema e a cobrança automática é cancelada. Você pode reativar depois.`}
+        textoConfirmar="Sim, inativar"
+        perigo
+        onConfirmar={() => {
+          setConfirmarInativar(false);
+          rodar(() => inativarOficina(o.id), "Oficina inativada");
+        }}
+      />
       <ConfirmacaoImportante
         aberto={confirmarBloqueio}
         onAberto={setConfirmarBloqueio}

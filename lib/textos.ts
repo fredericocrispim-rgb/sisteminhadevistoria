@@ -301,6 +301,11 @@ export const textos = {
     aguardando: "Assim que o pagamento cair, liberamos seu acesso.",
   },
 
+  oficinaInativa: {
+    titulo: "Oficina desativada",
+    texto: "Fale com o suporte para voltar a usar. Nada foi apagado.",
+  },
+
   assinatura: {
     titulo: "Assinar",
     subtitulo: "Escolha como pagar a mensalidade",

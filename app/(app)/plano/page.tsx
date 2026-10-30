@@ -42,6 +42,29 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   const gestor = papel === "dono";
   if (!gestor && !bloqueado) redirect("/inicio");
 
+  // Oficina inativada pelo administrador: não tem pagamento a fazer, só falar com o suporte
+  if (plano.inativa && bloqueado) {
+    return (
+      <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6">
+        <div className="flex items-center gap-3 rounded-2xl bg-superficie px-4 py-4 [&_svg]:size-8 [&_svg]:shrink-0">
+          <Lock aria-hidden />
+          <div>
+            <p className="text-xl font-extrabold">{textos.oficinaInativa.titulo}</p>
+            <p className="text-base font-semibold text-muted-foreground">{textos.oficinaInativa.texto}</p>
+          </div>
+        </div>
+        <form action={sair}>
+          <button
+            type="submit"
+            className="tocavel flex min-h-toque w-full items-center justify-center gap-2 rounded-2xl px-4 text-lg font-bold text-muted-foreground [&_svg]:size-6"
+          >
+            <LogOut aria-hidden /> {textos.entrar.sair}
+          </button>
+        </form>
+      </main>
+    );
+  }
+
   // Pagamento automático (Asaas) ligado: quem ainda não assinou (ou cancelou) escolhe Pix ou cartão em /assinar
   const automatico = asaasLigado(empresa.id);
   const doAsaas = automatico && plano.provedor === PROVEDOR_ASAAS && Boolean(plano.idAssinaturaExterna);

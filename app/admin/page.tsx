@@ -16,7 +16,14 @@ import type { Comissao } from "@/lib/comissao";
 
 export const metadata: Metadata = { title: "Administrador", robots: { index: false, follow: false } };
 
-type Assinatura = { status: string; fim_teste: string | null; proximo_vencimento: string | null; plano_id: string | null };
+type Assinatura = {
+  status: string;
+  fim_teste: string | null;
+  proximo_vencimento: string | null;
+  plano_id: string | null;
+  provedor: string | null;
+  forma_pagamento: string | null;
+};
 type Vinculo = { id: string; user_id: string; nome: string | null; papel: string; ativo: boolean; cupom: string | null; criado_em: string };
 
 const diasAtras = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
@@ -53,7 +60,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       admin
         .from("empresas")
         .select(
-          "id, nome_fantasia, cidade, uf, whatsapp, email, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, assinaturas (status, fim_teste, proximo_vencimento, plano_id), usuarios_empresa (id, user_id, nome, papel, ativo, cupom, criado_em)",
+          "id, nome_fantasia, cidade, uf, whatsapp, email, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, ativa, inativada_em, assinaturas (status, fim_teste, proximo_vencimento, plano_id, provedor, forma_pagamento), usuarios_empresa (id, user_id, nome, papel, ativo, cupom, criado_em)",
         )
         .order("criado_em", { ascending: false })
         .limit(500),
@@ -169,6 +176,9 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       pagamentos: (pagamentos.get(e.id) ?? []).slice(0, 6),
       ultimaMensagem: ultimaMensagem.get(e.id) ?? null,
       vendedorId: vendedorDaOficina.get(e.id) ?? null,
+      ativa: e.ativa !== false,
+      inativadaEm: e.inativada_em ?? null,
+      pagamento: a?.provedor === "asaas" ? (a.forma_pagamento === "CREDIT_CARD" ? "asaas_cartao" : "asaas_pix") : "pix_manual",
     };
   });
 
@@ -188,26 +198,31 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
   const naComissoes = aba === "comissoes";
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6">
-      <Link href="/mais" className="inline-flex min-h-toque items-center gap-1.5 self-start text-lg font-bold">
-        <ArrowLeft aria-hidden className="size-6" /> Voltar
-      </Link>
-      <h1 className="text-[1.75rem] font-extrabold">Painel do administrador</h1>
-      <nav aria-label="Partes do painel" className="grid grid-cols-2 gap-1 rounded-2xl bg-superficie p-1">
-        {[
-          { href: "/admin", nome: "Oficinas", ativo: !naComissoes },
-          { href: "/admin?aba=comissoes", nome: "Comissões", ativo: naComissoes },
-        ].map((a) => (
-          <Link
-            key={a.href}
-            href={a.href}
-            aria-current={a.ativo ? "page" : undefined}
-            className={`tocavel flex min-h-toque items-center justify-center rounded-xl text-lg font-bold ${a.ativo ? "bg-background shadow-sm" : "text-muted-foreground"}`}
-          >
-            {a.nome}
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6">
+      <header className="flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-marca-azul to-oficina p-5 text-white shadow-md lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-1">
+          <Link href="/mais" className="inline-flex min-h-11 items-center gap-1.5 self-start text-base font-bold text-white/85 hover:text-white">
+            <ArrowLeft aria-hidden className="size-5" /> Voltar
           </Link>
-        ))}
-      </nav>
+          <h1 className="text-[1.75rem] leading-tight font-extrabold">Painel do administrador</h1>
+          <p className="text-base text-white/85">Oficinas, pagamentos e comissões</p>
+        </div>
+        <nav aria-label="Partes do painel" className="grid grid-cols-2 gap-1 rounded-2xl bg-white/15 p-1 lg:w-80">
+          {[
+            { href: "/admin", nome: "Oficinas", ativo: !naComissoes },
+            { href: "/admin?aba=comissoes", nome: "Comissões", ativo: naComissoes },
+          ].map((a) => (
+            <Link
+              key={a.href}
+              href={a.href}
+              aria-current={a.ativo ? "page" : undefined}
+              className={`tocavel flex min-h-toque items-center justify-center rounded-xl text-lg font-bold ${a.ativo ? "bg-white text-foreground shadow-sm" : "text-white"}`}
+            >
+              {a.nome}
+            </Link>
+          ))}
+        </nav>
+      </header>
       {naComissoes ? (
         <RelatorioComissoes
           comissoes={comissoes}

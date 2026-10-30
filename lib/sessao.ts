@@ -87,6 +87,8 @@ export type SituacaoPlano = {
   carencia: number;
   /** Mais de `carencia` dias de atraso: só a tela de pagamento abre. */
   bloqueado: boolean;
+  /** Oficina inativada no /admin: ninguém da equipe usa o sistema (nada é apagado). */
+  inativa: boolean;
   /** pix_manual (Pix conferido à mão) ou asaas (Pix/cartão com liberação automática). */
   provedor: string;
   formaPagamento: "PIX" | "CREDIT_CARD" | null;
@@ -107,11 +109,12 @@ export type SituacaoPlano = {
  */
 export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPlano> => {
   const admin = criarClienteAdmin(); // vistoriador não lê "assinaturas", mas precisa saber se está bloqueado
-  const [{ data: a }, { data: plat }] = await Promise.all([
+  const [{ data: a }, { data: plat }, { data: emp }] = await Promise.all([
     admin
       .from("assinaturas")
       .select("status, fim_teste, proximo_vencimento, provedor, forma_pagamento, acesso_ate, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle(),
     admin.from("plataforma").select("dias_carencia").single(),
+    admin.from("empresas").select("ativa").eq("id", empresaId).maybeSingle(),
   ]);
   const status = (a?.status ?? "teste") as SituacaoPlano["status"];
   // Primeiro pagamento (fim do prazo de 1 dia): sem carência, bloqueia assim que vence
@@ -121,7 +124,8 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     status === "cancelada"
       ? fasePagamento(a?.acesso_ate ?? null, hojeBR(), 0) // sem data: bloqueado
       : fasePagamento(vencimento, hojeBR(), carencia);
-  const fase: FasePagamento = status === "inadimplente" ? "bloqueado" : r.fase;
+  const inativa = emp?.ativa === false;
+  const fase: FasePagamento = status === "inadimplente" || inativa ? "bloqueado" : r.fase;
   return {
     status,
     fimTeste: a?.fim_teste ?? null,
@@ -132,6 +136,7 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     diasAtraso: r.diasAtraso,
     carencia,
     bloqueado: fase === "bloqueado",
+    inativa,
     provedor: a?.provedor ?? "pix_manual",
     formaPagamento: (a?.forma_pagamento as SituacaoPlano["formaPagamento"]) ?? null,
     acessoAte: a?.acesso_ate ?? null,

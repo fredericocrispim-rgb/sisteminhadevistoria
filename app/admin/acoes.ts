@@ -6,6 +6,8 @@ import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { criarComissoes } from "@/lib/comissoes-servidor";
+import { cancelarAssinatura as cancelarNoAsaas } from "@/lib/pagamentos/asaas";
+import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
 
 const hoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // aaaa-mm-dd
 
@@ -188,6 +190,42 @@ export async function mudarUsuarioAtivo(vinculoId: string, ativo: boolean): Prom
   if (v.papel === "dono" && !ativo) return { erro: "Para tirar o acesso do dono, bloqueie a oficina" };
   await admin.from("usuarios_empresa").update({ ativo }).eq("id", vinculoId);
   await registrar(v.empresa_id, ctx.usuario.id, ativo ? "usuario_religado" : "usuario_desligado", { vinculo: vinculoId, nome: v.nome });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/**
+ * Inativa a oficina: some da lista e das contas do painel, a equipe não usa mais o sistema
+ * e a assinatura do Asaas (se tiver) é cancelada para não cobrar mais. Nada é apagado.
+ */
+export async function inativarOficina(empresaId: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId)) return { erro: "Oficina inválida" };
+  const admin = criarClienteAdmin();
+  const { data: a } = await admin.from("assinaturas").select("id, status, provedor, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle();
+  if (a?.provedor === PROVEDOR_ASAAS && a.id_assinatura_externa && a.status !== "cancelada") {
+    try {
+      await cancelarNoAsaas(a.id_assinatura_externa);
+    } catch (erro) {
+      console.error("Asaas: falha ao cancelar ao inativar", erro);
+      return { erro: "Não consegui cancelar a cobrança no Asaas. Tente de novo." };
+    }
+    await admin.from("assinaturas").update({ status: "cancelada", atualizado_em: new Date().toISOString() }).eq("id", a.id);
+  }
+  const { error } = await admin.from("empresas").update({ ativa: false, inativada_em: new Date().toISOString() }).eq("id", empresaId);
+  if (error) return { erro: "Falta preparar o banco (campo ativa). Veja as instruções." };
+  await registrar(empresaId, ctx.usuario.id, "oficina_inativada", { status_anterior: a?.status ?? null });
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Reativa a oficina. O acesso volta a seguir as datas de pagamento (se estiver vencida, use "Liberar acesso"). */
+export async function reativarOficina(empresaId: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!ehId(empresaId)) return { erro: "Oficina inválida" };
+  const { error } = await criarClienteAdmin().from("empresas").update({ ativa: true, inativada_em: null }).eq("id", empresaId);
+  if (error) return { erro: "Não consegui reativar. Tente de novo." };
+  await registrar(empresaId, ctx.usuario.id, "oficina_reativada", {});
   revalidatePath("/admin");
   return { ok: true };
 }
