@@ -18,16 +18,6 @@ export default async function Inicio() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden">
-      {/* Fundo: brilho suave nas cores da marca */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 -z-10 h-[34rem] opacity-70"
-        style={{
-          background:
-            "radial-gradient(40rem 22rem at 20% 30%, color-mix(in oklch, var(--cor-marca-azul) 18%, transparent), transparent), radial-gradient(30rem 18rem at 85% 20%, color-mix(in oklch, var(--cor-marca-verde) 16%, transparent), transparent)",
-        }}
-      />
-
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-5">
         <LogoProduto comNome className="size-11" />
         <Link href="/entrar" className="tocavel inline-flex min-h-toque items-center rounded-2xl px-2 text-lg font-bold text-oficina">

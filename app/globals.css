@@ -129,6 +129,22 @@
     font-size: 1.125rem; /* 18 px */
     line-height: 1.45;
   }
+  /* Fundo de todas as telas: brilho suave azul e verde da marca (o mesmo da página inicial).
+     Fixo atrás da tela, então continua aparecendo ao rolar. No modo sol fica branco (contraste máximo). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(40rem 22rem at 15% 0%, color-mix(in oklch, var(--cor-marca-azul) 13%, transparent), transparent),
+      radial-gradient(30rem 18rem at 90% 5%, color-mix(in oklch, var(--cor-marca-verde) 11%, transparent), transparent),
+      radial-gradient(36rem 24rem at 80% 100%, color-mix(in oklch, var(--cor-marca-azul) 7%, transparent), transparent);
+  }
+  .sol body::before {
+    display: none;
+  }
   /* Foco sempre visível para quem usa teclado ou leitor de tela */
   :focus-visible {
     outline: 3px solid var(--ring);

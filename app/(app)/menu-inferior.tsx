@@ -18,7 +18,7 @@ export function MenuInferior() {
   // Durante a vistoria o menu some: o botão principal fica sozinho embaixo
   if (/^\/vistorias\/(nova|[0-9a-f-]{36})/.test(caminho)) return null;
   return (
-    <nav aria-label="Menu" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label="Menu" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
       <ul className="mx-auto grid max-w-xl grid-cols-4">
         {itens.map(({ href, nome, icone: Icone }) => {
           const ativo = caminho === href || caminho.startsWith(`${href}/`);
