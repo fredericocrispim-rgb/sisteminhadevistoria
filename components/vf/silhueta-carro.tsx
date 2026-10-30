@@ -169,28 +169,37 @@ function Placa() {
   );
 }
 
-/** Motor: carro de lado com o capô levantado (apoiado na vareta) e o motor à mostra. */
+/** Motor: carro de frente com o capô levantado (apoiado na vareta) e o motor à mostra. */
 function Motor() {
   return (
     <g>
-      {/* capô aberto, preso perto do para-brisa */}
-      <path d="M150 43 L184 6 Q187 3 190 6 L192 9 L158 46 Z" {...lataria} fillOpacity={0.3} />
-      <path d="M186 50 L177 14" {...traco} strokeWidth={2} />
-      {/* carro de lado, sem a tampa do capô */}
-      <path
-        d="M16 62 Q14 52 22 48 Q30 45 52 43 L66 27 Q72 20 84 20 L124 20 Q136 20 144 28 L155 41 L156 50 L186 50 Q188 53 188 60 L187 66 Q186 69 182 69 L160 69 A17 17 0 0 0 126 69 L74 69 A17 17 0 0 0 40 69 L20 69 Q16 69 16 62 Z"
-        {...lataria}
-      />
-      <path d="M70 41 L80 29 Q84 25 90 25 L101 25 L101 41 Z" {...vidro} />
-      <path d="M107 25 L123 25 Q131 25 136 30 L146 41 L107 41 Z" {...vidro} />
-      <path d="M104 46 L104 64" {...linha} />
-      <path d="M86 50 L94 50 M116 50 L124 50" {...linha} />
-      <rect x="18" y="50" width="11" height="6" rx="3" fill="#fff" {...traco} strokeWidth={2} />
-      {/* motor à mostra */}
-      <rect x="160" y="36" width="24" height="15" rx="3" fill="#fff" {...traco} strokeWidth={2.5} />
-      <path d="M166 40 L166 47 M172 40 L172 47 M178 40 L178 47" {...traco} strokeWidth={2} />
-      <Roda cx={57} cy={69} />
-      <Roda cx={143} cy={69} />
+      <rect x="44" y="72" width="20" height="16" rx="5" {...cheio} />
+      <rect x="136" y="72" width="20" height="16" rx="5" {...cheio} />
+      {/* capô levantado, visto por baixo (com os reforços) */}
+      <path d="M52 40 L59 7 Q60 3 65 3 L135 3 Q140 3 141 7 L148 40 Z" {...lataria} fillOpacity={0.16} />
+      <path d="M67 11 L133 11 L138 33 L62 33 Z M67 11 L138 33 M133 11 L62 33" {...linha} strokeWidth={1.8} />
+      {/* espelhos */}
+      <path d="M46 44 L36 42 Q32 42 33 46 L45 48" {...lataria} fillOpacity={0.35} strokeWidth={2.5} />
+      <path d="M154 44 L164 42 Q168 42 167 46 L155 48" {...lataria} fillOpacity={0.35} strokeWidth={2.5} />
+      {/* vão do motor */}
+      <path d="M42 56 L47 40 L153 40 L158 56 Z" {...lataria} fillOpacity={0.45} />
+      {/* vareta do capô */}
+      <path d="M150 50 L140 9" {...traco} strokeWidth={2} />
+      {/* motor: bloco com tampa de válvulas, filtro de ar e bateria */}
+      <rect x="72" y="30" width="56" height="22" rx="4" fill="#fff" {...traco} />
+      {[85, 95, 105, 115].map((x) => (
+        <circle key={x} cx={x} cy={38} r={3.4} {...cheio} />
+      ))}
+      <path d="M78 45 L122 45" {...linha} strokeWidth={2} />
+      <path d="M128 36 Q138 34 140 42" {...traco} strokeWidth={2.5} fill="none" />
+      <circle cx="59" cy="48" r="6.5" fill="#fff" {...traco} strokeWidth={2.5} />
+      <circle cx="59" cy="48" r="2" {...cheio} />
+      <rect x="133" y="42" width="15" height="11" rx="2" {...cheio} fillOpacity={0.45} />
+      {/* frente: faróis e grade */}
+      <path d="M40 74 L40 61 Q40 56 47 56 L153 56 Q160 56 160 61 L160 74 Q160 79 155 79 L45 79 Q40 79 40 74 Z" {...lataria} />
+      <rect x="46" y="60" width="20" height="8" rx="4" fill="#fff" {...traco} strokeWidth={2.5} />
+      <rect x="134" y="60" width="20" height="8" rx="4" fill="#fff" {...traco} strokeWidth={2.5} />
+      <rect x="78" y="61" width="44" height="10" rx="4" {...cheio} fillOpacity={0.3} />
     </g>
   );
 }
