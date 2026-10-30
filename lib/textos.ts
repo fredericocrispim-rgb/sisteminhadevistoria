@@ -11,6 +11,7 @@ export const textos = {
     sufixo: ".digital",
     bandeira: "Bandeira do Brasil",
     slogan: "Vistoria do carro com fotos e assinatura, enviada no WhatsApp em 3 minutos.",
+    tituloLink: "Vistoria Rápida — chega de ficha de papel na oficina",
   },
 
   geral: {

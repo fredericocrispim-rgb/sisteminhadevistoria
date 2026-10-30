@@ -12,6 +12,16 @@ export const metadata: Metadata = {
     template: `%s · ${textos.produto.nome}`,
   },
   description: textos.produto.slogan,
+  // Prévia do link no WhatsApp: título, texto e a imagem fixa app/opengraph-image.jpg (1200 x 630)
+  metadataBase: new URL("https://www.vistoriarapida.digital"),
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: `${textos.produto.nome}${textos.produto.sufixo}`,
+    title: textos.produto.tituloLink,
+    description: textos.produto.slogan,
+  },
+  twitter: { card: "summary_large_image", title: textos.produto.tituloLink, description: textos.produto.slogan },
   // iPhone: ao pôr na Tela de Início, abre sem a barra do Safari, como app, com o nome curto
   appleWebApp: { capable: true, title: "Vistoria", statusBarStyle: "default" },
 };

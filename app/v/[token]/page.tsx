@@ -10,7 +10,13 @@ import { VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type VistaAvaria } from "@/
 import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
 
-export const metadata: Metadata = { title: "Vistoria do veículo", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Vistoria do veículo",
+  robots: { index: false },
+  // Prévia do link que o cliente recebe no WhatsApp (sem o texto de propaganda da página inicial)
+  openGraph: { title: "Vistoria do seu veículo", description: "Fotos e termo de vistoria assinado." },
+  twitter: { title: "Vistoria do seu veículo", description: "Fotos e termo de vistoria assinado." },
+};
 
 export default async function VistoriaPublica({ params }: PageProps<"/v/[token]">) {
   const { token } = await params;
