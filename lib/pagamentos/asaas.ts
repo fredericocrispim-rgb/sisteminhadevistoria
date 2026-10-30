@@ -110,7 +110,7 @@ export async function buscarOuCriarCliente(d: {
   return chamar<ClienteAsaas>("/customers", { metodo: "POST", corpo: dados });
 }
 
-export function criarAssinatura(d: {
+export async function criarAssinatura(d: {
   cliente: string;
   forma: FormaPagamento;
   valor: number;
@@ -118,21 +118,30 @@ export function criarAssinatura(d: {
   descricao: string;
   empresaId: string;
 }) {
-  return chamar<AssinaturaAsaas>("/subscriptions", {
-    metodo: "POST",
-    corpo: {
-      customer: d.cliente,
-      billingType: d.forma,
-      value: d.valor,
-      nextDueDate: d.primeiroVencimento,
-      cycle: CICLO_ASAAS,
-      description: d.descricao,
-      externalReference: d.empresaId,
-      // Depois de pagar na fatura do Asaas, volta para o sistema (o Asaas só aceita https do domínio cadastrado na conta).
-      // Voltar NÃO libera nada: quem libera é o webhook.
-      callback: appUrl() ? { successUrl: `${appUrl()}/plano`, autoRedirect: true } : undefined,
-    },
-  });
+  const corpo = {
+    customer: d.cliente,
+    billingType: d.forma,
+    value: d.valor,
+    nextDueDate: d.primeiroVencimento,
+    cycle: CICLO_ASAAS,
+    description: d.descricao,
+    externalReference: d.empresaId,
+  };
+  // Depois de pagar na fatura do Asaas, volta para o sistema. Voltar NÃO libera nada: quem libera é o webhook.
+  // O Asaas só aceita se o site estiver cadastrado na conta (Minha conta > Informações); senão, assina sem a volta.
+  const url = appUrl();
+  if (url) {
+    try {
+      return await chamar<AssinaturaAsaas>("/subscriptions", {
+        metodo: "POST",
+        corpo: { ...corpo, callback: { successUrl: `${url}/plano`, autoRedirect: true } },
+      });
+    } catch (erro) {
+      if (!(erro instanceof ErroAsaas && erro.status === 400 && /dom[ií]nio/i.test(erro.message))) throw erro;
+      console.warn("Asaas: site não cadastrado na conta; assinatura sem volta automática");
+    }
+  }
+  return chamar<AssinaturaAsaas>("/subscriptions", { metodo: "POST", corpo });
 }
 
 function appUrl() {

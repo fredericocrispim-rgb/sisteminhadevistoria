@@ -6,7 +6,7 @@ import { valorMensalidade } from "@/lib/cobranca";
 import { formatarCpfCnpj, formatarTelefone } from "@/lib/formatos";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { asaasLigado } from "@/lib/pagamentos/asaas";
-import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
+import { PROVEDOR_ASAAS, planoAVenda } from "@/lib/pagamentos/config";
 import { FormAssinar } from "./form";
 
 export const metadata: Metadata = { title: "Assinar" };
@@ -27,7 +27,9 @@ export default async function Assinar() {
     mensalidadeDaOficina(empresa.id),
   ]);
 
-  const opcoes = (planos ?? []).map((p) => {
+  // Só o plano à venda (Básico)
+  const vendido = planoAVenda(planos ?? []);
+  const opcoes = (vendido ? [vendido] : []).map((p) => {
     const preco = { base: Number(p.preco_mensal), inclusos: p.limite_usuarios, extra: Number(p.preco_usuario_extra ?? 0) };
     return { id: p.id, nome: p.nome, valor: valorMensalidade(preco, m.usuarios), inclusos: p.limite_usuarios as number | null };
   });
@@ -35,7 +37,7 @@ export default async function Assinar() {
   return (
     <FormAssinar
       planos={opcoes}
-      planoInicial={m.planoId ?? opcoes[0]?.id ?? ""}
+      planoInicial={opcoes[0]?.id ?? ""}
       usuarios={m.usuarios}
       inicial={{
         nome: dados?.razao_social || usuario.nome || empresa.nome_fantasia,

@@ -11,6 +11,14 @@
 
 export const PROVEDOR_ASAAS = "asaas";
 
+/** Plano à venda (decisão de 30/10/2026: só o Básico). Os outros continuam na tabela, mas não aparecem em /assinar. */
+export const PLANO_A_VENDA = "Básico";
+
+export function planoAVenda<T extends { nome: string }>(planos: T[]): T | undefined {
+  const chave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return planos.find((p) => chave(p.nome) === chave(PLANO_A_VENDA)) ?? planos[0];
+}
+
 export type FormaPagamento = "PIX" | "CREDIT_CARD";
 
 export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string; dica: string }[] = [
