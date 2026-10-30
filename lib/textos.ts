@@ -174,6 +174,7 @@ export const textos = {
     reenviado: "E-mail enviado de novo",
     confirmado: "E-mail confirmado! Agora entre com seu e-mail e senha.",
     linkVencido: "Este link não vale mais. Peça outro.",
+    enderecoNovo: "Endereço novo: vistoriarapida.digital. Entre de novo e instale o app outra vez.",
     salvarSenha: "Salvar nova senha",
     senhaSalva: "Senha nova salva",
     erros: {

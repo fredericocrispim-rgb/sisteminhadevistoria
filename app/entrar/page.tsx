@@ -6,9 +6,13 @@ import { FormularioEntrar } from "./formulario";
 export const metadata: Metadata = { title: "Entrar" };
 
 export default async function PaginaEntrar({ searchParams }: PageProps<"/entrar">) {
-  const { voltar, criar, confirmado, erro } = await searchParams;
+  const { voltar, criar, confirmado, erro, novo } = await searchParams;
   const destino = typeof voltar === "string" && voltar.startsWith("/") && !voltar.startsWith("//") ? voltar : "/inicio";
-  const aviso = confirmado === "1" ? textos.conta.confirmado : erro === "link" ? textos.conta.linkVencido : undefined;
+  const aviso =
+    confirmado === "1" ? textos.conta.confirmado
+    : erro === "link" ? textos.conta.linkVencido
+    : novo === "1" ? textos.conta.enderecoNovo
+    : undefined;
   const { data: plat } = await criarClienteAdmin().from("plataforma").select("whatsapp_suporte, fornecedor_whatsapp").single();
   return (
     <FormularioEntrar

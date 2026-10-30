@@ -76,6 +76,7 @@ export async function proxy(request: NextRequest, evento: NextFetchEvent) {
     url.pathname = "/entrar";
     url.search = "";
     url.searchParams.set("voltar", pathname);
+    if (searchParams.get("novo") === "1") url.searchParams.set("novo", "1"); // veio do endereço antigo
     return guardarRef(copiarCookies(resposta, NextResponse.redirect(url)));
   }
 
