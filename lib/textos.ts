@@ -7,7 +7,9 @@
 
 export const textos = {
   produto: {
-    nome: "Sisteminha de Vistoria",
+    nome: "Vistoria Rápida",
+    sufixo: ".digital",
+    bandeira: "Bandeira do Brasil",
     slogan: "Vistoria do carro com fotos e assinatura, enviada no WhatsApp em 3 minutos.",
   },
 
@@ -268,7 +270,7 @@ export const textos = {
       criarConvite: "Criar convite",
       enviarWhatsapp: "Mandar no WhatsApp",
       mensagem: (nome: string, oficina: string, link: string) =>
-        `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no Sisteminha de Vistoria. Toque no link para entrar: ${link}`,
+        `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no Vistoria Rápida. Toque no link para entrar: ${link}`,
       pular: "Pular por agora",
     },
     pronto: {
@@ -347,7 +349,7 @@ export const textos = {
     reenviar: "Mandar acesso",
     semWhatsapp: "Sem WhatsApp",
     mensagemAcesso: (nome: string, oficina: string, link: string, email: string) =>
-      `Olá, ${nome}! Você já pode fazer vistorias da ${oficina} no Sisteminha de Vistoria. Entre em ${link} com o e-mail ${email} e a senha que eu te passei.`,
+      `Olá, ${nome}! Você já pode fazer vistorias da ${oficina} no Vistoria Rápida. Entre em ${link} com o e-mail ${email} e a senha que eu te passei.`,
     dentroDoPlano: (restam: number) => (restam === 1 ? "Ainda cabe 1 pessoa no plano, sem pagar a mais." : `Ainda cabem ${restam} pessoas no plano, sem pagar a mais.`),
     comEssaPessoa: (valor: string) => `Com essa pessoa, a mensalidade passa para ${valor}.`,
     conviteCriado: "Convite pronto",
@@ -356,7 +358,7 @@ export const textos = {
     copiarLink: "Copiar link",
     copiado: "Link copiado",
     mensagem: (nome: string, oficina: string, link: string) =>
-      `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no Sisteminha de Vistoria. Toque no link para entrar: ${link}`,
+      `Olá, ${nome}! Você foi convidado para fazer vistorias da ${oficina} no Vistoria Rápida. Toque no link para entrar: ${link}`,
     pendentes: "Esperando aceitar",
     cancelar: "Cancelar convite",
     tirar: "Tirar da equipe",
@@ -377,7 +379,7 @@ export const textos = {
     indicadas: "Oficinas que você indicou",
     nenhuma: "Nenhuma ainda. Mande seu link para um colega.",
     mensagem: (link: string) =>
-      `Uso o Sisteminha de Vistoria na minha oficina: fotos do carro, assinatura do cliente e PDF no WhatsApp em 3 minutos. Acabou a discussão de risco! Conheça: ${link}`,
+      `Uso o Vistoria Rápida na minha oficina: fotos do carro, assinatura do cliente e PDF no WhatsApp em 3 minutos. Acabou a discussão de risco! Conheça: ${link}`,
   },
 } as const;
 

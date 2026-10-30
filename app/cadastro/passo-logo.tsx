@@ -12,7 +12,7 @@ import type { EmpresaCadastro } from "./assistente";
 
 const t = textos.cadastro.logo;
 
-/** Passo 2: logo da empresa (no celular, o botão oferece câmera ou galeria). Cores: sempre as do Sisteminha. */
+/** Passo 2: logo da empresa (no celular, o botão oferece câmera ou galeria). Cores: sempre as do Vistoria Rápida. */
 export function PassoLogo({ empresa, aoTerminar }: { empresa: EmpresaCadastro; aoTerminar: (e: EmpresaCadastro) => void }) {
   const arquivo = useRef<HTMLInputElement>(null);
   const [logo, setLogo] = useState<LogoProcessada | null>(null);

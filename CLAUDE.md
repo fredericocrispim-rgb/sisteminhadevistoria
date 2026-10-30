@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Sisteminha de Vistoria — regras do projeto
+# Vistoria Rápida (vistoriarapida.digital) — regras do projeto
 
 SaaS de vistoria digital de veículos que substitui a ficha de papel (FOR 044) usada por oficinas,
 funilarias, autocentros, guinchos e associações na CHEGADA e na ENTREGA do veículo.
@@ -36,7 +36,7 @@ Quem usa são mecânicos, muitos com pouca instrução: QUANTO MAIS SIMPLES, MEL
 - Fundo branco, blocos em cinza claro (`bg-superficie`), sem bordas desnecessárias, cantos bem arredondados (rounded-2xl/3xl).
 - Botão principal 64 px (`min-h-toque-grande`), demais toques no mínimo 56 px (`min-h-toque`). Fonte base 18 px; títulos grandes e grossos (font-extrabold).
 - Componentes em `components/vf/` (importe de `@/components/vf`). Veja as telas de exemplo em `/estilo`. Não crie botões/campos soltos.
-- MARCA: nome "Sisteminha de Vistoria"; logotipo = círculo azul com 4 quadradinhos (3 claros, 1 verde): componente `LogoProduto` e `app/icon.svg`. Cores da marca: azul #2563eb e verde #22b573 (`marca-azul`, `marca-verde`). O verde dos botões com texto branco é mais escuro (#13865a) para dar contraste.
+- MARCA (renomeada em 30/10/2026): nome "Vistoria Rápida" + ".digital" em verde abaixo + bandeira do Brasil em SVG (`BandeiraBrasil`) ao lado do nome; logotipo = círculo azul com 4 quadradinhos (3 claros, 1 verde): componente `LogoProduto` e `app/icon.svg`. Cores da marca: azul #2563eb e verde #22b573 (`marca-azul`, `marca-verde`). O verde dos botões com texto branco é mais escuro (#13865a) para dar contraste.
 - Cores: `oficina` (cor da oficina, padrão azul), `acao` (verde), `perigo` (vermelho: SÓ erro/avaria), `atencao` (amarelo); versões `-clara` para fundos. Tokens em `app/globals.css`.
 - Modo sol: classe `.sol` no `<html>`, ligado por `BotaoModoSol`.
 - Mobile-first; testar sempre em 360 px. Formatação de placa/telefone/km em `lib/formatos.ts`; Pix em `lib/pix.ts` (com testes).
@@ -90,7 +90,7 @@ Depois, faça o commit da etapa (mensagem em português).
 
 ## Decisões de 13/10/2026 (Frederico)
 - Cadastro em 2 passos: (1) seu nome, seu WhatsApp, nome da oficina e aceite; (2) logo ("Logo da empresa"). Sem CNPJ/endereço, sem cor, sem equipe.
-- Cores: SEMPRE as do Sisteminha (azul #2563eb). A coluna `empresas.cor_primaria` não é mais usada nas telas nem no PDF.
+- Cores: SEMPRE as do Vistoria Rápida (azul #2563eb). A coluna `empresas.cor_primaria` não é mais usada nas telas nem no PDF.
 - (Até 30/10/2026 havia teste grátis de 7 dias; veja abaixo.) Régua de cobrança (fim do teste = vencimento; vale para cada mensalidade), em `lib/cadastro.ts` `fasePagamento()`:
   3 dias antes → Pix aparece ao entrar (1x por dia, cookie vf_aviso_pix) com "Continuar para o sistema"; vencido até 5 dias (`plataforma.dias_carencia`) → Pix com "Mensalidade em atraso", ainda usa; mais de 5 dias → bloqueado (`exigirOficina()` manda para `/plano`, ações de vistoria recusam). Superadmin nunca é bloqueado.
 - Login: e-mail + senha, sem nenhum e-mail enviado (conta criada já confirmada no servidor). Esqueci a senha → WhatsApp do suporte + link gerado no /admin.

@@ -104,7 +104,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
   const e = v.empresas as unknown as Record<string, string | null>;
   const carro = v.veiculos as unknown as { placa: string; marca: string | null; modelo: string | null; ano: number | null; cor: string | null };
   const cliente = v.clientes as unknown as { nome: string; whatsapp: string | null; cpf_cnpj: string | null } | null;
-  const cor = "#2563eb"; // azul do Sisteminha (todas as oficinas usam as cores do sistema)
+  const cor = "#2563eb"; // azul do Vistoria Rápida (todas as oficinas usam as cores do sistema)
   const chegada = v.tipo === "ENTRADA";
 
   // Imagens (logo, fotos, assinaturas)
@@ -142,7 +142,7 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
   const textoAceite = chegada
     ? "Declaro que conferi as fotos, as marcações e as informações deste termo, que mostram o estado do veículo no momento em que ele foi deixado na oficina."
     : "Declaro que conferi as fotos, as marcações e as informações deste termo, que mostram o estado do veículo no momento em que ele foi retirado da oficina.";
-  const nomeProduto = plat?.nome_produto ?? "Sisteminha de Vistoria";
+  const nomeProduto = plat?.nome_produto ?? "Vistoria Rápida";
 
   const documento = (
     <Document title={`Termo de Vistoria ${v.numero} - ${carro.placa}`} author={e.nome_fantasia ?? ""} creator={nomeProduto} language="pt-BR">

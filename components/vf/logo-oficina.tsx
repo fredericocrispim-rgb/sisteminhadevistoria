@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import { iniciais } from "@/lib/cores";
 
-/** Logo da oficina. Sem logo, mostra as iniciais (monograma) no azul do Sisteminha. */
+/** Logo da oficina. Sem logo, mostra as iniciais (monograma) no azul do Vistoria Rápida. */
 export function LogoOficina({
   nome,
   url,

@@ -1,4 +1,4 @@
-// Componentes do padrão visual do Sisteminha de Vistoria. Use SEMPRE estes nas telas.
+// Componentes do padrão visual do Vistoria Rápida. Use SEMPRE estes nas telas.
 export { BotaoPrincipal, BotaoSecundario } from "./botoes";
 export { SeletorGrande, type OpcaoSeletor, type Tom } from "./seletor-grande";
 export { BarraEtapas } from "./barra-etapas";
@@ -13,7 +13,7 @@ export { BotaoModoSol } from "./modo-sol";
 export { PagarPix } from "./pagar-pix";
 export { LogoOficina } from "./logo-oficina";
 export { CaixaMarcar } from "./caixa-marcar";
-export { LogoProduto } from "./logo-produto";
+export { BandeiraBrasil, LogoProduto } from "./logo-produto";
 export { DesenhoCarro, type MarcaAvaria } from "./desenho-carro";
 export { AssinaturaDedo, type AssinaturaRef } from "./assinatura-dedo";
 export { CampoSenha } from "./campo-senha";

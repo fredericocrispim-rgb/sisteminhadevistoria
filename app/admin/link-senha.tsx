@@ -9,7 +9,7 @@ export function LinkSenha() {
   const [estado, acao, gerando] = useActionState(gerarLinkSenha, {});
   const [copiado, setCopiado] = useState(false);
   const mensagem = estado.link
-    ? `Olá! Toque neste link para criar sua senha nova no Sisteminha de Vistoria (vale por 1 hora, só uma vez): ${estado.link}`
+    ? `Olá! Toque neste link para criar sua senha nova no Vistoria Rápida (vale por 1 hora, só uma vez): ${estado.link}`
     : "";
 
   return (

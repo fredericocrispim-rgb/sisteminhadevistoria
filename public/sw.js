@@ -1,4 +1,4 @@
-// Service worker do Sisteminha de Vistoria.
+// Service worker do Vistoria Rápida.
 // Necessário para o celular oferecer "Instalar app". Não guarda páginas em cache:
 // tudo vem sempre da internet. Sem internet, mostra um aviso simples.
 self.addEventListener("install", () => self.skipWaiting());

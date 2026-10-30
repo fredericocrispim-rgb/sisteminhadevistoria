@@ -2,9 +2,21 @@ import { useId } from "react";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 
+/** Bandeira do Brasil desenhada (sem emoji), no tamanho do texto ao lado. */
+export function BandeiraBrasil({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 14" role="img" aria-label={textos.produto.bandeira} className={cn("h-[0.9em] w-auto shrink-0 rounded-[2px] shadow-sm", className)}>
+      <rect width="20" height="14" fill="#009c3b" />
+      <path d="M10 1.6 18.2 7 10 12.4 1.8 7Z" fill="#ffdf00" />
+      <circle cx="10" cy="7" r="3.3" fill="#002776" />
+      <path d="M6.85 6.3c2.1-.35 4.3.05 6.25 1.2" stroke="#ffffff" strokeWidth=".55" fill="none" />
+    </svg>
+  );
+}
+
 /**
- * Logotipo do Sisteminha de Vistoria: círculo azul com 4 quadradinhos
- * (3 claros e 1 verde). Desenhado em SVG para ficar nítido em qualquer tamanho.
+ * Logotipo do Vistoria Rápida: círculo azul com 4 quadradinhos (3 claros e 1 verde).
+ * Com `comNome`: símbolo + "Vistoria Rápida" + ".digital" (em verde, menor) + bandeira do Brasil.
  */
 export function LogoProduto({ className, comNome }: { className?: string; comNome?: boolean }) {
   const id = useId();
@@ -27,7 +39,13 @@ export function LogoProduto({ className, comNome }: { className?: string; comNom
   return (
     <span className="flex items-center gap-3">
       {simbolo}
-      <span className="text-xl leading-tight font-extrabold">{textos.produto.nome}</span>
+      <span className="flex flex-col leading-none">
+        <span className="flex items-center gap-2 text-[1.3rem] font-extrabold tracking-tight whitespace-nowrap">
+          {textos.produto.nome}
+          <BandeiraBrasil />
+        </span>
+        <span className="mt-1 text-sm font-bold tracking-wide text-acao">{textos.produto.sufixo}</span>
+      </span>
     </span>
   );
 }

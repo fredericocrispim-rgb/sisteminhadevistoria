@@ -1,7 +1,7 @@
 import { exigirOficina } from "@/lib/sessao";
 import { MenuInferior } from "./menu-inferior";
 
-/** Área interna (com login e oficina). Cores: sempre as do Sisteminha. */
+/** Área interna (com login e oficina). Cores: sempre as do Vistoria Rápida. */
 export default async function LayoutApp({ children }: LayoutProps<"/">) {
   // Aqui não bloqueia (a tela de pagamento também usa este layout); cada página decide.
   const { bloqueado } = await exigirOficina({ permitirBloqueado: true });

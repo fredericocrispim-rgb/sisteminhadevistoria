@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/inicio",
     name: textos.produto.nome,
-    short_name: "Vistoria",
+    short_name: "Vistoria Rápida",
     description: textos.produto.slogan,
     lang: "pt-BR",
     start_url: "/inicio",

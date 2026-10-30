@@ -30,7 +30,7 @@ export default async function Inicio() {
 
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-5">
         <LogoProduto comNome className="size-11" />
-        <Link href="/entrar" className="tocavel inline-flex min-h-toque items-center rounded-2xl px-4 text-lg font-bold text-oficina">
+        <Link href="/entrar" className="tocavel inline-flex min-h-toque items-center rounded-2xl px-2 text-lg font-bold text-oficina">
           Entrar
         </Link>
       </header>
