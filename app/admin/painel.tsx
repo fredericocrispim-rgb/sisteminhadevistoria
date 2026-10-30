@@ -1,22 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { createElement, useMemo, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
   Archive,
   ArchiveRestore,
   BadgeCheck,
-  Building2,
-  CheckCircle2,
-  ClipboardCheck,
-  Hourglass,
-  Moon,
-  TrendingUp,
-  Wallet,
+  ChevronRight,
+  FileDown,
+  Loader2,
   X,
   CalendarClock,
-  ChevronDown,
   Copy,
   Lock,
   LockOpen,
@@ -118,14 +112,43 @@ const COR_SITUACAO: Record<GrupoSituacao, string> = {
 };
 const COR_USO = { quente: "bg-acao", morno: "bg-atencao", frio: "bg-perigo" };
 const PAPEL: Record<string, string> = { dono: "Dono", gerente: "Gerente", vistoriador: "Vistoriador" };
-const NOME_PAGAMENTO: Record<FormaPainel, string> = { pix_manual: "Pix manual", asaas_pix: "Asaas · Pix", asaas_cartao: "Asaas · Cartão" };
+export const NOME_PAGAMENTO: Record<FormaPainel, string> = { pix_manual: "Pix manual", asaas_pix: "Asaas · Pix", asaas_cartao: "Asaas · Cartão" };
 const diaHora = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const dia = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 const semAcento = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const paradaHaDias = (o: OficinaPainel, dias: number) => !o.ultimoUso || Date.now() - Date.parse(o.ultimoUso) > dias * 86400000;
 const novaHaDias = (o: OficinaPainel, dias: number) => Date.now() - Date.parse(o.criadoEm) <= dias * 86400000;
 
-/** Lista de oficinas do administrador: números, filtros, busca e um cartão por oficina. */
+const NOME_SITU: Record<Situ, string> = {
+  todas: "Ativas",
+  teste: "Prazo de pagar",
+  pagando: "Pagando",
+  cobrar: "Para cobrar",
+  bloqueado: "Bloqueadas",
+  inativas: "Inativas",
+};
+const NOME_USO: Record<FiltroUso, string> = {
+  todos: "Todos",
+  recente: "Usou nos últimos 2 dias",
+  "7": "Sem uso há 7 dias",
+  "30": "Sem uso há 30 dias",
+  sem_vistoria: "Nunca fez vistoria",
+};
+const NOME_CADASTRO: Record<FiltroCadastro, string> = { todos: "Qualquer data", "7": "Últimos 7 dias", "30": "Últimos 30 dias", "90": "Últimos 90 dias" };
+const NOME_ORDEM: Record<Ordem, string> = {
+  uso: "Usou por último",
+  vencimento: "Vence primeiro",
+  novas: "Mais novas",
+  vistorias: "Mais vistorias",
+  valor: "Maior mensalidade",
+  nome: "Nome (A-Z)",
+};
+
+/** Texto da situação: inativa tem prioridade. */
+const textoSituacao = (o: OficinaPainel) => (o.ativa ? o.situacao.texto : "Inativa");
+
+/** Lista de oficinas do administrador: números, abas, filtros, tabela e painel lateral de cada oficina. */
 export function PainelOficinas({
   oficinas,
   produto,
@@ -148,19 +171,22 @@ export function PainelOficinas({
   const [ordem, setOrdem] = useState<Ordem>("uso");
   const [busca, setBusca] = useState("");
   const [cobrar, setCobrar] = useState<OficinaPainel | null>(null);
+  const [abertaId, setAbertaId] = useState<string | null>(null);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
+  // Depois de uma ação (pago, bloquear...), a lista volta do servidor atualizada: o painel lateral acompanha pelo id
+  const aberta = oficinas.find((o) => o.id === abertaId) ?? null;
 
   const ativas = oficinas.filter((o) => o.ativa);
   const conta = (f: Situ) => oficinas.filter((o) => passaSituacao(o, f)).length;
-  const pagantes = ativas.filter((o) => o.situacao.grupo !== "teste" && !o.teste);
-  const receitaMes = pagantes.filter((o) => o.situacao.grupo !== "bloqueado").reduce((s, o) => s + o.valor, 0);
+  const pagantes = ativas.filter((o) => o.situacao.grupo !== "teste" && !o.teste && o.situacao.grupo !== "bloqueado");
+  const receitaMes = pagantes.reduce((s, o) => s + o.valor, 0);
   const [desde30] = useState(() => Date.now() - 30 * 86400000);
   const recebido30 = oficinas.flatMap((o) => o.pagamentos).filter((p) => Date.parse(p.pagoEm) >= desde30).reduce((s, p) => s + p.valor, 0);
   const vistoriasMes = ativas.reduce((s, o) => s + o.vistoriasMes, 0);
   const semUso7 = ativas.filter((o) => paradaHaDias(o, 7)).length;
 
-  const filtrando = situ !== "todas" || pagamento !== "todas" || uso !== "todos" || vendedor !== "todos" || cadastro !== "todos" || busca.trim() !== "";
+  const filtrando = pagamento !== "todas" || uso !== "todos" || vendedor !== "todos" || cadastro !== "todos" || busca.trim() !== "";
   const limpar = () => {
-    setSitu("todas");
     setPagamento("todas");
     setUso("todos");
     setVendedor("todos");
@@ -216,178 +242,312 @@ export function PainelOficinas({
       });
   }, [oficinas, situ, pagamento, uso, vendedor, cadastro, busca, ordem]);
 
-  const blocos: { id: Situ; nome: string; valor: number; icone: ReactNode; cor: string }[] = [
-    { id: "todas", nome: "Ativas", valor: ativas.length, icone: <Building2 aria-hidden />, cor: "bg-superficie text-foreground" },
-    { id: "teste", nome: "Prazo de pagar", valor: conta("teste"), icone: <Hourglass aria-hidden />, cor: "bg-oficina-clara text-oficina" },
-    { id: "pagando", nome: "Pagando", valor: conta("pagando"), icone: <CheckCircle2 aria-hidden />, cor: "bg-acao-clara text-acao" },
-    { id: "cobrar", nome: "Para cobrar", valor: conta("cobrar"), icone: <AlertTriangle aria-hidden />, cor: "bg-atencao-clara text-atencao-texto" },
-    { id: "bloqueado", nome: "Bloqueadas", valor: conta("bloqueado"), icone: <Lock aria-hidden />, cor: "bg-perigo-clara text-perigo" },
-    { id: "inativas", nome: "Inativas", valor: conta("inativas"), icone: <Archive aria-hidden />, cor: "bg-superficie text-muted-foreground" },
-  ];
+  /** Gera o PDF da lista como está na tela (mesmos filtros e ordem) e baixa o arquivo. */
+  async function exportarPdf() {
+    setGerandoPdf(true);
+    try {
+      const filtros = [
+        `Situação: ${NOME_SITU[situ]}`,
+        pagamento !== "todas" && `Pagamento: ${NOME_PAGAMENTO[pagamento]}`,
+        uso !== "todos" && `Uso: ${NOME_USO[uso]}`,
+        vendedor !== "todos" && `Vendedor: ${vendedor === "eu" ? "Eu mesmo" : (vendedores.find((v) => v.id === vendedor)?.nome ?? "")}`,
+        cadastro !== "todos" && `Cadastro: ${NOME_CADASTRO[cadastro]}`,
+        busca.trim() && `Busca: "${busca.trim()}"`,
+        `Ordem: ${NOME_ORDEM[ordem]}`,
+      ].filter((f): f is string => Boolean(f));
+      const [{ pdf }, { RelatorioOficinasPdf }] = await Promise.all([import("@react-pdf/renderer"), import("./relatorio-pdf")]);
+      const documento = createElement(RelatorioOficinasPdf, {
+        produto,
+        filtros,
+        oficinas: lista.map((o) => ({
+          nome: o.nome,
+          cidade: o.cidade,
+          responsavel: o.responsavel.nome ?? "",
+          whatsapp: o.responsavel.whatsapp ? formatarTelefone(o.responsavel.whatsapp) : "",
+          situacao: textoSituacao(o),
+          pagamento: NOME_PAGAMENTO[o.pagamento],
+          ultimoUso: tempoDesde(o.ultimoUso),
+          vistorias: `${o.vistoriasMes} / ${o.vistoriasTotal}`,
+          valor: formatarReais(o.valor),
+          cadastro: dia(o.criadoEm),
+          vendedor: vendedores.find((v) => v.id === o.vendedorId)?.nome ?? "",
+        })),
+        resumo: {
+          oficinas: lista.length,
+          mensalidades: formatarReais(lista.filter((o) => o.ativa && !o.teste && o.situacao.grupo !== "bloqueado").reduce((s, o) => s + o.valor, 0)),
+          vistoriasMes: lista.reduce((s, o) => s + o.vistoriasMes, 0),
+        },
+      });
+      const blob = await pdf(documento as Parameters<typeof pdf>[0]).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `oficinas-${new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" })}.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (erro) {
+      console.error(erro);
+      toast.error("Não consegui gerar o PDF. Tente de novo.");
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
+
+  const abas: Situ[] = ["todas", "teste", "pagando", "cobrar", "bloqueado", "inativas"];
 
   return (
     <div className="flex flex-col gap-5">
-      <section aria-label="Dinheiro e uso" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Numero titulo="Por mês (quem paga)" valor={formatarReais(receitaMes)} icone={<Wallet aria-hidden />} destaque />
-        <Numero titulo="Recebido em 30 dias" valor={formatarReais(recebido30)} icone={<TrendingUp aria-hidden />} />
-        <Numero titulo="Vistorias no mês" valor={String(vistoriasMes)} icone={<ClipboardCheck aria-hidden />} />
-        <Numero
-          titulo="Sem uso há 7 dias"
-          valor={String(semUso7)}
-          icone={<Moon aria-hidden />}
-          onClick={() => {
-            setSitu("todas");
-            setUso("7");
-          }}
-        />
+      <section aria-label="Resumo" className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-background lg:grid-cols-4">
+        <Resumo rotulo="Receita mensal" valor={formatarReais(receitaMes)} detalhe={`${pagantes.length} ${pagantes.length === 1 ? "oficina pagando" : "oficinas pagando"}`} />
+        <Resumo rotulo="Recebido em 30 dias" valor={formatarReais(recebido30)} detalhe="Pagamentos confirmados" />
+        <Resumo rotulo="Vistorias no mês" valor={String(vistoriasMes)} detalhe="Últimos 30 dias" />
+        <Resumo rotulo="Sem uso há 7 dias" valor={String(semUso7)} detalhe={semUso7 > 0 ? "Vale um contato" : "Todas usando"} />
       </section>
 
-      <section
-        aria-label="Situação"
-        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6"
-      >
-        {blocos.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => setSitu(b.id)}
-            aria-pressed={situ === b.id}
-            className={cn(
-              "tocavel flex min-w-[9.5rem] shrink-0 items-center gap-3 rounded-2xl border bg-background p-3 text-left shadow-sm transition-shadow hover:shadow-md",
-              situ === b.id ? "border-oficina ring-2 ring-oficina" : "border-border",
-            )}
-          >
-            <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl [&_svg]:size-5", b.cor)}>{b.icone}</span>
-            <span className="flex flex-col leading-tight">
-              <span className="text-2xl font-extrabold">{b.valor}</span>
-              <span className="text-sm font-semibold text-muted-foreground">{b.nome}</span>
-            </span>
-          </button>
-        ))}
-      </section>
-
-      <section aria-label="Filtros" className="flex flex-col gap-3 rounded-3xl border border-border bg-background p-4 shadow-sm">
-        <label className="flex min-h-toque items-center gap-2 rounded-2xl bg-superficie px-4 focus-within:ring-2 focus-within:ring-oficina">
-          <Search aria-hidden className="size-5 shrink-0 text-muted-foreground" />
-          <input
-            type="search"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar oficina, pessoa, cidade ou telefone"
-            aria-label="Buscar"
-            className="min-w-0 flex-1 bg-transparent text-lg outline-none"
-          />
-        </label>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
-          <Escolha rotulo="Pagamento" valor={pagamento} onValor={(v) => setPagamento(v as FiltroPagamento)}>
-            <option value="todas">Todos</option>
-            <option value="pix_manual">Pix manual</option>
-            <option value="asaas_pix">Asaas · Pix</option>
-            <option value="asaas_cartao">Asaas · Cartão</option>
-          </Escolha>
-          <Escolha rotulo="Uso" valor={uso} onValor={(v) => setUso(v as FiltroUso)}>
-            <option value="todos">Todos</option>
-            <option value="recente">Usou nos últimos 2 dias</option>
-            <option value="7">Sem uso há 7 dias</option>
-            <option value="30">Sem uso há 30 dias</option>
-            <option value="sem_vistoria">Nunca fez vistoria</option>
-          </Escolha>
-          <Escolha rotulo="Quem vendeu" valor={vendedor} onValor={setVendedor}>
-            <option value="todos">Todos</option>
-            <option value="eu">Eu mesmo</option>
-            {vendedores.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.nome}
-              </option>
-            ))}
-          </Escolha>
-          <Escolha rotulo="Cadastro" valor={cadastro} onValor={(v) => setCadastro(v as FiltroCadastro)}>
-            <option value="todos">Qualquer data</option>
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-            <option value="90">Últimos 90 dias</option>
-          </Escolha>
-          <Escolha rotulo="Ordenar" valor={ordem} onValor={(v) => setOrdem(v as Ordem)} className="col-span-2 lg:col-span-1">
-            <option value="uso">Usou por último</option>
-            <option value="vencimento">Vence primeiro</option>
-            <option value="novas">Mais novas</option>
-            <option value="vistorias">Mais vistorias</option>
-            <option value="valor">Maior mensalidade</option>
-            <option value="nome">Nome (A-Z)</option>
-          </Escolha>
+      <section aria-label="Oficinas" className="overflow-hidden rounded-2xl border border-border bg-background">
+        <div role="tablist" aria-label="Situação" className="flex gap-1 overflow-x-auto border-b border-border px-2">
+          {abas.map((a) => (
+            <button
+              key={a}
+              type="button"
+              role="tab"
+              aria-selected={situ === a}
+              onClick={() => setSitu(a)}
+              className={cn(
+                "-mb-px flex min-h-12 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-bold whitespace-nowrap transition-colors",
+                situ === a ? "border-oficina text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {NOME_SITU[a]}
+              <span className={cn("rounded-full px-2 py-0.5 text-xs", situ === a ? "bg-oficina text-oficina-texto" : "bg-superficie")}>{conta(a)}</span>
+            </button>
+          ))}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-base font-semibold text-muted-foreground" aria-live="polite">
+
+        <div className="flex flex-col gap-2 border-b border-border p-3 lg:flex-row lg:flex-wrap lg:items-end">
+          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border px-3 focus-within:ring-2 focus-within:ring-oficina lg:min-w-64">
+            <Search aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar oficina, pessoa, cidade ou telefone"
+              aria-label="Buscar"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none"
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
+            <Escolha rotulo="Pagamento" valor={pagamento} onValor={(v) => setPagamento(v as FiltroPagamento)}>
+              <option value="todas">Todos</option>
+              {(Object.keys(NOME_PAGAMENTO) as FormaPainel[]).map((f) => (
+                <option key={f} value={f}>
+                  {NOME_PAGAMENTO[f]}
+                </option>
+              ))}
+            </Escolha>
+            <Escolha rotulo="Uso" valor={uso} onValor={(v) => setUso(v as FiltroUso)}>
+              {(Object.keys(NOME_USO) as FiltroUso[]).map((u) => (
+                <option key={u} value={u}>
+                  {NOME_USO[u]}
+                </option>
+              ))}
+            </Escolha>
+            <Escolha rotulo="Vendedor" valor={vendedor} onValor={setVendedor}>
+              <option value="todos">Todos</option>
+              <option value="eu">Eu mesmo</option>
+              {vendedores.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nome}
+                </option>
+              ))}
+            </Escolha>
+            <Escolha rotulo="Cadastro" valor={cadastro} onValor={(v) => setCadastro(v as FiltroCadastro)}>
+              {(Object.keys(NOME_CADASTRO) as FiltroCadastro[]).map((c) => (
+                <option key={c} value={c}>
+                  {NOME_CADASTRO[c]}
+                </option>
+              ))}
+            </Escolha>
+            <Escolha rotulo="Ordenar" valor={ordem} onValor={(v) => setOrdem(v as Ordem)}>
+              {(Object.keys(NOME_ORDEM) as Ordem[]).map((o) => (
+                <option key={o} value={o}>
+                  {NOME_ORDEM[o]}
+                </option>
+              ))}
+            </Escolha>
+            <button
+              type="button"
+              onClick={exportarPdf}
+              disabled={gerandoPdf || lista.length === 0}
+              className="tocavel inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl bg-foreground px-4 text-sm font-bold text-background disabled:opacity-50"
+            >
+              {gerandoPdf ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <FileDown aria-hidden className="size-4" />}
+              {gerandoPdf ? "Gerando..." : "Exportar PDF"}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-muted-foreground">
+          <span aria-live="polite">
             {lista.length} {lista.length === 1 ? "oficina" : "oficinas"}
-          </p>
+          </span>
           {filtrando && (
-            <button type="button" onClick={limpar} className="tocavel inline-flex min-h-11 items-center gap-1.5 rounded-full bg-superficie px-4 text-sm font-bold">
+            <button type="button" onClick={limpar} className="inline-flex min-h-9 items-center gap-1 font-bold text-oficina hover:underline">
               <X aria-hidden className="size-4" /> Limpar filtros
             </button>
           )}
         </div>
+
+        {lista.length === 0 ? (
+          <p className="border-t border-border p-10 text-center text-base text-muted-foreground">Nenhuma oficina com esses filtros.</p>
+        ) : (
+          <>
+            {/* Computador: tabela */}
+            <table className="hidden w-full border-t border-border text-left text-sm md:table">
+              <thead className="bg-superficie/60 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                <tr>
+                  <th className="px-4 py-2.5 font-bold">Oficina</th>
+                  <th className="px-3 py-2.5 font-bold">Situação</th>
+                  <th className="px-3 py-2.5 font-bold">Último uso</th>
+                  <th className="px-3 py-2.5 text-right font-bold">Vistorias</th>
+                  <th className="px-3 py-2.5 text-right font-bold">Mensal</th>
+                  <th className="hidden px-3 py-2.5 font-bold lg:table-cell">Responsável</th>
+                  <th className="px-4 py-2.5">
+                    <span className="sr-only">Ações</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {lista.map((o) => (
+                  <tr key={o.id} className="cursor-pointer transition-colors hover:bg-superficie/60" onClick={() => setAbertaId(o.id)}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <LogoOficina nome={o.nome} url={o.logo} tamanho="sm" />
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-foreground">{o.nome}</p>
+                          <p className="truncate text-xs text-muted-foreground">{[o.cidade, NOME_PAGAMENTO[o.pagamento]].filter(Boolean).join(" · ")}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Selo oficina={o} />
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span aria-hidden className={cn("size-2 rounded-full", COR_USO[temperaturaUso(o.ultimoUso)])} />
+                        {tempoDesde(o.ultimoUso)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      <strong>{o.vistoriasMes}</strong> <span className="text-muted-foreground">/ {o.vistoriasTotal}</span>
+                    </td>
+                    <td className="px-3 py-3 text-right font-bold whitespace-nowrap tabular-nums">{formatarReais(o.valor)}</td>
+                    <td className="hidden max-w-48 px-3 py-3 lg:table-cell">
+                      <p className="truncate">{o.responsavel.nome ?? "sem nome"}</p>
+                      {o.responsavel.whatsapp && <p className="text-xs text-muted-foreground">{formatarTelefone(o.responsavel.whatsapp)}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          title="Mandar WhatsApp"
+                          aria-label={`Mandar WhatsApp para ${o.nome}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCobrar(o);
+                          }}
+                          className="grid size-9 place-items-center rounded-lg text-[#1f8f4e] hover:bg-acao-clara"
+                        >
+                          <MessageCircle aria-hidden className="size-5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Abrir ${o.nome}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAbertaId(o.id);
+                          }}
+                          className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-superficie"
+                        >
+                          <ChevronRight aria-hidden className="size-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Celular: linhas compactas */}
+            <ul className="divide-y divide-border border-t border-border md:hidden">
+              {lista.map((o) => (
+                <li key={o.id}>
+                  <button type="button" onClick={() => setAbertaId(o.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+                    <LogoOficina nome={o.nome} url={o.logo} tamanho="sm" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-bold">{o.nome}</span>
+                      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <Selo oficina={o} />
+                        <span className="inline-flex items-center gap-1">
+                          <span aria-hidden className={cn("size-1.5 rounded-full", COR_USO[temperaturaUso(o.ultimoUso)])} />
+                          {tempoDesde(o.ultimoUso)}
+                        </span>
+                        <span>{formatarReais(o.valor)}</span>
+                      </span>
+                    </span>
+                    <ChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
-      {lista.length === 0 ? (
-        <p className="rounded-3xl border border-dashed border-border bg-background p-8 text-center text-lg text-muted-foreground">
-          Nenhuma oficina com esses filtros.
-        </p>
-      ) : (
-        <ul className="grid gap-3 xl:grid-cols-2">
-          {lista.map((o) => (
-            <CartaoOficina key={o.id} oficina={o} onCobrar={() => setCobrar(o)} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
-          ))}
-        </ul>
-      )}
-
+      <PainelLateral
+        oficina={aberta}
+        vendedores={vendedores}
+        comissaoAtiva={comissaoAtiva}
+        onFechar={() => setAbertaId(null)}
+        onCobrar={() => aberta && setCobrar(aberta)}
+      />
       <JanelaWhatsapp oficina={cobrar} produto={produto} linkPlano={linkPlano} onFechar={() => setCobrar(null)} />
     </div>
   );
 }
 
-/** Número do resumo (dinheiro e uso). Com onClick, vira atalho de filtro. */
-function Numero({ titulo, valor, icone, destaque, onClick }: { titulo: string; valor: string; icone: ReactNode; destaque?: boolean; onClick?: () => void }) {
-  const conteudo = (
-    <>
-      <span className={cn("grid size-10 place-items-center rounded-xl [&_svg]:size-5", destaque ? "bg-white/20" : "bg-superficie text-oficina")}>{icone}</span>
-      <span className="text-2xl font-extrabold">{valor}</span>
-      <span className={cn("text-sm font-semibold", destaque ? "text-white/85" : "text-muted-foreground")}>{titulo}</span>
-    </>
+function Resumo({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 border-border p-4 [&:nth-child(-n+2)]:border-b lg:border-b-0 lg:[&:not(:last-child)]:border-r odd:border-r">
+      <span className="text-sm font-semibold text-muted-foreground">{rotulo}</span>
+      <span className="text-2xl font-extrabold tracking-tight tabular-nums">{valor}</span>
+      <span className="text-xs text-muted-foreground">{detalhe}</span>
+    </div>
   );
-  const classe = cn(
-    "flex flex-col items-start gap-1 rounded-3xl p-4 text-left shadow-sm",
-    destaque ? "bg-gradient-to-br from-marca-azul to-oficina text-white" : "border border-border bg-background",
-  );
-  return onClick ? (
-    <button type="button" onClick={onClick} className={cn(classe, "tocavel transition-shadow hover:shadow-md")}>
-      {conteudo}
-    </button>
-  ) : (
-    <div className={classe}>{conteudo}</div>
+}
+
+function Selo({ oficina: o }: { oficina: OficinaPainel }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap",
+        o.ativa ? COR_SITUACAO[o.situacao.grupo] : "bg-superficie text-muted-foreground",
+      )}
+    >
+      {textoSituacao(o)}
+    </span>
   );
 }
 
 /** Lista de escolha dos filtros, com o nome em cima. */
-function Escolha({
-  rotulo,
-  valor,
-  onValor,
-  className,
-  children,
-}: {
-  rotulo: string;
-  valor: string;
-  onValor: (v: string) => void;
-  className?: string;
-  children: ReactNode;
-}) {
+function Escolha({ rotulo, valor, onValor, children }: { rotulo: string; valor: string; onValor: (v: string) => void; children: ReactNode }) {
   return (
-    <label className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <span className="px-1 text-sm font-bold text-muted-foreground">{rotulo}</span>
+    <label className="flex min-w-0 flex-col gap-1">
+      <span className="text-xs font-bold text-muted-foreground">{rotulo}</span>
       <select
         value={valor}
         onChange={(e) => onValor(e.target.value)}
-        className="min-h-toque w-full min-w-0 rounded-2xl bg-superficie px-3 text-base font-semibold outline-none focus:ring-2 focus:ring-oficina"
+        className="h-11 w-full min-w-0 rounded-xl border border-border bg-background px-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-oficina lg:w-auto"
       >
         {children}
       </select>
@@ -397,7 +557,7 @@ function Escolha({
 
 function passaSituacao(o: OficinaPainel, f: Situ) {
   if (f === "inativas") return !o.ativa;
-  if (!o.ativa) return false; // inativas só aparecem no filtro delas
+  if (!o.ativa) return false; // inativas só aparecem na aba delas
   const g = o.situacao.grupo;
   switch (f) {
     case "todas":
@@ -425,103 +585,67 @@ function useAcao() {
   return { rodando, rodar };
 }
 
-function CartaoOficina({
+/** Painel que abre do lado com tudo da oficina: dados, ações de acesso, vendedor, equipe e pagamentos. */
+function PainelLateral({
   oficina: o,
-  onCobrar,
   vendedores,
   comissaoAtiva,
+  onFechar,
+  onCobrar,
 }: {
-  oficina: OficinaPainel;
-  onCobrar: () => void;
+  oficina: OficinaPainel | null;
   vendedores: Vendedor[];
   comissaoAtiva: boolean;
+  onFechar: () => void;
+  onCobrar: () => void;
 }) {
-  const vendedor = vendedores.find((v) => v.id === o.vendedorId);
-  const [aberto, setAberto] = useState(false);
-  const temp = temperaturaUso(o.ultimoUso);
-  const r = o.responsavel;
-
   return (
-    <li
-      className={cn(
-        "flex flex-col gap-4 rounded-3xl border border-border bg-background p-4 shadow-sm transition-shadow hover:shadow-md",
-        aberto && "xl:col-span-2",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <LogoOficina nome={o.nome} url={o.logo} tamanho="sm" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-extrabold">{o.nome}</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {o.ativa ? (
-              <span className={cn("rounded-full px-2.5 py-0.5 text-sm font-bold", COR_SITUACAO[o.situacao.grupo])}>{o.situacao.texto}</span>
-            ) : (
-              <span className="rounded-full bg-foreground px-2.5 py-0.5 text-sm font-bold text-background">
-                Inativa{o.inativadaEm && ` desde ${new Date(o.inativadaEm).toLocaleDateString("pt-BR")}`}
-              </span>
-            )}
-            <span className="rounded-full bg-superficie px-2.5 py-0.5 text-sm font-bold text-muted-foreground">{NOME_PAGAMENTO[o.pagamento]}</span>
-            {vendedor && <span className="rounded-full bg-oficina-clara px-2.5 py-0.5 text-sm font-bold text-oficina">Vendedor: {vendedor.nome}</span>}
-          </div>
-        </div>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Dado rotulo="Último uso">
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden className={cn("size-2.5 shrink-0 rounded-full", COR_USO[temp])} />
-            {tempoDesde(o.ultimoUso)}
-          </span>
-        </Dado>
-        <Dado rotulo="Vistorias no mês">
-          {o.vistoriasMes} <span className="font-semibold text-muted-foreground">/ {o.vistoriasTotal}</span>
-        </Dado>
-        <Dado rotulo="Mensalidade">{formatarReais(o.valor)}</Dado>
-        <Dado rotulo="Responsável">
-          <span className="block truncate">{r.nome ?? "sem nome"}</span>
-        </Dado>
-      </dl>
-
-      <p className="text-sm text-muted-foreground">
-        {[
-          o.cidade,
-          r.whatsapp && formatarTelefone(r.whatsapp),
-          `cadastro ${new Date(o.criadoEm).toLocaleDateString("pt-BR")}`,
-          o.ultimaMensagem && `sua última mensagem ${tempoDesde(o.ultimaMensagem)}`,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={onCobrar}
-          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-[#1f8f4e] px-3 text-base font-bold text-white"
-        >
-          <MessageCircle aria-hidden className="size-6" /> WhatsApp
-        </button>
-        <button
-          type="button"
-          onClick={() => setAberto((v) => !v)}
-          aria-expanded={aberto}
-          className="tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-superficie px-3 text-base font-bold"
-        >
-          {aberto ? "Fechar" : "Gerenciar"}
-          <ChevronDown aria-hidden className={cn("size-5 transition-transform", aberto && "rotate-180")} />
-        </button>
-      </div>
-
-      {aberto && <DetalhesOficina oficina={o} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />}
-    </li>
+    <Dialog open={Boolean(o)} onOpenChange={(a) => !a && onFechar()}>
+      <DialogContent className="top-0 right-0 left-auto flex h-dvh max-h-dvh w-full max-w-full translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto rounded-none p-0 sm:max-w-xl">
+        {o && (
+          <>
+            <div className="sticky top-0 z-10 flex items-start gap-3 border-b border-border bg-popover p-5 pr-12">
+              <LogoOficina nome={o.nome} url={o.logo} tamanho="sm" />
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="truncate text-xl font-extrabold">{o.nome}</DialogTitle>
+                <DialogDescription className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                  <Selo oficina={o} />
+                  <span>{[o.cidade, NOME_PAGAMENTO[o.pagamento]].filter(Boolean).join(" · ")}</span>
+                </DialogDescription>
+              </div>
+            </div>
+            <div className="flex flex-col gap-5 p-5">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <Dado rotulo="Responsável">{o.responsavel.nome ?? "sem nome"}</Dado>
+                <Dado rotulo="WhatsApp">{o.responsavel.whatsapp ? formatarTelefone(o.responsavel.whatsapp) : "—"}</Dado>
+                <Dado rotulo="Último uso">{tempoDesde(o.ultimoUso)}</Dado>
+                <Dado rotulo="Vistorias (mês / total)">
+                  {o.vistoriasMes} / {o.vistoriasTotal}
+                </Dado>
+                <Dado rotulo="Mensalidade">{formatarReais(o.valor)}</Dado>
+                <Dado rotulo="Cadastro">{dia(o.criadoEm)}</Dado>
+              </dl>
+              <button
+                type="button"
+                onClick={onCobrar}
+                className="tocavel inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#1f8f4e] px-4 text-base font-bold text-white"
+              >
+                <MessageCircle aria-hidden className="size-5" /> Mandar WhatsApp
+              </button>
+              <DetalhesOficina key={o.id} oficina={o} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function Dado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-superficie px-3 py-2">
-      <dt className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{rotulo}</dt>
-      <dd className="text-base font-extrabold">{children}</dd>
+    <div className="min-w-0">
+      <dt className="text-xs font-semibold text-muted-foreground">{rotulo}</dt>
+      <dd className="truncate font-bold">{children}</dd>
     </div>
   );
 }
@@ -592,7 +716,7 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
   const s = o.situacao;
 
   return (
-    <div className="flex flex-col gap-4 border-t border-border pt-4">
+    <div className="flex flex-col gap-5">
       <section className="flex flex-col gap-2">
         <h3 className="text-lg font-extrabold">Acesso e pagamento</h3>
         <p className="text-base text-muted-foreground">

@@ -199,15 +199,14 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6">
-      <header className="flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-marca-azul to-oficina p-5 text-white shadow-md lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-col gap-1">
-          <Link href="/mais" className="inline-flex min-h-11 items-center gap-1.5 self-start text-base font-bold text-white/85 hover:text-white">
-            <ArrowLeft aria-hidden className="size-5" /> Voltar
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-0.5">
+          <Link href="/mais" className="inline-flex min-h-10 items-center gap-1.5 self-start text-sm font-bold text-muted-foreground hover:text-foreground">
+            <ArrowLeft aria-hidden className="size-4" /> Voltar
           </Link>
-          <h1 className="text-[1.75rem] leading-tight font-extrabold">Painel do administrador</h1>
-          <p className="text-base text-white/85">Oficinas, pagamentos e comissões</p>
+          <h1 className="text-2xl leading-tight font-extrabold tracking-tight">Painel do administrador</h1>
         </div>
-        <nav aria-label="Partes do painel" className="grid grid-cols-2 gap-1 rounded-2xl bg-white/15 p-1 lg:w-80">
+        <nav aria-label="Partes do painel" className="grid grid-cols-2 gap-1 rounded-xl bg-superficie p-1 sm:w-72">
           {[
             { href: "/admin", nome: "Oficinas", ativo: !naComissoes },
             { href: "/admin?aba=comissoes", nome: "Comissões", ativo: naComissoes },
@@ -216,7 +215,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
               key={a.href}
               href={a.href}
               aria-current={a.ativo ? "page" : undefined}
-              className={`tocavel flex min-h-toque items-center justify-center rounded-xl text-lg font-bold ${a.ativo ? "bg-white text-foreground shadow-sm" : "text-white"}`}
+              className={`flex min-h-10 items-center justify-center rounded-lg text-sm font-bold ${a.ativo ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               {a.nome}
             </Link>
