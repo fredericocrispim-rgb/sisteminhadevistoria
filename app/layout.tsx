@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     template: `%s · ${textos.produto.nome}`,
   },
   description: textos.produto.slogan,
+  // iPhone: ao pôr na Tela de Início, abre sem a barra do Safari, como app, com o nome curto
+  appleWebApp: { capable: true, title: "Vistoria", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

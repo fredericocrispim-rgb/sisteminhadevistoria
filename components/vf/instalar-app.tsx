@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { Download, Share, SquarePlus, X } from "lucide-react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { Compass, Download, Ellipsis, Share, SquarePlus, X } from "lucide-react";
 import { BotaoPrincipal } from "./botoes";
 import { textos } from "@/lib/textos";
 
@@ -51,7 +51,14 @@ function fechadoHaPouco() {
   }
 }
 
-type Modo = "nada" | "android" | "iphone";
+/**
+ * - android: o navegador deixa instalar com 1 toque;
+ * - iphone: Safari (a Apple só deixa pôr na Tela de Início pelo menu Compartilhar);
+ *   `tresPontos`: no iOS 26 o Compartilhar fica dentro dos 3 pontinhos;
+ * - iphone_chrome: Chrome/Edge/Firefox do iPhone (Compartilhar fica lá em cima);
+ * - iphone_outro: navegador de dentro de outro app (Instagram, Facebook...): não dá, tem que abrir no Safari.
+ */
+type Modo = "nada" | "android" | "iphone" | "iphone_tres_pontos" | "iphone_chrome" | "iphone_outro";
 
 function modoAtual(): Modo {
   const instalado =
@@ -60,20 +67,22 @@ function modoAtual(): Modo {
   if (pedido) return "android";
   const ua = navigator.userAgent;
   const iphone = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  // No iPhone só o Safari consegue pôr na tela de início
-  if (iphone && !/CriOS|FxiOS|EdgiOS/.test(ua)) return "iphone";
-  return "nada";
+  if (!iphone) return "nada";
+  if (/CriOS|FxiOS|EdgiOS/.test(ua)) return "iphone_chrome";
+  const safari = /Safari\//.test(ua) && /Version\/\d+/.test(ua) && !/FBAN|FBAV|Instagram|Line\/|GSA\//.test(ua);
+  if (!safari) return "iphone_outro";
+  const versao = Number(ua.match(/Version\/(\d+)/)?.[1] ?? 0);
+  return versao >= 26 ? "iphone_tres_pontos" : "iphone";
 }
 
 /**
  * Cartão "Coloque o app na tela do celular".
- * Android: um toque instala. iPhone: mostra os 2 toques no Safari.
+ * Android: um toque instala. iPhone: mostra direto os passos do Safari (a Apple não deixa instalar com 1 toque).
  * Some sozinho quando o app já está instalado. Com `podeFechar`, o "Agora não" esconde por 3 dias.
  */
 export function InstalarApp({ podeFechar = true }: { podeFechar?: boolean }) {
   const modo = useSyncExternalStore(assinar, modoAtual, () => "nada" as Modo);
   const escondido = useSyncExternalStore(assinar, () => podeFechar && fechadoHaPouco(), () => true);
-  const [verPassos, setVerPassos] = useState(false);
 
   if (modo === "nada" || escondido) return null;
 
@@ -85,7 +94,6 @@ export function InstalarApp({ podeFechar = true }: { podeFechar?: boolean }) {
   }
 
   async function instalar() {
-    if (modo === "iphone") return setVerPassos(true);
     if (!pedido) return;
     await pedido.prompt();
     await pedido.userChoice;
@@ -114,22 +122,50 @@ export function InstalarApp({ podeFechar = true }: { podeFechar?: boolean }) {
         </div>
       </div>
 
-      {verPassos ? (
-        <ol className="flex flex-col gap-2 rounded-2xl bg-background p-3 text-lg font-semibold">
-          <li className="flex items-center gap-2">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-oficina font-extrabold text-oficina-texto">1</span>
-            {t.iphone1} <Share aria-label="Compartilhar" className="size-6 shrink-0 text-oficina" />
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-oficina font-extrabold text-oficina-texto">2</span>
-            {t.iphone2} <SquarePlus aria-hidden className="size-6 shrink-0 text-oficina" />
-          </li>
-        </ol>
-      ) : (
+      {modo === "android" ? (
         <BotaoPrincipal icone={<Download aria-hidden />} onClick={instalar}>
           {t.instalar}
         </BotaoPrincipal>
+      ) : (
+        <PassosIphone modo={modo} />
       )}
+    </div>
+  );
+}
+
+type Passo = { texto: string; icone: ReactNode };
+
+const passo = {
+  tresPontos: { texto: t.iphoneTresPontos, icone: <Ellipsis aria-hidden /> },
+  compartilhar: { texto: t.iphoneCompartilhar, icone: <Share aria-hidden /> },
+  chrome: { texto: t.iphoneChrome, icone: <Share aria-hidden /> },
+  adicionar: { texto: t.iphoneAdicionar, icone: <SquarePlus aria-hidden /> },
+  confirmar: { texto: t.iphoneConfirmar, icone: null },
+  safari: { texto: t.iphoneAbrirSafari, icone: <Compass aria-hidden /> },
+} satisfies Record<string, Passo>;
+
+function PassosIphone({ modo }: { modo: Modo }) {
+  const passos: Passo[] =
+    modo === "iphone_tres_pontos"
+      ? [passo.tresPontos, passo.compartilhar, passo.adicionar, passo.confirmar]
+      : modo === "iphone_chrome"
+        ? [passo.chrome, passo.adicionar, passo.confirmar]
+        : modo === "iphone_outro"
+          ? [passo.safari]
+          : [passo.compartilhar, passo.adicionar, passo.confirmar];
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl bg-background p-3">
+      <p className="text-base font-bold text-muted-foreground">{t.iphoneTitulo}</p>
+      <ol className="flex flex-col gap-3 text-lg font-semibold">
+        {passos.map((p, i) => (
+          <li key={p.texto} className="flex items-center gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-oficina font-extrabold text-oficina-texto">{i + 1}</span>
+            <span className="flex-1 leading-tight">{p.texto}</span>
+            {p.icone && <span className="shrink-0 text-oficina [&_svg]:size-7">{p.icone}</span>}
+          </li>
+        ))}
+      </ol>
+      {modo === "iphone_outro" && <p className="text-base font-semibold text-muted-foreground">{t.iphoneAbrirSafariDica}</p>}
     </div>
   );
 }

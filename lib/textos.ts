@@ -302,8 +302,15 @@ export const textos = {
     texto: "Depois é só tocar no ícone para entrar.",
     instalar: "Instalar app",
     agoraNao: "Agora não",
-    iphone1: "No Safari, toque em Compartilhar",
-    iphone2: "Depois em Adicionar à Tela de Início",
+    // iPhone: a Apple não deixa instalar com 1 toque; a pessoa segue estes passos no Safari
+    iphoneTitulo: "No iPhone, siga os passos:",
+    iphoneTresPontos: "Toque nos 3 pontinhos ••• lá embaixo",
+    iphoneCompartilhar: "Toque em Compartilhar",
+    iphoneAdicionar: "Toque em Adicionar à Tela de Início",
+    iphoneConfirmar: "Toque em Adicionar",
+    iphoneChrome: "Toque em Compartilhar, lá em cima",
+    iphoneAbrirSafari: "Abra este link no Safari",
+    iphoneAbrirSafariDica: "Toque nos 3 pontinhos e em Abrir no navegador",
   },
 
   veiculo: {
