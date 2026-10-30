@@ -3,7 +3,8 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { textos } from "@/lib/textos";
 import { FormularioEntrar } from "./formulario";
 
-export const metadata: Metadata = { title: "Entrar" };
+// Fora do Google (tela de login)
+export const metadata: Metadata = { title: "Entrar", robots: { index: false, follow: false } };
 
 export default async function PaginaEntrar({ searchParams }: PageProps<"/entrar">) {
   const { voltar, criar, confirmado, erro, novo } = await searchParams;

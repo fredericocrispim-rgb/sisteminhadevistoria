@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { previaLink } from "@/lib/previa-link";
 import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { BotaoPrincipal, LogoProduto } from "@/components/vf";
 
-export const metadata: Metadata = { title: "Verificar vistoria" };
+export const metadata: Metadata = {
+  title: "Conferir uma vistoria",
+  description: "Confira se um termo de vistoria é verdadeiro: digite o código de autenticidade que aparece no PDF.",
+  alternates: { canonical: "/verificar" },
+  openGraph: { ...previaLink, title: "Conferir uma vistoria", url: "/verificar" },
+};
 
 async function ir(formData: FormData) {
   "use server";

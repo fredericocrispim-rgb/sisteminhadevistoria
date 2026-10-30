@@ -14,7 +14,7 @@ import { PainelOficinas, type OficinaPainel, type PessoaPainel } from "./painel"
 import { RelatorioComissoes, type Vendedor } from "./comissoes";
 import type { Comissao } from "@/lib/comissao";
 
-export const metadata: Metadata = { title: "Administrador", robots: { index: false } };
+export const metadata: Metadata = { title: "Administrador", robots: { index: false, follow: false } };
 
 type Assinatura = { status: string; fim_teste: string | null; proximo_vencimento: string | null; plano_id: string | null };
 type Vinculo = { id: string; user_id: string; nome: string | null; papel: string; ativo: boolean; cupom: string | null; criado_em: string };

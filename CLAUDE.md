@@ -104,3 +104,12 @@ Depois, faça o commit da etapa (mensagem em português).
 - Equipe (`/equipe`, menu Mais): dono/gerente CADASTRAM a pessoa direto (nome, WhatsApp, e-mail, senha, papel; WhatsApp obrigatório, guardado em user_metadata.whatsapp; botão manda o acesso direto para o WhatsApp da pessoa; conta criada já confirmada, `cadastrarUsuario`). Atualizado em 22/10: plano Básico inclui o dono + 3 pessoas (`planos.limite_usuarios` = 4); cada usuário a mais soma `planos.preco_usuario_extra` (R$ 19,90). Cupom no cadastro (campo CUPOM, aparece quando passa do plano): código válido na tabela `cupons` (ex.: CORTESIA) grava `usuarios_empresa.cupom` e esse usuário não é cobrado (`lib/mensalidade.ts` conta só `cupom is null`).
 - Papéis: dono = tudo (único que vê Meu plano/Pix e os avisos de cobrança); gerente = tudo menos plano/Pix; vistoriador = faz vistorias, vê o pátio e só as vistorias que ele fez. Convites por link continuam valendo para os já criados. Cálculo em `lib/cobranca.ts`; valor da oficina em `lib/mensalidade.ts` (usado no Pix do `/plano` e no "Marcar como pago").
 - Vistoria começa escolhendo o veículo: CARRO, MOTOCICLETA ou CAMINHÃO (`vistorias.tipo_veiculo`, `veiculos.tipo`). Moto tem 2 pneus (dianteiro, traseiro). Desenhos de moto/caminhão em `lib/desenhos-carro.ts` (`desenhosDo(tipo)`), usados no mapa, no PDF e no guia das fotos.
+
+## Site de divulgação e SEO (30/10/2026)
+- Páginas públicas para o Google em `app/(site)` (cabeçalho com menu e rodapé em `components/site`): `/`, `/vistoria-digital-para-oficinas`, `/como-funciona`,
+  `/vistoria-de-carro-pelo-celular`, `/laudo-de-vistoria-digital`, `/checklist-de-entrada-de-veiculo`, `/precos`, `/blog` e `/blog/[slug]`.
+  Os textos longos dessas páginas ficam nas próprias páginas (exceção à regra do `lib/textos.ts`); perguntas frequentes em `lib/conteudo/perguntas.ts`
+  (o mesmo texto vai para a página e para o FAQPage); artigos em `lib/conteudo/blog.tsx`; pauta em `docs/pauta-blog.md`.
+- Cada página: um único H1, `metadadosPagina()` de `lib/site.ts` (título, descrição, canonical com https://www., prévia do WhatsApp com `public/og.jpg`).
+- Fora do Google (noindex + robots.txt): login, cadastro, telas internas, admin, `/v/...` e `/verificar/CÓDIGO`. A busca `/verificar` fica no Google.
+- `app/robots.ts`, `app/sitemap.ts` (atualize `ATUALIZADO` ao mudar textos) e `app/not-found.tsx`. Sem preço no site por enquanto (decisão do Frederico).

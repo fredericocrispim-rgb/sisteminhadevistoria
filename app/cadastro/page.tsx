@@ -4,7 +4,7 @@ import { exigirLogin } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { Assistente } from "./assistente";
 
-export const metadata: Metadata = { title: "Cadastro" };
+export const metadata: Metadata = { title: "Cadastro", robots: { index: false, follow: false } };
 
 /**
  * Cadastro da oficina em 2 passos: (1) você e a oficina, (2) logo.
