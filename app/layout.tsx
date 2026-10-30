@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { scriptModoSol } from "@/components/vf/modo-sol";
 import { RegistrarApp } from "@/components/vf/instalar-app";
+import { BarraMarca } from "@/components/vf/barra-marca";
 import { textos } from "@/lib/textos";
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: scriptModoSol }} />
       </head>
       <body className="flex min-h-full flex-col">
+        <BarraMarca />
         {children}
         <Toaster />
         <RegistrarApp />

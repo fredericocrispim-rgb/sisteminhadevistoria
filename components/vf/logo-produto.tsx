@@ -18,10 +18,10 @@ export function BandeiraBrasil({ className }: { className?: string }) {
  * Logotipo do Vistoria Rápida: círculo azul com 4 quadradinhos (3 claros e 1 verde).
  * Com `comNome`: símbolo + "Vistoria Rápida" + ".digital" (em verde, menor) + bandeira do Brasil.
  */
-export function LogoProduto({ className, comNome }: { className?: string; comNome?: boolean }) {
+export function LogoProduto({ className, comNome, pequeno }: { className?: string; comNome?: boolean; pequeno?: boolean }) {
   const id = useId();
   const simbolo = (
-    <svg viewBox="0 0 64 64" role="img" aria-label={textos.produto.nome} className={cn("size-12 shrink-0", className)}>
+    <svg viewBox="0 0 64 64" role="img" aria-label={textos.produto.nome} className={cn(pequeno ? "size-9 shrink-0" : "size-12 shrink-0", className)}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#3b82f6" />
@@ -37,14 +37,14 @@ export function LogoProduto({ className, comNome }: { className?: string; comNom
   );
   if (!comNome) return simbolo;
   return (
-    <span className="flex items-center gap-3">
+    <span className={cn("flex items-center", pequeno ? "gap-2" : "gap-3")}>
       {simbolo}
       <span className="flex flex-col leading-none">
-        <span className="flex items-center gap-2 text-[1.3rem] font-extrabold tracking-tight whitespace-nowrap">
+        <span className={cn("flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap", pequeno ? "text-lg" : "text-[1.3rem]")}>
           {textos.produto.nome}
           <BandeiraBrasil />
         </span>
-        <span className="mt-1 text-sm font-bold tracking-wide text-acao">{textos.produto.sufixo}</span>
+        <span className={cn("font-bold tracking-wide text-acao", pequeno ? "mt-0.5 text-xs" : "mt-1 text-sm")}>{textos.produto.sufixo}</span>
       </span>
     </span>
   );

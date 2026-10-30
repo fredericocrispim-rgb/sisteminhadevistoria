@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AlertTriangle, ArrowRight, CheckCircle2, Clock, Lock, LogOut } from "lucide-react";
-import { LogoProduto, PagarPix } from "@/components/vf";
+import { PagarPix } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { formatarReais, gerarPixCopiaECola } from "@/lib/pix";
@@ -109,7 +109,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6">
-      {bloqueado || mostrarContinuar ? <LogoProduto comNome /> : <h1 className="text-[1.75rem] font-extrabold">{textos.menu.meuPlano}</h1>}
+      <h1 className="text-[1.75rem] font-extrabold">{textos.menu.meuPlano}</h1>
 
       <div className={`flex items-center gap-3 rounded-2xl px-4 py-4 [&_svg]:size-8 [&_svg]:shrink-0 ${situacao.classe}`}>
         {situacao.icone}

@@ -14,6 +14,7 @@ export { PagarPix } from "./pagar-pix";
 export { LogoOficina } from "./logo-oficina";
 export { CaixaMarcar } from "./caixa-marcar";
 export { BandeiraBrasil, LogoProduto } from "./logo-produto";
+export { BarraMarca } from "./barra-marca";
 export { DesenhoCarro, type MarcaAvaria } from "./desenho-carro";
 export { AssinaturaDedo, type AssinaturaRef } from "./assinatura-dedo";
 export { CampoSenha } from "./campo-senha";
