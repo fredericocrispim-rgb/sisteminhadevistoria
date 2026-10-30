@@ -60,7 +60,7 @@ async function primeiraCobranca(idAssinatura: string): Promise<CobrancaAsaas | n
 export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado<{ destino: string }>> {
   const ctx = await dono();
   if (!ctx) return { ok: false, erro: "Só o dono da oficina pode assinar." };
-  if (!asaasLigado()) return { ok: false, erro: "Pagamento automático ainda não disponível. Fale com o suporte." };
+  if (!asaasLigado(ctx.empresa.id)) return { ok: false, erro: "Pagamento automático ainda não disponível. Fale com o suporte." };
   const v = esquema.safeParse(dados);
   if (!v.success) return { ok: false, erro: v.error.issues[0].message, campo: String(v.error.issues[0].path[0]) };
   const d = v.data;

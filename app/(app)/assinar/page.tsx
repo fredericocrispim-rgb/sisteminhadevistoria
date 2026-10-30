@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Assinar" };
 /** Assinar: escolher o plano e Pix ou cartão. Pede CPF/CNPJ e celular (o Asaas exige). Só o dono. */
 export default async function Assinar() {
   const { empresa, papel, plano, usuario } = await exigirOficina({ permitirBloqueado: true });
-  if (papel !== "dono" || !asaasLigado()) redirect("/plano");
+  if (papel !== "dono" || !asaasLigado(empresa.id)) redirect("/plano");
   // Assinatura em andamento: a tela "Minha assinatura" mostra a cobrança em aberto
   if (plano.provedor === PROVEDOR_ASAAS && plano.idAssinaturaExterna && plano.status !== "cancelada" && plano.status !== "inadimplente") {
     redirect("/plano");

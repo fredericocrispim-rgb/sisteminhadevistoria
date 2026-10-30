@@ -156,7 +156,7 @@ export async function aplicarAcao(acao: AcaoWebhook) {
  * Não trava o cadastro da pessoa se o Asaas falhar (fica no log; o valor é acertado na próxima mudança).
  */
 export async function atualizarValorAsaas(empresaId: string) {
-  if (!asaasLigado()) return;
+  if (!asaasLigado(empresaId)) return;
   const admin = criarClienteAdmin();
   const { data: a } = await admin.from("assinaturas").select("provedor, status, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle();
   if (a?.provedor !== PROVEDOR_ASAAS || !a.id_assinatura_externa || a.status === "cancelada") return;

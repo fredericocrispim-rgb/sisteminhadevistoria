@@ -43,7 +43,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   if (!gestor && !bloqueado) redirect("/inicio");
 
   // Pagamento automático (Asaas) ligado: quem ainda não assinou (ou cancelou) escolhe Pix ou cartão em /assinar
-  const automatico = asaasLigado();
+  const automatico = asaasLigado(empresa.id);
   const doAsaas = automatico && plano.provedor === PROVEDOR_ASAAS && Boolean(plano.idAssinaturaExterna);
   const precisaAssinar = automatico && (!doAsaas || plano.status === "cancelada" || plano.status === "inadimplente");
   if (gestor && bloqueado && precisaAssinar) redirect("/assinar");

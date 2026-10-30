@@ -49,9 +49,14 @@ export class ErroAsaas extends Error {
   }
 }
 
-/** O Asaas está configurado neste servidor? Sem a chave, o sistema continua no Pix manual. */
-export function asaasLigado() {
-  return Boolean(process.env.ASAAS_API_KEY);
+/**
+ * O Asaas vale para esta oficina? Sem a chave, o sistema continua no Pix manual.
+ * ASAAS_SO_OFICINAS (ids separados por vírgula): fase de testes, só essas oficinas veem o Asaas; vazio = todas.
+ */
+export function asaasLigado(empresaId: string) {
+  if (!process.env.ASAAS_API_KEY) return false;
+  const so = (process.env.ASAAS_SO_OFICINAS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return so.length === 0 || so.includes(empresaId);
 }
 
 async function chamar<T>(caminho: string, opcoes: { metodo?: string; corpo?: unknown } = {}): Promise<T> {
