@@ -8,6 +8,7 @@ import { formatarCpfCnpj } from "@/lib/formatos";
 import { formatarReais } from "@/lib/pix";
 import { textos } from "@/lib/textos";
 import type { FormaPagamento } from "@/lib/pagamentos/config";
+import { fecharAba, levarAoPagamento, prepararAba } from "@/lib/pagamentos/abrir";
 import { assinar } from "./acoes";
 
 type Plano = { id: string; nome: string; valor: number; inclusos: number | null };
@@ -37,12 +38,20 @@ export function FormAssinar({
   function enviar() {
     if (!forma) return setErro({ campo: "forma", texto: "Escolha Pix ou cartão" });
     setErro(null);
+    // A aba do Asaas abre já no toque (o navegador bloqueia aba aberta depois de esperar o servidor)
+    const aba = prepararAba();
     iniciar(async () => {
       const r = await assinar({ planoId, forma, nome, cpfCnpj, celular });
-      if (!r.ok) return setErro({ campo: r.campo, texto: r.erro });
-      // Cartão: abre a fatura do Asaas (o sistema não recebe dados do cartão)
-      if (r.destino.startsWith("http")) window.location.href = r.destino;
-      else router.push(r.destino);
+      if (!r.ok) {
+        fecharAba(aba);
+        return setErro({ campo: r.campo, texto: r.erro });
+      }
+      if (!r.link) {
+        fecharAba(aba);
+        return router.push(r.destino);
+      }
+      // Pix ou cartão na página do Asaas (o sistema não recebe dados do cartão); aqui fica esperando a confirmação
+      if (levarAoPagamento(aba, r.link)) router.push(r.destino);
     });
   }
 

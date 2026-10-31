@@ -18,7 +18,7 @@ export function MenuInferior() {
   // Durante a vistoria e no pagamento o menu some: o botão principal fica sozinho embaixo
   if (/^\/(vistorias\/(nova|[0-9a-f-]{36})|assinar|pagamento)/.test(caminho)) return null;
   return (
-    <nav aria-label="Menu" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label="Menu" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/85 shadow-[0_-8px_24px_-16px_rgb(15_23_42/0.25)] backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
       <ul className="mx-auto grid max-w-xl grid-cols-4">
         {itens.map(({ href, nome, icone: Icone }) => {
           const ativo = caminho === href || caminho.startsWith(`${href}/`);
@@ -28,11 +28,14 @@ export function MenuInferior() {
                 href={href}
                 aria-current={ativo ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 text-sm font-bold",
+                  "tocavel flex min-h-[4.5rem] flex-col items-center justify-center gap-1 text-sm font-bold",
                   ativo ? "text-oficina" : "text-muted-foreground",
                 )}
               >
-                <Icone aria-hidden className="size-7" />
+                {/* Item da tela atual: ícone dentro de uma "pílula" azul clara */}
+                <span className={cn("grid h-8 w-14 place-items-center rounded-full transition-colors", ativo && "bg-oficina-clara")}>
+                  <Icone aria-hidden className="size-6" strokeWidth={ativo ? 2.4 : 2} />
+                </span>
                 {nome}
               </Link>
             </li>

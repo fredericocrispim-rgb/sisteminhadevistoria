@@ -43,7 +43,7 @@ export function Campo({ rotulo, dica, erro, valor, onValor, grande, className, .
         aria-describedby={cn(dica && idDica, erro && idErro) || undefined}
         className={cn(
           "min-h-toque-grande w-full rounded-2xl border-2 border-transparent bg-superficie px-4 text-xl font-semibold outline-none",
-          "placeholder:font-normal placeholder:text-muted-foreground/50 focus:border-oficina focus:bg-background",
+          "placeholder:font-normal placeholder:text-muted-foreground/50 focus:border-oficina focus:bg-background focus:shadow-[0_0_0_4px_rgb(37_99_235/0.15)]",
           grande && "text-center font-mono text-[2rem] font-extrabold tracking-[0.15em] uppercase",
           erro && "border-perigo bg-perigo-clara focus:border-perigo",
           className,

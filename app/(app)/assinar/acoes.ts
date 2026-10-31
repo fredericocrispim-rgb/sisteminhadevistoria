@@ -58,7 +58,7 @@ async function primeiraCobranca(idAssinatura: string): Promise<CobrancaAsaas | n
  * Assinar: cria (ou reaproveita) o cliente no Asaas e a assinatura mensal, e pega a 1ª cobrança.
  * NÃO libera acesso: quem libera é o webhook (ou "Já paguei", que confere na API do Asaas).
  */
-export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado<{ destino: string }>> {
+export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado<{ destino: string; link?: string }>> {
   const ctx = await dono();
   if (!ctx) return { ok: false, erro: "Só o dono da oficina pode assinar." };
   if (!asaasLigado(ctx.empresa.id)) return { ok: false, erro: "Pagamento automático ainda não disponível. Fale com o suporte." };
@@ -153,9 +153,9 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
     revalidatePath("/plano");
     if (!cobranca) return { ok: true, destino: "/plano" };
     const faturaId = await guardarCobranca(cobranca, { ...a, status: a.status === "cancelada" ? "em_atraso" : a.status });
-    // Cartão: paga na página do próprio Asaas (o sistema nunca vê os dados do cartão)
-    if (d.forma === "CREDIT_CARD" && cobranca.invoiceUrl) return { ok: true, destino: cobranca.invoiceUrl };
-    return { ok: true, destino: `/pagamento/${faturaId}` };
+    // Pix e cartão: paga na página do próprio Asaas, aberta numa aba nova (o sistema nunca vê os dados do cartão).
+    // Esta aba fica em /pagamento/... esperando a confirmação.
+    return { ok: true, destino: `/pagamento/${faturaId}`, link: cobranca.invoiceUrl ?? undefined };
   } catch (erro) {
     console.error("Asaas: falha ao assinar", erro);
     return { ok: false, erro: FALHOU };
@@ -189,8 +189,8 @@ export async function jaPaguei(faturaId: string): Promise<Resultado<{ paga: bool
   }
 }
 
-/** Troca Pix ⇄ cartão. Vale também para a cobrança que está em aberto. */
-export async function trocarForma(forma: "PIX" | "CREDIT_CARD"): Promise<Resultado> {
+/** Troca Pix ⇄ cartão. Vale também para a cobrança em aberto, que volta para abrir a página do Asaas. */
+export async function trocarForma(forma: "PIX" | "CREDIT_CARD"): Promise<Resultado<{ faturaId?: string; link?: string }>> {
   const ctx = await dono();
   if (!ctx || (forma !== "PIX" && forma !== "CREDIT_CARD")) return { ok: false, erro: FALHOU };
   const admin = criarClienteAdmin();
@@ -201,9 +201,15 @@ export async function trocarForma(forma: "PIX" | "CREDIT_CARD"): Promise<Resulta
     // Pix virou boleto (conta sem chave Pix): não grava a troca
     if (sub.billingType !== forma) return { ok: false, erro: textos.assinatura.formaIndisponivel(forma === "PIX" ? "Pix" : "Cartão") };
     await admin.from("assinaturas").update({ forma_pagamento: forma, atualizado_em: new Date().toISOString() }).eq("id", a.id);
-    await admin.from("faturas").update({ forma: forma === "CREDIT_CARD" ? "cartao" : "pix" }).eq("assinatura_id", a.id).in("status", ["pendente", "vencida"]);
+    const { data: abertas } = await admin
+      .from("faturas")
+      .update({ forma: forma === "CREDIT_CARD" ? "cartao" : "pix" })
+      .eq("assinatura_id", a.id)
+      .in("status", ["pendente", "vencida"])
+      .select("id, link_fatura, vencimento");
     revalidatePath("/plano");
-    return { ok: true };
+    const aberta = abertas?.sort((x, y) => x.vencimento.localeCompare(y.vencimento))[0];
+    return { ok: true, faturaId: aberta?.id, link: aberta?.link_fatura ?? undefined };
   } catch (erro) {
     console.error("Asaas: falha ao trocar a forma de pagamento", erro);
     return { ok: false, erro: FALHOU };

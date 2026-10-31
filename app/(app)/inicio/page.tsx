@@ -132,9 +132,14 @@ function BotaoGigante({ href, cor, icone, children }: { href: string; cor: strin
   return (
     <Link
       href={href}
-      className={cn("tocavel flex min-h-[28svh] flex-col items-center justify-center gap-3 rounded-3xl px-4 [&_svg]:size-16", cor)}
+      className={cn(
+        "tocavel flex min-h-[28svh] flex-col items-center justify-center gap-3 rounded-3xl bg-linear-to-b from-white/15 to-transparent px-4",
+        "shadow-[0_18px_36px_-18px_rgb(15_23_42/0.55)] [&_svg]:size-14",
+        cor,
+      )}
     >
-      {icone}
+      {/* Ícone dentro de um círculo claro */}
+      <span className="grid size-24 place-items-center rounded-full bg-white/15 ring-1 ring-white/25">{icone}</span>
       <span className="text-[1.75rem] font-extrabold tracking-wide">{children}</span>
     </Link>
   );

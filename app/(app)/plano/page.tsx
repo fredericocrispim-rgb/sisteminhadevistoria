@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, ExternalLink, FileText, Lock, LogOut, XCircle } from "lucide-react";
-import { BotaoPrincipal, PagarPix } from "@/components/vf";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, FileText, Lock, LogOut, XCircle } from "lucide-react";
+import { PagarPix } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { formatarReais, gerarPixCopiaECola } from "@/lib/pix";
@@ -13,7 +13,7 @@ import { sair } from "../mais/acoes";
 import { continuarSemPagar } from "./acoes";
 import { asaasLigado } from "@/lib/pagamentos/asaas";
 import { PROVEDOR_ASAAS, nomeForma } from "@/lib/pagamentos/config";
-import { BotoesAssinatura } from "./botoes-assinatura";
+import { BotaoPagar, BotoesAssinatura } from "./botoes-assinatura";
 
 export const metadata: Metadata = { title: "Meu plano" };
 
@@ -210,16 +210,11 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                   Valor: <strong>{formatarReais(valor)}</strong> por mês
                 </p>
               </div>
-              {emAberto &&
-                (emAberto.forma === "cartao" && emAberto.link_fatura ? (
-                  <BotaoPrincipal href={emAberto.link_fatura} nativo icone={<ExternalLink aria-hidden />}>
-                    Pagar {formatarReais(Number(emAberto.valor))} no cartão
-                  </BotaoPrincipal>
-                ) : (
-                  <BotaoPrincipal href={`/pagamento/${emAberto.id}`} icone={<ArrowRight aria-hidden />}>
-                    Pagar {formatarReais(Number(emAberto.valor))} pelo Pix
-                  </BotaoPrincipal>
-                ))}
+              {emAberto && (
+                <BotaoPagar faturaId={emAberto.id} link={emAberto.link_fatura}>
+                  Pagar {formatarReais(Number(emAberto.valor))} {emAberto.forma === "cartao" ? "no cartão" : "pelo Pix"}
+                </BotaoPagar>
+              )}
               {faturas && faturas.length > 0 && (
                 <section aria-labelledby="pagamentos" className="flex flex-col gap-2">
                   <h2 id="pagamentos" className="text-xl font-extrabold">
@@ -255,7 +250,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                   </ul>
                 </section>
               )}
-              <BotoesAssinatura forma={plano.formaPagamento} />
+              <BotoesAssinatura forma={plano.formaPagamento} temAberta={Boolean(emAberto)} />
             </>
           ) : precisaAssinar ? (
             <Link

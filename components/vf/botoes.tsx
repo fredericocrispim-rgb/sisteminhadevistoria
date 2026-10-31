@@ -58,7 +58,11 @@ function BotaoOuLink({ href, nativo, className, icone, children, carregando, ...
 export function BotaoPrincipal({ className, fixo, ...props }: BotaoProps & { fixo?: boolean }) {
   const botao = (
     <BotaoOuLink
-      className={cn(baseBotao, "min-h-toque-grande bg-acao text-xl text-acao-texto hover:bg-acao-escura", className)}
+      className={cn(
+        baseBotao,
+        "min-h-toque-grande bg-acao text-xl text-acao-texto shadow-[0_10px_24px_-10px_rgb(19_134_90/0.7)] hover:bg-acao-escura",
+        className,
+      )}
       {...props}
     />
   );

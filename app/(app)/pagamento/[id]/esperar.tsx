@@ -1,39 +1,70 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { BotaoSecundario } from "@/components/vf";
 import { textos } from "@/lib/textos";
 import { faturaPaga, jaPaguei } from "../../assinar/acoes";
 
-/** Confere a cada 3 s se o webhook já confirmou. Pago: "Pagamento confirmado!" e abre o sistema. */
+/**
+ * Confere sozinha se o pagamento caiu: a cada 3 s olha o banco (o webhook do Asaas grava lá) e,
+ * a cada 15 s, pergunta direto ao Asaas (no servidor), caso o aviso atrase. Também confere na hora
+ * em que a pessoa volta da aba do Asaas. Pago: "Pagamento confirmado!" e abre o sistema.
+ */
 export function EsperarPagamento({ faturaId }: { faturaId: string }) {
   const t = textos.assinatura;
   const router = useRouter();
   const [paga, setPaga] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conferindo, iniciar] = useTransition();
+  const voltas = useRef(0);
+
+  const conferir = useCallback(
+    async (perguntarAoAsaas: boolean) => {
+      try {
+        if (perguntarAoAsaas) {
+          const r = await jaPaguei(faturaId);
+          if (r.ok && r.paga) setPaga(true);
+        } else if (await faturaPaga(faturaId)) {
+          setPaga(true);
+        }
+      } catch {
+        // sem internet: tenta de novo na próxima volta
+      }
+    },
+    [faturaId],
+  );
 
   useEffect(() => {
     if (paga) {
-      const ir = setTimeout(() => router.replace("/inicio"), 2500);
+      const ir = setTimeout(() => {
+        router.replace("/inicio");
+        router.refresh();
+      }, 2500);
       return () => clearTimeout(ir);
     }
-    const timer = setInterval(async () => {
+    const timer = setInterval(() => {
       if (document.hidden) return;
-      try {
-        if (await faturaPaga(faturaId)) setPaga(true);
-      } catch {
-        // sem internet: tenta de novo em 3 s
-      }
+      voltas.current += 1;
+      conferir(voltas.current % 5 === 0);
     }, 3000);
-    return () => clearInterval(timer);
-  }, [faturaId, paga, router]);
+    // Voltou da aba do Asaas: confere na hora, direto no Asaas
+    const aoVoltar = () => {
+      if (!document.hidden) conferir(true);
+    };
+    document.addEventListener("visibilitychange", aoVoltar);
+    window.addEventListener("focus", aoVoltar);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", aoVoltar);
+      window.removeEventListener("focus", aoVoltar);
+    };
+  }, [conferir, paga, router]);
 
   if (paga) {
     return (
-      <div role="status" className="flex items-center gap-3 rounded-2xl bg-acao-clara px-4 py-4 text-acao [&_svg]:size-9 [&_svg]:shrink-0">
+      <div role="status" className="flex items-center gap-4 rounded-3xl bg-acao-clara px-5 py-5 text-acao [&_svg]:size-10 [&_svg]:shrink-0">
         <CheckCircle2 aria-hidden />
         <div>
           <p className="text-xl font-extrabold">{t.confirmado}</p>
@@ -45,9 +76,13 @@ export function EsperarPagamento({ faturaId }: { faturaId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="flex items-center justify-center gap-2 text-base text-muted-foreground" aria-live="polite">
-        <Loader2 aria-hidden className="size-5 animate-spin" /> {aviso ?? t.esperando}
-      </p>
+      <div role="status" aria-live="polite" className="flex items-center gap-4 rounded-3xl bg-oficina-clara px-5 py-5 text-oficina">
+        <Loader2 aria-hidden className="size-9 shrink-0 animate-spin" />
+        <div>
+          <p className="text-xl font-extrabold">{t.esperando}</p>
+          <p className="text-base font-semibold">{aviso ?? t.esperandoTexto}</p>
+        </div>
+      </div>
       <BotaoSecundario
         icone={<RefreshCw aria-hidden />}
         carregando={conferindo}

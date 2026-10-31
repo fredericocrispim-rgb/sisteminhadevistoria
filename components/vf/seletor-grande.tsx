@@ -14,9 +14,9 @@ export type OpcaoSeletor<T extends string> = {
 };
 
 const corMarcado: Record<Tom, string> = {
-  bom: "bg-acao text-acao-texto",
-  ruim: "bg-perigo text-white",
-  neutro: "bg-oficina text-oficina-texto",
+  bom: "bg-acao text-acao-texto shadow-[0_8px_20px_-10px_rgb(19_134_90/0.8)]",
+  ruim: "bg-perigo text-white shadow-[0_8px_20px_-10px_rgb(200_30_30/0.8)]",
+  neutro: "bg-oficina text-oficina-texto shadow-[0_8px_20px_-10px_rgb(37_99_235/0.8)]",
 };
 
 /**

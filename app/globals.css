@@ -63,9 +63,11 @@
 }
 
 :root {
-  --fonte-sistema: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fonte-sistema: var(--fonte-inter), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  --cor-superficie: #f1f3f6;
+  --cor-superficie: #f4f6fa;
+  /* Contorno fino + sombra suave dos blocos (bg-superficie): visual de cartão moderno */
+  --contorno-superficie: 0 0 0 1px rgb(15 23 42 / 0.06), 0 1px 2px rgb(15 23 42 / 0.04);
   --cor-marca-azul: #2563eb;
   --cor-marca-verde: #22b573;
   --cor-oficina: #2563eb;
@@ -113,6 +115,7 @@
   --cor-oficina: #1d4ed8;
   --cor-acao: #0b6544;
   --cor-perigo: #991b1b;
+  --contorno-superficie: 0 0 0 1px #9ca3af;
 }
 
 @layer base {
@@ -128,6 +131,12 @@
     @apply bg-background text-foreground antialiased;
     font-size: 1.125rem; /* 18 px */
     line-height: 1.45;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Títulos grossos um pouco mais juntos: visual mais moderno */
+  h1,
+  h2 {
+    letter-spacing: -0.02em;
   }
   /* Fundo de todas as telas: brilho suave azul e verde da marca (o mesmo da página inicial).
      Fixo atrás da tela, então continua aparecendo ao rolar. No modo sol fica branco (contraste máximo). */
@@ -163,7 +172,11 @@
 @layer utilities {
   /* Efeito de toque: o botão "afunda" um pouco */
   .tocavel {
-    transition: transform 80ms ease, background-color 120ms ease, color 120ms ease;
+    transition: transform 80ms ease, background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  }
+  /* Blocos cinza claro ganham contorno fino e sombra suave (cartões) */
+  .bg-superficie {
+    box-shadow: var(--contorno-superficie);
   }
   .tocavel:active {
     transform: scale(0.97);
