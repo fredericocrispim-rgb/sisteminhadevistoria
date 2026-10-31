@@ -319,6 +319,7 @@ export const textos = {
     cpfCnpjDica: "Só números. Vai na nota da mensalidade.",
     celular: "Celular",
     irParaPagamento: "Ir para o pagamento",
+    formaIndisponivel: (forma: string) => `${forma} indisponível agora. Escolha a outra forma ou fale com o suporte.`,
     pagar: "Pagar a mensalidade",
     confirmado: "Pagamento confirmado!",
     confirmadoTexto: "Acesso liberado. Abrindo o sistema...",

@@ -111,7 +111,7 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
       }
     }
 
-    const sub = await criarAssinatura({
+    let sub = await criarAssinatura({
       cliente: cliente.id,
       forma: d.forma,
       valor: m.valor,
@@ -119,6 +119,16 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
       descricao: DESCRICAO_ASSINATURA(plat?.nome_produto ?? textos.produto.nome, plano.nome),
       empresaId,
     });
+    // Nunca boleto: o Asaas troca Pix por boleto quando a conta não tem chave Pix cadastrada.
+    // Tenta acertar; se continuar diferente, desfaz a assinatura e pede a outra forma.
+    if (sub.billingType !== d.forma) {
+      sub = await atualizarAssinatura(sub.id, { forma: d.forma }).catch(() => sub);
+      if (sub.billingType !== d.forma) {
+        console.error(`Asaas: pediu ${d.forma} e veio ${sub.billingType} (a conta do Asaas tem chave Pix cadastrada?)`);
+        await cancelarNoAsaas(sub.id).catch(() => undefined);
+        return { ok: false, erro: textos.assinatura.formaIndisponivel(d.forma === "PIX" ? "Pix" : "Cartão"), campo: "forma" };
+      }
+    }
     await admin
       .from("assinaturas")
       .update({
@@ -187,7 +197,9 @@ export async function trocarForma(forma: "PIX" | "CREDIT_CARD"): Promise<Resulta
   const { data: a } = await admin.from("assinaturas").select("id, provedor, status, id_assinatura_externa").eq("empresa_id", ctx.empresa.id).single();
   if (a?.provedor !== PROVEDOR_ASAAS || !a.id_assinatura_externa || a.status === "cancelada") return { ok: false, erro: FALHOU };
   try {
-    await atualizarAssinatura(a.id_assinatura_externa, { forma });
+    const sub = await atualizarAssinatura(a.id_assinatura_externa, { forma });
+    // Pix virou boleto (conta sem chave Pix): não grava a troca
+    if (sub.billingType !== forma) return { ok: false, erro: textos.assinatura.formaIndisponivel(forma === "PIX" ? "Pix" : "Cartão") };
     await admin.from("assinaturas").update({ forma_pagamento: forma, atualizado_em: new Date().toISOString() }).eq("id", a.id);
     await admin.from("faturas").update({ forma: forma === "CREDIT_CARD" ? "cartao" : "pix" }).eq("assinatura_id", a.id).in("status", ["pendente", "vencida"]);
     revalidatePath("/plano");
