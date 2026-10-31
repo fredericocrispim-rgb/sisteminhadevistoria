@@ -3,7 +3,7 @@ import { ARTIGOS } from "@/lib/conteudo/blog";
 import { enderecoCompleto } from "@/lib/site";
 
 /** Data da última mudança de texto das páginas públicas (atualize quando mexer no conteúdo). */
-const ATUALIZADO = "2026-10-30";
+const ATUALIZADO = "2026-10-31";
 
 const PAGINAS: { caminho: string; prioridade: number }[] = [
   { caminho: "/", prioridade: 1 },

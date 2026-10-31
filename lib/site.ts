@@ -42,6 +42,44 @@ export const contatoSuporte = cache(async () => {
   }
 });
 
+export type DadosFornecedor = {
+  razaoSocial: string | null;
+  cnpj: string | null;
+  endereco: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  responsavel: string | null;
+  diasTeste: number;
+  diasCarencia: number;
+  versaoTermos: string;
+  versaoPrivacidade: string;
+};
+
+/** Dados da empresa fornecedora (tabela plataforma) para os Termos de Uso e a Política de Privacidade. */
+export const dadosFornecedor = cache(async (): Promise<DadosFornecedor> => {
+  // select("*"): a página continua abrindo mesmo antes da migração com as colunas empresa_*
+  const { data } = await criarClienteAdmin()
+    .from("plataforma")
+    .select("*")
+    .single()
+    .then((r) => r, () => ({ data: null }));
+  const p = (data ?? {}) as Record<string, unknown>;
+  const texto = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const numero = texto(p.whatsapp_suporte) ?? texto(p.fornecedor_whatsapp);
+  return {
+    razaoSocial: texto(p.empresa_razao_social),
+    cnpj: texto(p.empresa_cnpj),
+    endereco: texto(p.empresa_endereco),
+    email: texto(p.empresa_email) ?? texto(p.fornecedor_email),
+    whatsapp: numero ? formatarTelefone(numero) : null,
+    responsavel: texto(p.fornecedor_nome),
+    diasTeste: typeof p.dias_teste === "number" ? p.dias_teste : 1,
+    diasCarencia: typeof p.dias_carencia === "number" ? p.dias_carencia : 5,
+    versaoTermos: texto(p.versao_termos_atual) ?? "1",
+    versaoPrivacidade: texto(p.versao_privacidade_atual) ?? "1",
+  };
+});
+
 /** Endereço completo de um caminho do site. */
 export function enderecoCompleto(caminho: string) {
   return caminho === "/" ? ENDERECO_SITE : `${ENDERECO_SITE}${caminho}`;
