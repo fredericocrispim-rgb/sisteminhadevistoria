@@ -86,9 +86,12 @@ export function eStatusPago(status: string) {
 
 /** Compara o token sem vazar, pelo tempo de resposta, quantos caracteres acertou. */
 export function tokenValido(recebido: string | null, esperado: string | undefined) {
-  if (!recebido || !esperado) return false;
-  const a = Buffer.from(recebido);
-  const b = Buffer.from(esperado);
+  // Espaço ou quebra de linha colados sem querer no painel (Vercel/Asaas) não derrubam o webhook
+  const r = recebido?.trim();
+  const e = esperado?.trim();
+  if (!r || !e) return false;
+  const a = Buffer.from(r);
+  const b = Buffer.from(e);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
