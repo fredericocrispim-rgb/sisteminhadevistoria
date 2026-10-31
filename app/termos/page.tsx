@@ -75,6 +75,7 @@ export default async function Termos() {
             "Vistoria de carro, moto ou caminhão, na chegada e na entrega, em passos guiados.",
             "Dados do veículo e do cliente: placa, marca, modelo, ano, cor, chassi, km, combustível, objetos deixados e observações.",
             "Fotos guiadas pelo celular (frente, traseira, laterais, painel e motor), mais fotos extras.",
+            "No plano Pro, quando disponível: vídeo de até 1 minuto em cada vistoria, com som, que o cliente assiste pelo link e pela página Verificar.",
             "Mapa de riscos e amassados em várias vistas do veículo.",
             "Conferência de pneus e itens do veículo.",
             "Assinatura na tela do cliente e da oficina, com nome, documento, data, hora e, se o aparelho permitir, a localização.",
@@ -107,6 +108,7 @@ export default async function Termos() {
       <Secao numero={6} titulo="Preço e pagamento">
         <Lista
           itens={[
+            "Há dois planos: Básico e Pro (o Básico mais o vídeo da vistoria). A oficina pode trocar de plano na tela Minha assinatura: a troca vale na hora e o novo valor entra na próxima mensalidade.",
             "O serviço é pago por mês. O valor do plano, quantas pessoas ele inclui e o valor de cada pessoa a mais aparecem na tela Minha assinatura antes de assinar.",
             "Formas de pagamento: Pix ou cartão de crédito. Não aceitamos boleto.",
             "No cartão, a cobrança é automática todo mês (recorrente), até a oficina cancelar.",
@@ -153,7 +155,7 @@ export default async function Termos() {
           itens={[
             "Registrar a vistoria com fotos reais, do próprio veículo, no momento da vistoria, e descrever com honestidade o que viu.",
             "Conferir o termo com o cliente antes de pedir a assinatura e antes de concluir.",
-            "Informar o cliente de que os dados dele, as fotos e a assinatura serão registrados, e para quê (veja a Política de Privacidade).",
+            "Informar o cliente de que os dados dele, as fotos, o vídeo (quando houver) e a assinatura serão registrados, e para quê (veja a Política de Privacidade). Ao gravar vídeo com som, avisar as pessoas que estiverem perto.",
             "Usar os dados dos clientes só para a vistoria e o serviço do veículo, respeitando a Lei Geral de Proteção de Dados (LGPD).",
             "Atender os pedidos dos seus clientes sobre os dados deles (acesso, correção, exclusão). Nós ajudamos no que for preciso.",
             "Não enviar conteúdo ilegal, ofensivo ou de terceiros sem autorização (inclusive na logo).",
@@ -215,6 +217,7 @@ export default async function Termos() {
         <Lista
           itens={[
             "Os termos de vistoria concluídos ficam guardados por até 5 anos depois da conclusão, para servirem de prova à oficina e ao cliente, e continuam conferíveis pela página Verificar.",
+            "Os vídeos (plano Pro) ficam guardados por 1 ano depois da gravação e depois são apagados. O código SHA-256 do vídeo continua impresso no termo.",
             "Registros de acesso são guardados por pelo menos 6 meses, como exige o Marco Civil da Internet (Lei 12.965/2014).",
             "Dados de pagamento são guardados pelo prazo exigido pelas leis fiscais.",
             "Depois desses prazos, os dados podem ser apagados ou anonimizados. A oficina pode pedir a exclusão antes, pelo suporte, respeitando o que a lei manda guardar.",

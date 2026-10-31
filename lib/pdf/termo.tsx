@@ -7,7 +7,7 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { iniciais } from "@/lib/cores";
 import { ALTURA, LARGURA, desenhosDo, VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
 import { NOMES_COMBUSTIVEL, dataHoraBR, nomeVeiculo, pneusDoVeiculo, mascararDocumento, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
-import { formatarTelefone } from "@/lib/formatos";
+import { formatarDuracao, formatarTelefone } from "@/lib/formatos";
 
 type Img = { data: Buffer; format: "png" | "jpg" };
 
@@ -124,8 +124,10 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
     admin.from("vistoria_pneus").select("posicao, estado").eq("vistoria_id", vistoriaId),
     admin.from("vistoria_itens").select("item_nome, tem").eq("vistoria_id", vistoriaId),
     admin.from("vistoria_adendos").select("texto, autor_nome, data_hora").eq("vistoria_id", vistoriaId).order("data_hora"),
-    admin.from("plataforma").select("nome_produto, fornecedor_site").single(),
+    admin.from("plataforma").select("*").single(), // "*": dias_guardar_video só existe depois da migração do vídeo
   ]);
+  // Sem a tabela (antes da migração do vídeo) volta erro e o termo sai sem vídeo
+  const { data: video } = await admin.from("vistoria_videos").select("data_hora, duracao_segundos, sha256").eq("vistoria_id", vistoriaId).maybeSingle();
 
   const e = v.empresas as unknown as Record<string, string | null>;
   const carro = v.veiculos as unknown as { placa: string; marca: string | null; modelo: string | null; ano: number | null; cor: string | null };
@@ -321,6 +323,19 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
             })}
           </View>
         </View>
+
+        {/* Vídeo (plano Pro): não cabe no PDF; vai o código SHA-256 e onde assistir */}
+        {video ? (
+          <View style={s.secao} wrap={false}>
+            <Text style={s.secaoTitulo}>Vídeo da vistoria</Text>
+            <Text style={{ lineHeight: 1.4 }}>
+              Gravado em {dataHoraBR(video.data_hora)}
+              {video.duracao_segundos != null ? `, duração ${formatarDuracao(video.duracao_segundos)}` : ""}. Assista pelo QR Code deste termo (página de
+              verificação). O vídeo fica guardado por {(plat?.dias_guardar_video ?? 365) === 365 ? "1 ano" : `${plat?.dias_guardar_video} dias`}.
+            </Text>
+            {video.sha256 ? <Text style={{ fontSize: 7, color: cinza, marginTop: 2 }}>Código SHA-256 do vídeo: {video.sha256}</Text> : null}
+          </View>
+        ) : null}
 
         {adendos && adendos.length > 0 ? (
           <View style={s.secao}>

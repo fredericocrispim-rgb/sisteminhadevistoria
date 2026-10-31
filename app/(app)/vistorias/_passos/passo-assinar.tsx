@@ -3,7 +3,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Camera, Car, CheckCircle2, CircleDot, ListChecks, Lock, Pencil, ShieldAlert } from "lucide-react";
+import { ArrowRight, Camera, Car, CheckCircle2, CircleDot, ListChecks, Lock, Pencil, ShieldAlert, Video } from "lucide-react";
 import {
   AssinaturaDedo,
   BotaoPrincipal,
@@ -16,6 +16,7 @@ import {
 } from "@/components/vf";
 import { pegarLocalizacao } from "@/lib/foto";
 import { FOTOS_OBRIGATORIAS, NOMES_COMBUSTIVEL, nomeVeiculo, pneusDoVeiculo } from "@/lib/vistoria";
+import { formatarDuracao } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
 import { concluirVistoria } from "../acoes";
 import type { AssinaturaCliente, DadosVistoria } from "./tipos";
@@ -110,6 +111,14 @@ export function PassoCliente({
           texto={faltamFotos ? `Faltam ${faltamFotos}` : `${FOTOS_OBRIGATORIAS.length} fotos prontas${extras > 0 ? ` + ${extras} extra` : ""}`}
           onCorrigir={() => irPara(2)}
         />
+        {dados.video && (
+          <Resumo
+            icone={<Video aria-hidden />}
+            titulo="Vídeo"
+            texto={dados.video.duracao != null ? `Gravado · ${formatarDuracao(dados.video.duracao)}` : "Gravado"}
+            onCorrigir={() => irPara(2)}
+          />
+        )}
         <Resumo
           icone={<ShieldAlert aria-hidden />}
           titulo="Riscos e amassados"

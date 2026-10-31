@@ -10,6 +10,7 @@ import { gerarPixCopiaECola } from "@/lib/pix";
 import { situacaoOficina } from "@/lib/admin-painel";
 import { textos } from "@/lib/textos";
 import { LinkSenha } from "./link-senha";
+import { mudarVideo } from "./acoes";
 import { PainelOficinas, type OficinaPainel, type PessoaPainel } from "./painel";
 import { RelatorioComissoes, type Vendedor } from "./comissoes";
 import type { Comissao } from "@/lib/comissao";
@@ -59,7 +60,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
 
   const [{ data: plat }, { data: planos }, { data: empresas }, { data: vistorias }, { data: faturas }, { data: mensagens }, usuariosAuth] =
     await Promise.all([
-      admin.from("plataforma").select("dias_carencia, nome_produto, pix_chave, pix_nome_recebedor, pix_cidade").single(),
+      admin.from("plataforma").select("*").single(), // "*": video_ligado só existe depois da migração do vídeo
       admin.from("planos").select("id, nome, preco_mensal, limite_usuarios, preco_usuario_extra").eq("ativo", true).order("ordem"),
       admin
         .from("empresas")
@@ -245,6 +246,20 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
             comissaoAtiva={bancoComissoesPronto}
           />
           <LinkSenha />
+          {plat && "video_ligado" in plat && (
+            <form action={mudarVideo} className="flex flex-col gap-2 rounded-2xl bg-superficie p-4 sm:flex-row sm:items-center sm:justify-between">
+              <input type="hidden" name="ligar" value={plat.video_ligado ? "nao" : "sim"} />
+              <div>
+                <p className="text-lg font-extrabold">
+                  Vídeo do plano Pro: <span className={plat.video_ligado ? "text-acao" : "text-muted-foreground"}>{plat.video_ligado ? "Ligado" : "Desligado"}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">Ligue só depois de contratar o Supabase Pro. No plano grátis (1 GB) não cabem vídeos.</p>
+              </div>
+              <button type="submit" className="tocavel min-h-toque rounded-xl bg-background px-4 text-base font-bold">
+                {plat.video_ligado ? "Desligar vídeo" : "Ligar vídeo"}
+              </button>
+            </form>
+          )}
         </>
       )}
     </main>

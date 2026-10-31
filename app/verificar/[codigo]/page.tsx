@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { BadgeCheck, XCircle } from "lucide-react";
-import { BotaoSecundario, EstadoVazio, LogoProduto } from "@/components/vf";
+import { BotaoSecundario, EstadoVazio, LogoProduto, VideoVistoria } from "@/components/vf";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { dataHoraBR, nomeTipo, placaParaMostrar } from "@/lib/vistoria";
+import { videoDaVistoria } from "@/lib/video";
 import { CompararPdf } from "./comparar-pdf";
 
 export const metadata: Metadata = { title: "Verificar vistoria", robots: { index: false } };
@@ -14,7 +15,7 @@ export default async function Resultado({ params }: PageProps<"/verificar/[codig
   const { data: v } = valido
     ? await criarClienteAdmin()
         .from("vistorias")
-        .select("tipo, numero, status, concluida_em, pdf_hash_sha256, empresas (nome_fantasia, cidade, uf), veiculos (placa)")
+        .select("id, tipo, numero, status, concluida_em, pdf_hash_sha256, empresas (nome_fantasia, cidade, uf), veiculos (placa)")
         .eq("codigo_autenticidade", codigo)
         .maybeSingle()
     : { data: null };
@@ -28,6 +29,7 @@ export default async function Resultado({ params }: PageProps<"/verificar/[codig
     );
   }
 
+  const video = await videoDaVistoria(v.id);
   const e = v.empresas as unknown as { nome_fantasia: string; cidade: string | null; uf: string | null };
   const carro = v.veiculos as unknown as { placa: string };
 
@@ -62,6 +64,7 @@ export default async function Resultado({ params }: PageProps<"/verificar/[codig
           <dd className="font-bold">{codigo}</dd>
         </div>
       </dl>
+      {video && <VideoVistoria {...video} />}
       {v.pdf_hash_sha256 && <CompararPdf hashEsperado={v.pdf_hash_sha256} />}
     </main>
   );

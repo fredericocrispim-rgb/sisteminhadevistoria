@@ -3,6 +3,7 @@ import {
   cnpjValido,
   cpfValido,
   formatarCep,
+  formatarDuracao,
   formatarCpfCnpj,
   formatarKm,
   formatarPlaca,
@@ -76,5 +77,15 @@ describe("cpf e cnpj", () => {
     expect(formatarCpfCnpj("11222333000181")).toBe("11.222.333/0001-81");
     expect(formatarCpfCnpj("1122")).toBe("112.2");
     expect(formatarCep("01310100")).toBe("01310-100");
+  });
+});
+
+describe("formatarDuracao", () => {
+  it("mostra minutos e segundos", () => {
+    expect(formatarDuracao(0)).toBe("0:00");
+    expect(formatarDuracao(9)).toBe("0:09");
+    expect(formatarDuracao(45.4)).toBe("0:45");
+    expect(formatarDuracao(60)).toBe("1:00");
+    expect(formatarDuracao(-3)).toBe("0:00");
   });
 });

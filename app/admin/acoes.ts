@@ -313,3 +313,14 @@ export async function marcarComissoes(ids: string[], paga: boolean): Promise<Res
   revalidatePath("/admin");
   return { ok: true };
 }
+
+/**
+ * Liga/desliga o vídeo do plano Pro para todo o sistema. Ligar só depois de contratar o
+ * Supabase Pro: no plano grátis (1 GB) não cabem vídeos.
+ */
+export async function mudarVideo(formData: FormData) {
+  await exigirSuperadmin();
+  const ligar = formData.get("ligar") === "sim";
+  await criarClienteAdmin().from("plataforma").update({ video_ligado: ligar }).eq("id", 1);
+  revalidatePath("/admin");
+}

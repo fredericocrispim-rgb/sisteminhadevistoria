@@ -118,3 +118,11 @@ Depois, faça o commit da etapa (mensagem em português).
 - Cada página: um único H1, `metadadosPagina()` de `lib/site.ts` (título, descrição, canonical com https://www., prévia do WhatsApp com `public/og.jpg`).
 - Fora do Google (noindex + robots.txt): login, cadastro, telas internas, admin, `/v/...` e `/verificar/CÓDIGO`. A busca `/verificar` fica no Google.
 - `app/robots.ts`, `app/sitemap.ts` (atualize `ATUALIZADO` ao mudar textos) e `app/not-found.tsx`. Sem preço no site por enquanto (decisão do Frederico).
+
+## Plano Pro com vídeo (31/10/2026, Frederico)
+- Dois planos à venda: Básico (o de sempre) e Pro (= Básico + R$ 30) com vídeo de até 1 minuto por vistoria (`planos.video_segundos` = 60). "Rede" saiu da venda.
+- O vídeo fica DESLIGADO (`plataforma.video_ligado`) até contratar o Supabase Pro (no plano grátis de 1 GB não cabe). Liga/desliga no `/admin`. Desligado, o Pro nem aparece em `/plano`.
+- Gravado no próprio sistema já comprimido (~1 Mbps, MP4 ou WebM; `_passos/gravar-video.tsx`), opcional, no passo das Fotos. Tabela `vistoria_videos` (um por vistoria; inserir só com `pode_gravar_video()`); SHA-256 calculado no servidor ao concluir e impresso no PDF.
+- Aparece no link do cliente (`/v/...`) e em `/verificar/CÓDIGO` (`components/vf/video-vistoria.tsx`, `lib/video.ts`).
+- Guardado 1 ano (`plataforma.dias_guardar_video`): a rotina diária `/api/rotinas/apagar-videos` (Vercel Cron, precisa de `CRON_SECRET` na Vercel) apaga o arquivo e marca `apagado_em`.
+- Troca Básico ⇄ Pro em `/plano` (só o dono): vale na hora; valor novo na próxima mensalidade (Asaas atualizado por `atualizarValorAsaas`).

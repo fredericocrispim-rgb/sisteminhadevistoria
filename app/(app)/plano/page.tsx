@@ -13,7 +13,7 @@ import { sair } from "../mais/acoes";
 import { continuarSemPagar } from "./acoes";
 import { asaasLigado } from "@/lib/pagamentos/asaas";
 import { PROVEDOR_ASAAS, nomeForma } from "@/lib/pagamentos/config";
-import { BotaoPagar, BotoesAssinatura } from "./botoes-assinatura";
+import { BotaoPagar, BotoesAssinatura, TrocarPlano } from "./botoes-assinatura";
 
 export const metadata: Metadata = { title: "Meu plano" };
 
@@ -72,8 +72,8 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   if (gestor && bloqueado && precisaAssinar) redirect("/assinar");
 
   const admin = criarClienteAdmin();
-  const [{ data: plat }, m, { data: faturas }] = await Promise.all([
-    admin.from("plataforma").select("nome_produto, pix_chave, pix_nome_recebedor, pix_cidade").single(),
+  const [{ data: plat }, m, { data: faturas }, { data: planos }] = await Promise.all([
+    admin.from("plataforma").select("*").single(), // "*": video_ligado só existe depois da migração do vídeo
     mensalidadeDaOficina(empresa.id),
     doAsaas && gestor
       ? admin
@@ -84,7 +84,13 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
           .order("vencimento", { ascending: false })
           .limit(12)
       : Promise.resolve({ data: null }),
+    admin.from("planos").select("*").eq("ativo", true).order("ordem"),
   ]);
+  // Plano Pro (vídeo): só aparece quando o vídeo estiver ligado no /admin
+  const planoBasico = planos?.find((p) => !p.video_segundos);
+  const planoPro = planos?.find((p) => p.video_segundos > 0);
+  const oferecerPro = Boolean(plat?.video_ligado && planoBasico && planoPro);
+  const ehPro = m.planoId === planoPro?.id;
   const emAberto = faturas?.find((f) => f.status === "pendente" || f.status === "vencida");
   const cartao = doAsaas && plano.formaPagamento === "CREDIT_CARD";
   // O valor (e o QR Code) acompanha o tamanho da equipe: usuário a mais soma na mensalidade
@@ -198,6 +204,13 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                 {m.cortesias > 0 && ` + ${m.cortesias} cortesia sem custo`}
               </p>
             </div>
+          )}
+          {oferecerPro && planoBasico && planoPro && (
+            <TrocarPlano
+              pro={ehPro}
+              valorPro={formatarReais(Number(planoPro.preco_mensal))}
+              diferenca={formatarReais(Number(planoPro.preco_mensal) - Number(planoBasico.preco_mensal))}
+            />
           )}
           {doAsaas && !precisaAssinar ? (
             <>

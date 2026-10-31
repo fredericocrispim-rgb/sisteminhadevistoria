@@ -25,6 +25,9 @@ export const ASSINATURA_VAZIA: AssinaturaCliente = { nome: "", imagem: null, aus
 
 export type FotoSalva = { id: string; categoria: string; caminho: string; previa: string | null };
 
+/** Vídeo da vistoria (plano Pro). */
+export type VideoSalvo = { id: string; caminho: string; tipo: string; duracao: number | null; previa: string | null };
+
 export type Avaria = {
   id: string;
   numero: number;
@@ -46,6 +49,9 @@ export type DadosVistoria = {
   carro: DadosCarro;
   entrada: InfoEntrada;
   fotos: FotoSalva[];
+  video: VideoSalvo | null;
+  /** Segundos de vídeo do plano (0 = não grava: plano Básico ou vídeo desligado). */
+  videoSegundos: number;
   avarias: Avaria[];
   avariasEntrada: Avaria[];
   pneus: Record<string, EstadoPneu>;

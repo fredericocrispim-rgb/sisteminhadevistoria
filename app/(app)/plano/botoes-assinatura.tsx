@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, ExternalLink, QrCode, XCircle } from "lucide-react";
+import { CreditCard, ExternalLink, QrCode, Video, XCircle } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, ConfirmacaoImportante, MensagemErroCampo } from "@/components/vf";
 import { fecharAba, levarAoPagamento, prepararAba } from "@/lib/pagamentos/abrir";
 import { textos } from "@/lib/textos";
 import { cancelarAssinatura, trocarForma } from "../assinar/acoes";
+import { trocarPlano } from "./acoes";
 
 /**
  * Pagar a cobrança em aberto: abre a página do Asaas numa aba nova e esta aba vai para
@@ -32,6 +33,48 @@ export function BotaoPagar({ faturaId, link, children }: { faturaId: string; lin
     >
       <ExternalLink aria-hidden /> <span>{children}</span>
     </a>
+  );
+}
+
+/** Básico ⇄ Pro (vídeo de até 1 minuto). */
+export function TrocarPlano({ pro, valorPro, diferenca }: { pro: boolean; valorPro: string; diferenca: string }) {
+  const t = textos.planos;
+  const router = useRouter();
+  const [erro, setErro] = useState<string | null>(null);
+  const [trabalhando, iniciar] = useTransition();
+
+  const trocar = () =>
+    iniciar(async () => {
+      setErro(null);
+      const r = await trocarPlano(!pro);
+      if (!r.ok) return setErro(r.erro);
+      router.refresh();
+    });
+
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl bg-superficie px-4 py-4">
+      <div className="flex items-center gap-3 [&>svg]:size-8 [&>svg]:shrink-0 [&>svg]:text-oficina">
+        <Video aria-hidden />
+        <div>
+          <p className="text-xl font-extrabold">
+            {t.pro}
+            {pro ? " · ativo" : ` · ${valorPro}/mês`}
+          </p>
+          <p className="text-base font-semibold text-muted-foreground">{t.proTexto}</p>
+        </div>
+      </div>
+      {pro ? (
+        <BotaoSecundario carregando={trabalhando} onClick={trocar}>
+          {t.voltarBasico}
+        </BotaoSecundario>
+      ) : (
+        <BotaoPrincipal carregando={trabalhando} icone={<Video aria-hidden />} onClick={trocar}>
+          {t.mudarPro(diferenca)}
+        </BotaoPrincipal>
+      )}
+      <p className="text-base text-muted-foreground">{t.proximaMensalidade}</p>
+      {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
+    </section>
   );
 }
 

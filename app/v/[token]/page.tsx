@@ -2,9 +2,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { FileText, MessageCircle, XCircle } from "lucide-react";
-import { BotaoPrincipal, DesenhoCarro, EstadoVazio, LogoOficina, LogoProduto } from "@/components/vf";
+import { BotaoPrincipal, DesenhoCarro, EstadoVazio, LogoOficina, LogoProduto, VideoVistoria } from "@/components/vf";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { vistoriaPorToken } from "@/lib/vistoria-publica";
+import { videoDaVistoria } from "@/lib/video";
 import { NOMES_COMBUSTIVEL, dataHoraBR, pneusDoVeiculo, ordemFoto, placaParaMostrar, tituloFoto } from "@/lib/vistoria";
 import { VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type VistaAvaria } from "@/lib/desenhos-carro";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
@@ -30,10 +31,11 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
   }
 
   const admin = criarClienteAdmin();
-  const [{ data: fotos }, { data: avarias }, { data: pneus }] = await Promise.all([
+  const [{ data: fotos }, { data: avarias }, { data: pneus }, video] = await Promise.all([
     admin.from("vistoria_fotos").select("categoria, url, data_hora").eq("vistoria_id", v.id),
     admin.from("vistoria_avarias").select("numero, vista, x, y, tipo, descricao, nova_na_saida").eq("vistoria_id", v.id).order("numero"),
     admin.from("vistoria_pneus").select("posicao, estado").eq("vistoria_id", v.id),
+    videoDaVistoria(v.id),
   ]);
   const { data: assinadas } = fotos?.length
     ? await admin.storage.from("vistorias").createSignedUrls(fotos.map((f) => f.url), 60 * 60)
@@ -104,6 +106,8 @@ export default async function VistoriaPublica({ params }: PageProps<"/v/[token]"
             ))}
           </div>
         </section>
+
+        {video && <VideoVistoria {...video} />}
 
         <section className="flex flex-col gap-3">
           <h2 className="text-xl font-extrabold">Riscos e amassados</h2>

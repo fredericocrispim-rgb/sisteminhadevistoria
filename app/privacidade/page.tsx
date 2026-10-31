@@ -67,6 +67,7 @@ export default async function Privacidade() {
             "Cliente: nome, CPF ou CNPJ, WhatsApp e e-mail.",
             "Veículo: tipo, placa, marca, modelo, ano, cor, chassi, km, combustível, objetos deixados e observações.",
             "Fotos do veículo (podem mostrar placas, pessoas ou objetos que estavam no local), mapa de riscos e amassados, pneus e itens.",
+            "Vídeo da vistoria, no plano Pro: imagem e som do local (pode mostrar rostos e captar vozes de quem estiver perto).",
             "Assinatura desenhada na tela, nome e documento de quem assinou, data, hora e localização (só quando o aparelho permite).",
             "Envios do termo (WhatsApp ou e-mail) e aberturas do link público (data, IP e navegador).",
           ]}
@@ -99,7 +100,7 @@ export default async function Privacidade() {
       <Secao numero={5} titulo="Com quem compartilhamos">
         <Lista
           itens={[
-            "Supabase: banco de dados e guarda das fotos, em servidores na região de São Paulo.",
+            "Supabase: banco de dados e guarda das fotos e vídeos, em servidores na região de São Paulo.",
             "Vercel: hospedagem do site e do sistema.",
             "Asaas: cobrança da mensalidade (só dados da oficina, nunca dos clientes dela).",
             "WhatsApp e e-mail: o termo é enviado a partir do aparelho da oficina, que escolhe para quem enviar.",
@@ -118,7 +119,7 @@ export default async function Privacidade() {
           itens={[
             "Conexão criptografada (HTTPS) em todas as telas.",
             "Cada oficina só vê os próprios dados (isolamento no banco de dados). O vistoriador vê só as vistorias que fez.",
-            "Fotos em área privada, abertas só por links temporários.",
+            "Fotos e vídeos em área privada, abertos só por links temporários.",
             "Vistoria concluída travada no banco de dados, com código de autenticidade e resumo SHA-256.",
             "Registro das ações importantes e acesso administrativo restrito.",
           ]}
@@ -134,6 +135,7 @@ export default async function Privacidade() {
           itens={[
             "Dados da conta: enquanto a conta existir e, depois, pelo prazo necessário para cumprir a lei e defender direitos.",
             "Termos de vistoria concluídos: até 5 anos depois da conclusão, para servirem de prova à oficina e ao cliente.",
+            "Vídeos da vistoria (plano Pro): 1 ano depois da gravação. Depois o arquivo é apagado; fica só o código SHA-256 impresso no termo.",
             "Registros de acesso: pelo menos 6 meses (Marco Civil da Internet).",
             "Dados de pagamento: pelo prazo das leis fiscais.",
             "Depois disso, os dados são apagados ou anonimizados (sem identificar a pessoa).",

@@ -134,3 +134,9 @@ export function formatarCep(valor: string): string {
   const d = soNumeros(valor).slice(0, 8);
   return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
+
+/** Duração de vídeo: 45 → "0:45", 60 → "1:00". */
+export function formatarDuracao(segundos: number): string {
+  const s = Math.max(0, Math.round(segundos));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}

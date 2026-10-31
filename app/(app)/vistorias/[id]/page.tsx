@@ -5,6 +5,7 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { formatarKm, formatarPlaca, formatarTelefone } from "@/lib/formatos";
 import { FOTOS_OBRIGATORIAS, pneusDoVeiculo, tipoVeiculo, type EstadoPneu } from "@/lib/vistoria";
 import type { NivelCombustivel } from "@/components/vf";
+import { segundosDeVideo } from "@/lib/video";
 import { AssistenteVistoria } from "../_passos/assistente";
 import type { Avaria, DadosVistoria } from "../_passos/tipos";
 
@@ -28,7 +29,7 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
   if (v.status === "cancelada") redirect("/vistorias");
   if (v.status !== "rascunho") redirect(`/vistorias/${id}/pronto`);
 
-  const [{ data: fotos }, { data: avarias }, { data: pneus }, { data: itens }, { data: checklist }, entrada] = await Promise.all([
+  const [{ data: fotos }, { data: avarias }, { data: pneus }, { data: itens }, { data: checklist }, entrada, videoSegundos, { data: video }] = await Promise.all([
     supabase.from("vistoria_fotos").select("id, categoria, url").eq("vistoria_id", id),
     supabase.from("vistoria_avarias").select("id, numero, vista, x, y, tipo, descricao, nova_na_saida").eq("vistoria_id", id),
     supabase.from("vistoria_pneus").select("posicao, estado").eq("vistoria_id", id),
@@ -40,10 +41,13 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
           supabase.from("vistoria_avarias").select("id, numero, vista, x, y, tipo, descricao, nova_na_saida").eq("vistoria_id", v.vistoria_entrada_id),
         ])
       : Promise.resolve(null),
+    segundosDeVideo(empresa.id),
+    // Sem a tabela (antes da migração do vídeo) volta erro e segue sem vídeo
+    supabase.from("vistoria_videos").select("id, url, tipo, duracao_segundos").eq("vistoria_id", id).maybeSingle(),
   ]);
 
-  // Prévias das fotos já tiradas (links temporários, a pasta é privada)
-  const caminhos = (fotos ?? []).map((f) => f.url);
+  // Prévias das fotos e do vídeo já feitos (links temporários, a pasta é privada)
+  const caminhos = [...(fotos ?? []).map((f) => f.url), ...(video ? [video.url] : [])];
   const { data: assinadas } = caminhos.length
     ? await supabase.storage.from("vistorias").createSignedUrls(caminhos, 60 * 60)
     : { data: [] as { path: string | null; signedUrl: string }[] };
@@ -82,6 +86,8 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
         }
       : null,
     fotos: (fotos ?? []).map((f) => ({ id: f.id, categoria: f.categoria, caminho: f.url, previa: previa(f.url) })),
+    video: video ? { id: video.id, caminho: video.url, tipo: video.tipo, duracao: video.duracao_segundos, previa: previa(video.url) } : null,
+    videoSegundos,
     avarias: (avarias ?? []).map(paraAvaria),
     avariasEntrada: (entrada?.[1].data ?? []).map(paraAvaria),
     pneus: Object.fromEntries((pneus ?? []).map((p) => [p.posicao, p.estado as EstadoPneu])),

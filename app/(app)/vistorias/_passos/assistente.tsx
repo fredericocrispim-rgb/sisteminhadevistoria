@@ -15,7 +15,7 @@ import { ASSINATURA_VAZIA, type DadosVistoria } from "./tipos";
 const etapas = Object.values(textos.vistoria.etapas);
 const dicas = [
   "Digite a placa. Se o carro já veio antes, o resto aparece sozinho.",
-  "Tire uma foto de cada vez. Siga o desenho.",
+  "Tire uma foto de cada vez. Siga o desenho. No plano Pro, grave também um vídeo andando em volta do carro.",
   "Toque no desenho onde tem risco ou amassado. Troque a vista nas abas.",
   "Toque em BOM ou RUIM em cada pneu. Se todos estão bons, use 'Todos bons'.",
   "Toque em TEM ou NÃO TEM. Use 'Tem tudo' e corrija só o que falta.",
@@ -69,7 +69,10 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
             veiculo={dados.tipoVeiculo}
             oficinaNome={dados.oficinaNome}
             iniciais={dados.fotos}
+            video={dados.video}
+            videoSegundos={dados.videoSegundos}
             aoMudar={(fotos) => setDados((d) => ({ ...d, fotos }))}
+            aoMudarVideo={(video) => setDados((d) => ({ ...d, video }))}
             aoTerminar={() => ir(3)}
           />
         )}

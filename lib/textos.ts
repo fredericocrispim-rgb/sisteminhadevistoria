@@ -83,6 +83,33 @@ export const textos = {
     },
   },
 
+  // Vídeo da vistoria (plano Pro)
+  video: {
+    titulo: "Vídeo",
+    gravar: (max: string) => `Gravar vídeo (até ${max})`,
+    opcional: "Opcional. Ande devagar em volta do carro.",
+    comecar: "Gravar",
+    parar: "Parar",
+    usar: "Usar este vídeo",
+    gravarDeNovo: "Gravar de novo",
+    apagar: "Apagar vídeo",
+    cancelar: "Cancelar",
+    enviando: "Enviando o vídeo. Não feche esta tela.",
+    pronto: "Vídeo pronto",
+    erroEnvio: "O vídeo não foi enviado. Confira a internet e tente de novo.",
+    erroCamera: "Não abriu a câmera. Libere a câmera e o microfone e tente de novo.",
+    naoSuporta: "Este celular não grava vídeo pelo sistema.",
+    apagado: "O vídeo fica guardado por 1 ano. Este já foi apagado.",
+  },
+
+  planos: {
+    pro: "Plano Pro",
+    proTexto: "Grave vídeo de até 1 minuto em cada vistoria.",
+    mudarPro: (valor: string) => `Mudar para o Pro (+ ${valor})`,
+    voltarBasico: "Voltar para o Básico",
+    proximaMensalidade: "O novo valor vale a partir da próxima mensalidade.",
+  },
+
   pneus: {
     todosBons: "Todos BONS",
     dianteiroEsquerdo: "Dianteiro esquerdo",

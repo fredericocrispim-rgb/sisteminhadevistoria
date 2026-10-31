@@ -268,6 +268,17 @@ export async function concluirVistoria(dados: z.input<typeof esquemaConcluir>): 
   if ((pneus ?? 0) < pneusDoVeiculo(vistoria.tipo_veiculo).length) return { ok: false, erro: "Falta marcar os pneus" };
   if (!vistoria.veiculo_id) return { ok: false, erro: "Falta o carro e o cliente" };
 
+  // Vídeo (plano Pro): o código SHA-256 é calculado aqui no servidor e vai impresso no termo
+  const { data: video } = await supabase.from("vistoria_videos").select("id, url").eq("vistoria_id", vistoria.id).maybeSingle();
+  if (video) {
+    const { data: arquivo } = await supabase.storage.from("vistorias").download(video.url);
+    if (!arquivo) return { ok: false, erro: "O vídeo não foi enviado. Grave de novo ou apague o vídeo." };
+    const sha256 = createHash("sha256").update(Buffer.from(await arquivo.arrayBuffer())).digest("hex");
+    // Pela chave do servidor: a oficina não tem permissão de alterar o registro do vídeo
+    const { error } = await criarClienteAdmin().from("vistoria_videos").update({ sha256 }).eq("id", video.id);
+    if (error) return { ok: false, erro: FALHOU };
+  }
+
   // Guarda as assinaturas
   const pasta = `${vistoria.empresa_id}/${vistoria.id}`;
   const enviarPng = async (nome: string, dataUrl: string) => {

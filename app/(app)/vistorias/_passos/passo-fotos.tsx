@@ -9,7 +9,8 @@ import { prepararFoto } from "@/lib/foto";
 import { FOTOS_OBRIGATORIAS, FOTO_EXTRA, dataHoraBR, placaParaMostrar } from "@/lib/vistoria";
 import { placaParaBanco } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
-import type { FotoSalva } from "./tipos";
+import { GravarVideo } from "./gravar-video";
+import type { FotoSalva, VideoSalvo } from "./tipos";
 
 /** As obrigatórias e, no fim, a foto extra (opcional). */
 const TODAS = [...FOTOS_OBRIGATORIAS, FOTO_EXTRA];
@@ -21,7 +22,10 @@ export function PassoFotos({
   veiculo,
   oficinaNome,
   iniciais,
+  video,
+  videoSegundos,
   aoMudar,
+  aoMudarVideo,
   aoTerminar,
 }: {
   vistoriaId: string;
@@ -30,7 +34,10 @@ export function PassoFotos({
   veiculo: string;
   oficinaNome: string;
   iniciais: FotoSalva[];
+  video: VideoSalvo | null;
+  videoSegundos: number;
   aoMudar: (fotos: FotoSalva[]) => void;
+  aoMudarVideo: (video: VideoSalvo | null) => void;
   aoTerminar: () => void;
 }) {
   const entrada = useRef<HTMLInputElement>(null);
@@ -38,6 +45,7 @@ export function PassoFotos({
   const [enviando, setEnviando] = useState<string | null>(null);
   const [falhou, setFalhou] = useState<string | null>(null);
   const [escolhida, setEscolhida] = useState<string | null>(null);
+  const [enviandoVideo, setEnviandoVideo] = useState(false);
 
   const feita = (cat: string) => fotos.find((f) => f.categoria === cat);
   const primeiraFaltando = FOTOS_OBRIGATORIAS.find((f) => !feita(f.categoria));
@@ -162,6 +170,18 @@ export function PassoFotos({
         </BotaoSecundario>
       )}
 
+      {/* Vídeo: só no plano Pro (e com o vídeo ligado no /admin) */}
+      {videoSegundos > 0 && (
+        <GravarVideo
+          vistoriaId={vistoriaId}
+          empresaId={empresaId}
+          segundos={videoSegundos}
+          inicial={video}
+          aoMudar={aoMudarVideo}
+          aoOcupar={setEnviandoVideo}
+        />
+      )}
+
       {faltam > 0 ? (
         <BotaoPrincipal
           fixo
@@ -172,7 +192,7 @@ export function PassoFotos({
           {textos.fotos.tirarFoto}
         </BotaoPrincipal>
       ) : (
-        <BotaoPrincipal fixo icone={<ArrowRight aria-hidden />} onClick={aoTerminar} disabled={Boolean(enviando)}>
+        <BotaoPrincipal fixo icone={<ArrowRight aria-hidden />} onClick={aoTerminar} disabled={Boolean(enviando) || enviandoVideo}>
           {textos.geral.proximo}
         </BotaoPrincipal>
       )}
