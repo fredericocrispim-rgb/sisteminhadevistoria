@@ -6,53 +6,41 @@ import { BotaoPrincipal, BotaoSecundario, MensagemErroCampo, SeletorGrande } fro
 import { pneusDoVeiculo, type EstadoPneu } from "@/lib/vistoria";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
-import { salvarPneusItens } from "../acoes";
+import { salvarItens, salvarPneus } from "../acoes";
 
+function irAoErro() {
+  requestAnimationFrame(() => document.querySelector("[aria-invalid=true], [data-erro=true]")?.scrollIntoView({ block: "center", behavior: "smooth" }));
+}
+
+/** Passo 4: só os pneus. */
 export function PassoPneus({
   vistoriaId,
   veiculo,
-  checklist,
-  iniciaisPneus,
-  iniciaisItens,
-  observacoesIniciais,
+  iniciais,
   aoSalvar,
 }: {
   vistoriaId: string;
   veiculo: string;
-  checklist: string[];
-  iniciaisPneus: Record<string, EstadoPneu>;
-  iniciaisItens: Record<string, boolean>;
-  observacoesIniciais: string;
-  aoSalvar: (d: { pneus: Record<string, EstadoPneu>; itens: Record<string, boolean>; observacoes: string }) => void;
+  iniciais: Record<string, EstadoPneu>;
+  aoSalvar: (pneus: Record<string, EstadoPneu>) => void;
 }) {
   const PNEUS = pneusDoVeiculo(veiculo);
-  const [pneus, setPneus] = useState<Record<string, EstadoPneu>>(iniciaisPneus);
-  const [itens, setItens] = useState<Record<string, boolean>>(iniciaisItens);
-  const [observacoes, setObservacoes] = useState(observacoesIniciais);
+  const [pneus, setPneus] = useState<Record<string, EstadoPneu>>(iniciais);
   const [conferir, setConferir] = useState(false);
   const [erro, setErro] = useState<string>();
   const [carregando, setCarregando] = useState(false);
 
   const faltaPneu = PNEUS.find((p) => !pneus[p.posicao]);
-  const faltaItem = checklist.find((i) => itens[i] === undefined);
 
   async function continuar() {
     setConferir(true);
-    if (faltaPneu || faltaItem) {
-      requestAnimationFrame(() => document.querySelector("[aria-invalid=true], [data-erro=true]")?.scrollIntoView({ block: "center", behavior: "smooth" }));
-      return;
-    }
+    if (faltaPneu) return irAoErro();
     setCarregando(true);
     setErro(undefined);
-    const r = await salvarPneusItens({
-      vistoriaId,
-      pneus: PNEUS.map((p) => ({ posicao: p.posicao, estado: pneus[p.posicao] })),
-      itens: checklist.map((nome) => ({ nome, tem: itens[nome] })),
-      observacoes,
-    });
+    const r = await salvarPneus({ vistoriaId, pneus: PNEUS.map((p) => ({ posicao: p.posicao, estado: pneus[p.posicao] })) });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
-    aoSalvar({ pneus, itens, observacoes });
+    aoSalvar(pneus);
   }
 
   const opcoesPneu = [
@@ -61,32 +49,72 @@ export function PassoPneus({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-extrabold">Pneus</h2>
-        <BotaoSecundario
-          icone={<ThumbsUp aria-hidden />}
-          onClick={() => setPneus(Object.fromEntries(PNEUS.map((p) => [p.posicao, p.posicao === "estepe" && pneus.estepe === "ausente" ? "ausente" : "bom"])))}
-        >
-          {textos.pneus.todosBons}
-        </BotaoSecundario>
-        {PNEUS.map((p) => (
-          <SeletorGrande
-            key={p.posicao}
-            rotulo={p.nome}
-            valor={pneus[p.posicao] ?? null}
-            onChange={(v) => setPneus((s) => ({ ...s, [p.posicao]: v }))}
-            colunas={p.posicao === "estepe" ? 3 : 2}
-            compacto
-            erro={conferir && !pneus[p.posicao]}
-            opcoes={p.posicao === "estepe" ? [...opcoesPneu, { valor: "ausente" as const, rotulo: textos.estadoItem.ausente, tom: "neutro" as const }] : opcoesPneu}
-          />
-        ))}
-      </section>
+    <div className="flex flex-col gap-4">
+      <BotaoSecundario
+        icone={<ThumbsUp aria-hidden />}
+        onClick={() => setPneus(Object.fromEntries(PNEUS.map((p) => [p.posicao, p.posicao === "estepe" && pneus.estepe === "ausente" ? "ausente" : "bom"])))}
+      >
+        {textos.pneus.todosBons}
+      </BotaoSecundario>
+      {PNEUS.map((p) => (
+        <SeletorGrande
+          key={p.posicao}
+          rotulo={p.nome}
+          valor={pneus[p.posicao] ?? null}
+          onChange={(v) => setPneus((s) => ({ ...s, [p.posicao]: v }))}
+          colunas={p.posicao === "estepe" ? 3 : 2}
+          compacto
+          erro={conferir && !pneus[p.posicao]}
+          opcoes={p.posicao === "estepe" ? [...opcoesPneu, { valor: "ausente" as const, rotulo: textos.estadoItem.ausente, tom: "neutro" as const }] : opcoesPneu}
+        />
+      ))}
 
+      {conferir && faltaPneu && <MensagemErroCampo>Falta marcar o pneu: {faltaPneu.nome}</MensagemErroCampo>}
+      {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
+      <BotaoPrincipal fixo carregando={carregando} icone={<ArrowRight aria-hidden />} onClick={continuar}>
+        {textos.geral.proximo}
+      </BotaoPrincipal>
+    </div>
+  );
+}
+
+/** Passo 5: itens do carro (TEM / NÃO TEM) e observações. */
+export function PassoItens({
+  vistoriaId,
+  checklist,
+  iniciais,
+  observacoesIniciais,
+  aoSalvar,
+}: {
+  vistoriaId: string;
+  checklist: string[];
+  iniciais: Record<string, boolean>;
+  observacoesIniciais: string;
+  aoSalvar: (d: { itens: Record<string, boolean>; observacoes: string }) => void;
+}) {
+  const [itens, setItens] = useState<Record<string, boolean>>(iniciais);
+  const [observacoes, setObservacoes] = useState(observacoesIniciais);
+  const [conferir, setConferir] = useState(false);
+  const [erro, setErro] = useState<string>();
+  const [carregando, setCarregando] = useState(false);
+
+  const faltaItem = checklist.find((i) => itens[i] === undefined);
+
+  async function continuar() {
+    setConferir(true);
+    if (faltaItem) return irAoErro();
+    setCarregando(true);
+    setErro(undefined);
+    const r = await salvarItens({ vistoriaId, itens: checklist.map((nome) => ({ nome, tem: itens[nome] })), observacoes });
+    setCarregando(false);
+    if (!r.ok) return setErro(r.erro);
+    aoSalvar({ itens, observacoes });
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
       {checklist.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-extrabold">Itens do carro</h2>
           <BotaoSecundario icone={<Check aria-hidden />} onClick={() => setItens(Object.fromEntries(checklist.map((i) => [i, true])))}>
             Tem tudo
           </BotaoSecundario>
@@ -139,8 +167,7 @@ export function PassoPneus({
         />
       </section>
 
-      {conferir && faltaPneu && <MensagemErroCampo>Falta marcar o pneu: {faltaPneu.nome}</MensagemErroCampo>}
-      {conferir && !faltaPneu && faltaItem && <MensagemErroCampo>Falta marcar: {faltaItem}</MensagemErroCampo>}
+      {conferir && faltaItem && <MensagemErroCampo>Falta marcar: {faltaItem}</MensagemErroCampo>}
       {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
       <BotaoPrincipal fixo carregando={carregando} icone={<ArrowRight aria-hidden />} onClick={continuar}>
         {textos.geral.proximo}

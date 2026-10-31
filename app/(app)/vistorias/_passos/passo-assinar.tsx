@@ -3,7 +3,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Camera, Car, CheckCircle2, CircleDot, Lock, Pencil, ShieldAlert } from "lucide-react";
+import { ArrowRight, Camera, Car, CheckCircle2, CircleDot, ListChecks, Lock, Pencil, ShieldAlert } from "lucide-react";
 import {
   AssinaturaDedo,
   BotaoPrincipal,
@@ -35,15 +35,16 @@ function Resumo({ icone, titulo, texto, onCorrigir }: { icone: ReactNode; titulo
   );
 }
 
-/** O que falta antes de assinar (fotos obrigatórias e pneus). */
+/** O que falta antes de assinar (fotos obrigatórias, pneus e itens). */
 function faltaAntes(dados: DadosVistoria) {
   const faltamFotos = FOTOS_OBRIGATORIAS.filter((f) => !dados.fotos.some((x) => x.categoria === f.categoria)).length;
   if (faltamFotos > 0) return `Faltam ${faltamFotos} fotos. Toque em Corrigir nas fotos.`;
   if (pneusDoVeiculo(dados.tipoVeiculo).some((p) => !dados.pneus[p.posicao])) return "Falta marcar os pneus. Toque em Corrigir nos pneus.";
+  if (dados.checklist.some((i) => dados.itens[i] === undefined)) return "Falta marcar os itens. Toque em Corrigir nos itens.";
   return null;
 }
 
-/** Passo 5: o cliente confere o resumo e assina (ou marca que não está presente). */
+/** Passo 6: o cliente confere o resumo e assina (ou marca que não está presente). */
 export function PassoCliente({
   dados,
   assinatura,
@@ -67,6 +68,7 @@ export function PassoCliente({
   const chegada = dados.tipo === "ENTRADA";
   const c = dados.carro;
   const ruins = pneusDoVeiculo(dados.tipoVeiculo).filter((p) => dados.pneus[p.posicao] === "ruim").length;
+  const naoTem = dados.checklist.filter((i) => dados.itens[i] === false).length;
   const faltamFotos = FOTOS_OBRIGATORIAS.filter((f) => !dados.fotos.some((x) => x.categoria === f.categoria)).length;
   const extras = dados.fotos.length - (FOTOS_OBRIGATORIAS.length - faltamFotos);
 
@@ -115,6 +117,14 @@ export function PassoCliente({
           onCorrigir={() => irPara(3)}
         />
         <Resumo icone={<CircleDot aria-hidden />} titulo="Pneus" texto={ruins ? `${ruins} RUIM` : "Todos BONS"} onCorrigir={() => irPara(4)} />
+        {dados.checklist.length > 0 && (
+          <Resumo
+            icone={<ListChecks aria-hidden />}
+            titulo="Itens do carro"
+            texto={naoTem ? `Não tem: ${naoTem}` : "Tem tudo"}
+            onCorrigir={() => irPara(5)}
+          />
+        )}
       </section>
 
       <p className="rounded-2xl bg-superficie px-4 py-3 text-lg">
@@ -167,7 +177,7 @@ export function PassoCliente({
   );
 }
 
-/** Passo 6: quem é da oficina assina e conclui a vistoria. */
+/** Passo 7: quem é da oficina assina e conclui a vistoria. */
 export function PassoOficina({
   dados,
   assinatura,
@@ -223,7 +233,7 @@ export function PassoOficina({
     <div className="flex flex-col gap-6">
       <button
         type="button"
-        onClick={() => irPara(5)}
+        onClick={() => irPara(6)}
         className="tocavel flex min-h-toque items-center gap-3 rounded-2xl bg-superficie px-4 py-3 text-left"
       >
         <CheckCircle2 aria-hidden className={clientePronto ? "size-7 shrink-0 text-acao" : "size-7 shrink-0 text-perigo"} />

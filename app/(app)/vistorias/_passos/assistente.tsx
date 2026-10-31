@@ -8,7 +8,7 @@ import { nomeVeiculo } from "@/lib/vistoria";
 import { PassoCarro } from "./passo-carro";
 import { PassoFotos } from "./passo-fotos";
 import { PassoAvarias } from "./passo-avarias";
-import { PassoPneus } from "./passo-pneus";
+import { PassoItens, PassoPneus } from "./passo-pneus";
 import { PassoCliente, PassoOficina } from "./passo-assinar";
 import { ASSINATURA_VAZIA, type DadosVistoria } from "./tipos";
 
@@ -17,12 +17,13 @@ const dicas = [
   "Digite a placa. Se o carro já veio antes, o resto aparece sozinho.",
   "Tire uma foto de cada vez. Siga o desenho.",
   "Toque no desenho onde tem risco ou amassado. Troque a vista nas abas.",
-  "Toque em BOM ou RUIM em cada pneu. Use 'Tem tudo' e corrija só o que falta.",
+  "Toque em BOM ou RUIM em cada pneu. Se todos estão bons, use 'Todos bons'.",
+  "Toque em TEM ou NÃO TEM. Use 'Tem tudo' e corrija só o que falta.",
   "Mostre o resumo ao cliente. Ele assina com o dedo.",
   "Agora é a sua vez: assine e conclua a vistoria.",
 ];
 
-/** Vistoria em 6 passos (a partir do passo 2 a vistoria já existe no banco). */
+/** Vistoria em 7 passos (a partir do passo 2 a vistoria já existe no banco). */
 export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVistoria; passoInicial: number }) {
   const router = useRouter();
   const [dados, setDados] = useState(inicial);
@@ -87,28 +88,37 @@ export function AssistenteVistoria({ inicial, passoInicial }: { inicial: DadosVi
           <PassoPneus
             vistoriaId={dados.id}
             veiculo={dados.tipoVeiculo}
-            checklist={dados.checklist}
-            iniciaisPneus={dados.pneus}
-            iniciaisItens={dados.itens}
-            observacoesIniciais={dados.observacoes}
-            aoSalvar={(d) => {
-              setDados((x) => ({ ...x, ...d }));
+            iniciais={dados.pneus}
+            aoSalvar={(pneus) => {
+              setDados((x) => ({ ...x, pneus }));
               ir(5);
             }}
           />
         )}
         {passo === 5 && (
+          <PassoItens
+            vistoriaId={dados.id}
+            checklist={dados.checklist}
+            iniciais={dados.itens}
+            observacoesIniciais={dados.observacoes}
+            aoSalvar={(d) => {
+              setDados((x) => ({ ...x, ...d }));
+              ir(6);
+            }}
+          />
+        )}
+        {passo === 6 && (
           <PassoCliente
             dados={dados}
             assinatura={assinatura}
             aoAssinar={(a) => {
               setAssinatura(a);
-              ir(6);
+              ir(7);
             }}
             irPara={ir}
           />
         )}
-        {passo === 6 && <PassoOficina dados={dados} assinatura={assinatura} irPara={ir} />}
+        {passo === 7 && <PassoOficina dados={dados} assinatura={assinatura} irPara={ir} />}
       </main>
     </>
   );

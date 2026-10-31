@@ -167,22 +167,20 @@ export async function salvarCarroCliente(dados: z.input<typeof esquemaPasso1>): 
   return { ok: true, id: nova.id };
 }
 
-/* ---------- Passo 4: pneus, itens e observações ---------- */
+/* ---------- Passo 4: pneus ---------- */
 
-const esquemaPasso4 = z.object({
+const esquemaPneus = z.object({
   vistoriaId: z.string().uuid(),
   pneus: z
     .array(z.object({ posicao: z.enum([...PNEUS, ...PNEUS_MOTO].map((p) => p.posicao) as [string, ...string[]]), estado: z.enum(["bom", "ruim", "ausente"]) }))
     .min(2)
     .max(5),
-  itens: z.array(z.object({ nome: z.string().max(60), tem: z.boolean() })).max(60),
-  observacoes: z.string().max(4000).default(""),
 });
 
-export async function salvarPneusItens(dados: z.input<typeof esquemaPasso4>): Promise<Resultado> {
+export async function salvarPneus(dados: z.input<typeof esquemaPneus>): Promise<Resultado> {
   const ctx = await contextoOficina();
   if (!ctx) return { ok: false, erro: FALHOU };
-  const v = esquemaPasso4.safeParse(dados);
+  const v = esquemaPneus.safeParse(dados);
   if (!v.success) return { ok: false, erro: "Marque todos os pneus" };
   const d = v.data;
   const supabase = await criarClienteServidor();
@@ -195,17 +193,37 @@ export async function salvarPneusItens(dados: z.input<typeof esquemaPasso4>): Pr
   }
 
   await supabase.from("vistoria_pneus").delete().eq("vistoria_id", d.vistoriaId);
-  const r1 = await supabase.from("vistoria_pneus").insert(d.pneus.map((p) => ({ vistoria_id: d.vistoriaId, ...p })));
-  await supabase.from("vistoria_itens").delete().eq("vistoria_id", d.vistoriaId);
-  const r2 = d.itens.length
-    ? await supabase.from("vistoria_itens").insert(d.itens.map((i) => ({ vistoria_id: d.vistoriaId, item_nome: i.nome, tem: i.tem })))
-    : { error: null };
-  const r3 = await supabase.from("vistorias").update({ observacoes: d.observacoes || null }).eq("id", d.vistoriaId);
-  if (r1.error || r2.error || r3.error) return { ok: false, erro: FALHOU };
+  const r = await supabase.from("vistoria_pneus").insert(d.pneus.map((p) => ({ vistoria_id: d.vistoriaId, ...p })));
+  if (r.error) return { ok: false, erro: FALHOU };
   return { ok: true };
 }
 
-/* ---------- Passo 5: concluir (trava a vistoria e gera o PDF) ---------- */
+/* ---------- Passo 5: itens do carro e observações ---------- */
+
+const esquemaItens = z.object({
+  vistoriaId: z.string().uuid(),
+  itens: z.array(z.object({ nome: z.string().max(60), tem: z.boolean() })).max(60),
+  observacoes: z.string().max(4000).default(""),
+});
+
+export async function salvarItens(dados: z.input<typeof esquemaItens>): Promise<Resultado> {
+  const ctx = await contextoOficina();
+  if (!ctx) return { ok: false, erro: FALHOU };
+  const v = esquemaItens.safeParse(dados);
+  if (!v.success) return { ok: false, erro: "Marque todos os itens" };
+  const d = v.data;
+  const supabase = await criarClienteServidor();
+
+  await supabase.from("vistoria_itens").delete().eq("vistoria_id", d.vistoriaId);
+  const r1 = d.itens.length
+    ? await supabase.from("vistoria_itens").insert(d.itens.map((i) => ({ vistoria_id: d.vistoriaId, item_nome: i.nome, tem: i.tem })))
+    : { error: null };
+  const r2 = await supabase.from("vistorias").update({ observacoes: d.observacoes || null }).eq("id", d.vistoriaId);
+  if (r1.error || r2.error) return { ok: false, erro: FALHOU };
+  return { ok: true };
+}
+
+/* ---------- Passos 6 e 7: concluir (trava a vistoria e gera o PDF) ---------- */
 
 const imagemPng = z.string().startsWith("data:image/png;base64,").max(2_000_000);
 

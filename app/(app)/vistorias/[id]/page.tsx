@@ -92,11 +92,13 @@ export default async function PaginaVistoria({ params, searchParams }: PageProps
 
   // Abre no passo pedido; senão, no primeiro que falta
   let inicial = Number(passo);
-  // O passo 6 (assinatura da oficina) precisa da assinatura do cliente, que não fica salva: volta ao 5
-  if (inicial === 6) inicial = 5;
-  if (!(inicial >= 1 && inicial <= 5)) {
+  // O passo 7 (assinatura da oficina) precisa da assinatura do cliente, que não fica salva: volta ao 6
+  if (inicial === 7) inicial = 6;
+  if (!(inicial >= 1 && inicial <= 6)) {
     const faltaFoto = FOTOS_OBRIGATORIAS.some((f) => !dados.fotos.some((x) => x.categoria === f.categoria));
-    inicial = !carro ? 1 : faltaFoto ? 2 : Object.keys(dados.pneus).length < pneusDoVeiculo(dados.tipoVeiculo).length ? (dados.avarias.length ? 4 : 3) : 5;
+    const faltaPneu = Object.keys(dados.pneus).length < pneusDoVeiculo(dados.tipoVeiculo).length;
+    const faltaItem = dados.checklist.some((i) => dados.itens[i] === undefined);
+    inicial = !carro ? 1 : faltaFoto ? 2 : faltaPneu ? (dados.avarias.length ? 4 : 3) : faltaItem ? 5 : 6;
   }
 
   return <AssistenteVistoria inicial={dados} passoInicial={inicial} />;
