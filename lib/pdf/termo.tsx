@@ -2,6 +2,7 @@ import "server-only";
 /* eslint-disable jsx-a11y/alt-text -- Image do react-pdf não tem "alt" (é PDF, não HTML) */
 import { Circle, Document, Ellipse, G, Image, Page, Path, Rect, StyleSheet, Svg, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import QRCode from "qrcode";
+import sharp from "sharp";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { iniciais } from "@/lib/cores";
 import { ALTURA, LARGURA, desenhosDo, VISTAS, corDoTipo, nomeDaVista, nomeDoTipo, type Forma, type VistaAvaria } from "@/lib/desenhos-carro";
@@ -79,6 +80,31 @@ async function baixar(caminho: string | null | undefined, formato: "png" | "jpg"
   return data ? { data: Buffer.from(await data.arrayBuffer()), format: formato } : null;
 }
 
+/**
+ * Deixa o PDF leve: a foto entra já cortada do jeito que aparece no termo (4:3, centro)
+ * e no tamanho do quadro (3x, nítida na tela e na impressão). A foto original continua guardada.
+ * Se der qualquer erro, usa a foto original.
+ */
+async function fotoParaPdf(img: Img | null): Promise<Img | null> {
+  if (!img) return null;
+  try {
+    const data = await sharp(img.data).rotate().resize(774, 580, { fit: "cover", withoutEnlargement: true }).jpeg({ quality: 75, mozjpeg: true }).toBuffer();
+    return { data, format: "jpg" };
+  } catch {
+    return img;
+  }
+}
+
+/** Logo no tamanho do cabeçalho do termo (3x), sempre em PNG. */
+async function logoParaPdf(dados: Buffer): Promise<Img | null> {
+  try {
+    const data = await sharp(dados).resize(360, 192, { fit: "inside", withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+    return { data, format: "png" };
+  } catch {
+    return { data: dados, format: "png" };
+  }
+}
+
 /** Gera o Termo de Vistoria (PDF A4). `base` é o endereço do site, para o QR Code de verificação. */
 export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<Buffer> {
   const admin = criarClienteAdmin();
@@ -112,14 +138,14 @@ export async function gerarTermoPdf(vistoriaId: string, base: string): Promise<B
   if (e.logo_pdf_url) {
     try {
       const r = await fetch(e.logo_pdf_url, { signal: AbortSignal.timeout(8000) });
-      if (r.ok) logo = { data: Buffer.from(await r.arrayBuffer()), format: "png" };
+      if (r.ok) logo = await logoParaPdf(Buffer.from(await r.arrayBuffer()));
     } catch {
       logo = null;
     }
   }
   const fotosOrdenadas = [...(fotos ?? [])].sort((a, b) => ordemFoto(a.categoria) - ordemFoto(b.categoria));
   const [imagensFotos, assinCliente, assinResp] = await Promise.all([
-    Promise.all(fotosOrdenadas.map((f) => baixar(f.url, "jpg"))),
+    Promise.all(fotosOrdenadas.map(async (f) => fotoParaPdf(await baixar(f.url, "jpg")))),
     baixar(v.assinatura_cliente_url, "png"),
     baixar(v.assinatura_responsavel_url, "png"),
   ]);
