@@ -15,6 +15,7 @@ import {
   cancelarAssinatura as cancelarNoAsaas,
   cobrancasDaAssinatura,
   criarAssinatura,
+  ErroAsaas,
   obterCobranca,
   type CobrancaAsaas,
 } from "@/lib/pagamentos/asaas";
@@ -98,7 +99,17 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
     // 1º vencimento: hoje; quem ainda tem dias pagos (Pix manual) só paga quando vencer
     const hoje = hojeBR();
     const situ = await situacaoPlano(empresaId);
-    const primeiroVencimento = !situ.bloqueado && situ.vencimento && situ.vencimento > hoje ? situ.vencimento : hoje;
+    const aindaPago = !situ.bloqueado && Boolean(situ.vencimento && situ.vencimento > hoje);
+    const primeiroVencimento = aindaPago ? situ.vencimento! : hoje;
+
+    // Assinatura antiga ainda viva no Asaas (bloqueio manual, estorno): cancela antes, para não cobrar duas vezes
+    if (a.provedor === PROVEDOR_ASAAS && a.id_assinatura_externa) {
+      try {
+        await cancelarNoAsaas(a.id_assinatura_externa);
+      } catch (erro) {
+        if (!(erro instanceof ErroAsaas && erro.status === 404)) throw erro;
+      }
+    }
 
     const sub = await criarAssinatura({
       cliente: cliente.id,
@@ -115,8 +126,8 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
         id_cliente_externo: cliente.id,
         id_assinatura_externa: sub.id,
         forma_pagamento: d.forma,
-        // Assinou de novo depois de cancelar: volta a valer a régua normal (o pagamento confirma "ativa")
-        ...(a.status === "cancelada" ? { status: "em_atraso" } : {}),
+        // Assinou de novo depois de cancelar: com dias pagos, segue ativa; senão vale a régua normal (o pagamento confirma "ativa")
+        ...(a.status === "cancelada" ? { status: aindaPago ? "ativa" : "em_atraso" } : {}),
         atualizado_em: new Date().toISOString(),
       })
       .eq("id", a.id);

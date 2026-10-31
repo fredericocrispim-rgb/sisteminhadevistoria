@@ -23,6 +23,7 @@ type Assinatura = {
   plano_id: string | null;
   provedor: string | null;
   forma_pagamento: string | null;
+  acesso_ate: string | null;
 };
 type Vinculo = { id: string; user_id: string; nome: string | null; papel: string; ativo: boolean; cupom: string | null; criado_em: string };
 
@@ -63,7 +64,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       admin
         .from("empresas")
         .select(
-          "id, nome_fantasia, cidade, uf, whatsapp, email, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, ativa, inativada_em, assinaturas (status, fim_teste, proximo_vencimento, plano_id, provedor, forma_pagamento), usuarios_empresa (id, user_id, nome, papel, ativo, cupom, criado_em)",
+          "id, nome_fantasia, cidade, uf, whatsapp, email, responsavel_nome, logo_app_url, criado_em, codigo_indicacao, indicada_por_empresa_id, ativa, inativada_em, assinaturas (status, fim_teste, proximo_vencimento, acesso_ate, plano_id, provedor, forma_pagamento), usuarios_empresa (id, user_id, nome, papel, ativo, cupom, criado_em)",
         )
         .order("criado_em", { ascending: false })
         .limit(500),

@@ -3,6 +3,14 @@ import { mensagemWhatsapp, modeloSugerido, situacaoOficina, temperaturaUso, temp
 
 describe("situacaoOficina", () => {
   const hoje = "2026-10-28";
+  it("cancelou com dias pagos: usa até a data, não aparece como bloqueada", () => {
+    const s = situacaoOficina({ status: "cancelada", fim_teste: null, proximo_vencimento: "2026-11-10", acesso_ate: "2026-11-15" }, hoje, 5);
+    expect(s.grupo).toBe("vence_logo");
+    expect(s.texto).toBe("Cancelou · usa até 15/11/2026");
+  });
+  it("bloqueio manual (cancelada sem data) continua bloqueado", () => {
+    expect(situacaoOficina({ status: "cancelada", fim_teste: null, proximo_vencimento: "2026-11-10", acesso_ate: null }, hoje, 5).bloqueioManual).toBe(true);
+  });
   it("teste em dia", () => {
     const s = situacaoOficina({ status: "teste", fim_teste: "2026-11-04", proximo_vencimento: null }, hoje, 5);
     expect(s.grupo).toBe("teste");

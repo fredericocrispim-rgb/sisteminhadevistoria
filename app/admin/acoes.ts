@@ -152,7 +152,9 @@ export async function bloquearAcesso(empresaId: string): Promise<Resultado> {
   if (!ehId(empresaId)) return { erro: "Oficina inválida" };
   const a = await lerAssinatura(empresaId);
   if (!a) return { erro: "Oficina sem assinatura" };
-  await criarClienteAdmin().from("assinaturas").update({ status: "cancelada" }).eq("id", a.id);
+  // Sem acesso_ate: assim bloqueia também quem paga pelo Asaas (cancelada usa até acesso_ate).
+  // Se a oficina pagar a cobrança do Asaas depois, o webhook libera de novo.
+  await criarClienteAdmin().from("assinaturas").update({ status: "cancelada", acesso_ate: null }).eq("id", a.id);
   await registrar(empresaId, ctx.usuario.id, "acesso_bloqueado", { status_anterior: a.status });
   revalidatePath("/admin");
   return { ok: true };

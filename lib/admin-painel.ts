@@ -24,7 +24,7 @@ const dias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
 
 /** Em que situação de pagamento a oficina está, com um texto curto para o selo. */
 export function situacaoOficina(
-  a: { status: string; fim_teste: string | null; proximo_vencimento: string | null } | null,
+  a: { status: string; fim_teste: string | null; proximo_vencimento: string | null; acesso_ate?: string | null } | null,
   hoje: string,
   carencia: number,
 ): Situacao {
@@ -32,6 +32,10 @@ export function situacaoOficina(
   const vencimento = (teste ? a?.fim_teste : a?.proximo_vencimento) ?? null;
   const r = fasePagamento(vencimento, hoje, teste ? 0 : carencia); // 1º pagamento: sem carência
   const base = { vencimento, diasParaVencer: r.diasParaVencer, diasAtraso: r.diasAtraso, bloqueioManual: false };
+  // Cancelou a assinatura do Asaas, mas ainda tem dias pagos: usa até acesso_ate (igual a lib/sessao.ts)
+  if (a?.status === "cancelada" && a.acesso_ate && a.acesso_ate >= hoje) {
+    return { ...base, vencimento: a.acesso_ate, grupo: "vence_logo", texto: `Cancelou · usa até ${dataBR(a.acesso_ate)}` };
+  }
   if (a && (a.status === "cancelada" || a.status === "inadimplente")) {
     return { ...base, grupo: "bloqueado", texto: "Bloqueado por você", bloqueioManual: true };
   }
