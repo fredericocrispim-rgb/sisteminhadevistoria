@@ -189,9 +189,12 @@ export function PainelOficinas({
   const pagantes = oficinas.filter(ehPagante);
   const receitaMes = pagantes.reduce((s, o) => s + o.valor, 0);
   const [desde30] = useState(() => Date.now() - 30 * 86400000);
-  const recebido30 = oficinas
-    .filter((o) => !o.gratuita)
-    .flatMap((o) => o.pagamentos).filter((p) => Date.parse(p.pagoEm) >= desde30).reduce((s, p) => s + p.valor, 0);
+  // Só oficinas ativas e que pagam: grátis (testes) e inativas ficam fora
+  const pagos30 = oficinas
+    .filter((o) => o.ativa && !o.gratuita)
+    .flatMap((o) => o.pagamentos)
+    .filter((p) => Date.parse(p.pagoEm) >= desde30);
+  const recebido30 = pagos30.reduce((s, p) => s + p.valor, 0);
   const vistoriasMes = ativas.reduce((s, o) => s + o.vistoriasMes, 0);
   const semUso7 = ativas.filter((o) => paradaHaDias(o, 7)).length;
 
@@ -309,7 +312,7 @@ export function PainelOficinas({
     <div className="flex flex-col gap-5">
       <section aria-label="Resumo" className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-background lg:grid-cols-4">
         <Resumo rotulo="Receita mensal" valor={formatarReais(receitaMes)} detalhe={`${pagantes.length} ${pagantes.length === 1 ? "oficina pagando" : "oficinas pagando"}`} />
-        <Resumo rotulo="Recebido em 30 dias" valor={formatarReais(recebido30)} detalhe="Pagamentos confirmados" />
+        <Resumo rotulo="Recebido em 30 dias" valor={formatarReais(recebido30)} detalhe={`${pagos30.length} ${pagos30.length === 1 ? "pagamento" : "pagamentos"} de oficinas ativas`} />
         <Resumo rotulo="Vistorias no mês" valor={String(vistoriasMes)} detalhe="Últimos 30 dias" />
         <Resumo rotulo="Sem uso há 7 dias" valor={String(semUso7)} detalhe={semUso7 > 0 ? "Vale um contato" : "Todas usando"} />
       </section>
