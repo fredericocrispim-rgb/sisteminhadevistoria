@@ -6,7 +6,7 @@ import { valorMensalidade } from "@/lib/cobranca";
 import { formatarCpfCnpj, formatarTelefone } from "@/lib/formatos";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { asaasLigado } from "@/lib/pagamentos/asaas";
-import { PROVEDOR_ASAAS, planoAVenda } from "@/lib/pagamentos/config";
+import { PROVEDOR_ASAAS, planosAVenda } from "@/lib/pagamentos/config";
 import { FormAssinar } from "./form";
 
 export const metadata: Metadata = { title: "Assinar" };
@@ -21,23 +21,23 @@ export default async function Assinar() {
   }
 
   const admin = criarClienteAdmin();
-  const [{ data: planos }, { data: dados }, m] = await Promise.all([
-    admin.from("planos").select("id, nome, preco_mensal, limite_usuarios, preco_usuario_extra").eq("ativo", true).order("ordem"),
+  const [{ data: planos }, { data: dados }, m, { data: plat }] = await Promise.all([
+    admin.from("planos").select("*").eq("ativo", true).order("ordem"),
     admin.from("empresas").select("cnpj_cpf, razao_social, whatsapp").eq("id", empresa.id).single(),
     mensalidadeDaOficina(empresa.id),
+    admin.from("plataforma").select("*").single(),
   ]);
 
-  // Só o plano à venda (Básico)
-  const vendido = planoAVenda(planos ?? []);
-  const opcoes = (vendido ? [vendido] : []).map((p) => {
+  // Básico e, com o vídeo ligado, o Pro
+  const opcoes = planosAVenda(planos ?? [], Boolean(plat?.video_ligado)).map((p) => {
     const preco = { base: Number(p.preco_mensal), inclusos: p.limite_usuarios, extra: Number(p.preco_usuario_extra ?? 0) };
-    return { id: p.id, nome: p.nome, valor: valorMensalidade(preco, m.usuarios), inclusos: p.limite_usuarios as number | null };
+    return { id: p.id, nome: p.nome, valor: valorMensalidade(preco, m.usuarios), inclusos: p.limite_usuarios as number | null, video: (p.video_segundos ?? 0) > 0 };
   });
 
   return (
     <FormAssinar
       planos={opcoes}
-      planoInicial={opcoes[0]?.id ?? ""}
+      planoInicial={opcoes.find((p) => p.id === m.planoId)?.id ?? opcoes[0]?.id ?? ""}
       usuarios={m.usuarios}
       inicial={{
         nome: dados?.razao_social || usuario.nome || empresa.nome_fantasia,

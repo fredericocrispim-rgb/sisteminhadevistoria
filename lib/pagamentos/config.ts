@@ -3,7 +3,8 @@
  *
  * PLANOS E PREÇOS: ficam na tabela `planos` do banco (nome, preço mensal, pessoas incluídas, preço por pessoa a mais),
  * para o Frederico mudar sem mexer no código. Decisões de 30/10/2026:
- * - Básico R$ 49,90/mês: dono + 3 pessoas; cada pessoa a mais + R$ 19,90 (cupom: não paga). Profissional e Rede na tabela.
+ * - Básico R$ 49,90/mês: dono + 3 pessoas; cada pessoa a mais + R$ 19,90 (cupom: não paga).
+ * - Pro (31/10/2026): Básico + R$ 30, com vídeo de até 1 minuto (planos.video_segundos). Rede fora da venda.
  * - Só mensal (sem plano anual por enquanto).
  * - Sem teste grátis: quem se cadastra tem 1 dia para pagar (`plataforma.dias_teste`).
  * - Tolerância depois do vencimento: `plataforma.dias_carencia` (5 dias).
@@ -17,6 +18,16 @@ export const PLANO_A_VENDA = "Básico";
 export function planoAVenda<T extends { nome: string }>(planos: T[]): T | undefined {
   const chave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   return planos.find((p) => chave(p.nome) === chave(PLANO_A_VENDA)) ?? planos[0];
+}
+
+/**
+ * Planos que aparecem em /assinar: o Básico e, com o vídeo ligado (plataforma.video_ligado), o Pro
+ * (plano com vídeo, decisão de 31/10/2026).
+ */
+export function planosAVenda<T extends { nome: string; video_segundos?: number | null }>(planos: T[], videoLigado: boolean): T[] {
+  const basico = planoAVenda(planos.filter((p) => !p.video_segundos));
+  const pro = videoLigado ? planos.find((p) => (p.video_segundos ?? 0) > 0) : undefined;
+  return [basico, pro].filter((p): p is T => Boolean(p));
 }
 
 export type FormaPagamento = "PIX" | "CREDIT_CARD";

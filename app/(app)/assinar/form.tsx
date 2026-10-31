@@ -11,7 +11,7 @@ import type { FormaPagamento } from "@/lib/pagamentos/config";
 import { fecharAba, levarAoPagamento, prepararAba } from "@/lib/pagamentos/abrir";
 import { assinar } from "./acoes";
 
-type Plano = { id: string; nome: string; valor: number; inclusos: number | null };
+type Plano = { id: string; nome: string; valor: number; inclusos: number | null; video: boolean };
 
 export function FormAssinar({
   planos,
@@ -83,6 +83,7 @@ export function FormAssinar({
             <span className="text-lg font-bold text-muted-foreground"> /mês</span>
           </p>
           <p className="text-base text-muted-foreground">{t.equipe(usuarios)}</p>
+          {plano.video && <p className="text-base font-bold text-oficina">{textos.planos.proTexto}</p>}
         </div>
       )}
 

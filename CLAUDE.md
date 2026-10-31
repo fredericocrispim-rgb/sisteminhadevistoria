@@ -121,7 +121,7 @@ Depois, faça o commit da etapa (mensagem em português).
 
 ## Plano Pro com vídeo (31/10/2026, Frederico)
 - Dois planos à venda: Básico (o de sempre) e Pro (= Básico + R$ 30) com vídeo de até 1 minuto por vistoria (`planos.video_segundos` = 60). "Rede" saiu da venda.
-- O vídeo fica DESLIGADO (`plataforma.video_ligado`) até contratar o Supabase Pro (no plano grátis de 1 GB não cabe). Liga/desliga no `/admin`. Desligado, o Pro nem aparece em `/plano`.
+- Chave geral `plataforma.video_ligado` (liga/desliga no `/admin`). LIGADA em 31/10/2026 a pedido do Frederico, ainda no Supabase grátis (1 GB): vigiar o espaço. Desligada, o Pro some de `/assinar` e `/plano`.
 - Gravado no próprio sistema já comprimido (~1 Mbps, MP4 ou WebM; `_passos/gravar-video.tsx`), opcional, no passo das Fotos. Tabela `vistoria_videos` (um por vistoria; inserir só com `pode_gravar_video()`); SHA-256 calculado no servidor ao concluir e impresso no PDF.
 - Aparece no link do cliente (`/v/...`) e em `/verificar/CÓDIGO` (`components/vf/video-vistoria.tsx`, `lib/video.ts`).
 - Guardado 1 ano (`plataforma.dias_guardar_video`): a rotina diária `/api/rotinas/apagar-videos` (Vercel Cron, precisa de `CRON_SECRET` na Vercel) apaga o arquivo e marca `apagado_em`.

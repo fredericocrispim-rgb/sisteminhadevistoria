@@ -19,7 +19,7 @@ import {
   obterCobranca,
   type CobrancaAsaas,
 } from "@/lib/pagamentos/asaas";
-import { DESCRICAO_ASSINATURA, PROVEDOR_ASAAS, planoAVenda } from "@/lib/pagamentos/config";
+import { DESCRICAO_ASSINATURA, PROVEDOR_ASAAS, planosAVenda } from "@/lib/pagamentos/config";
 import { aplicarPagamento, guardarCobranca } from "@/lib/pagamentos/servidor";
 import { eStatusPago } from "@/lib/pagamentos/webhook";
 
@@ -70,12 +70,12 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
 
   const [{ data: a }, { data: planos }, { data: plat }] = await Promise.all([
     admin.from("assinaturas").select("id, empresa_id, status, proximo_vencimento, provedor, id_assinatura_externa").eq("empresa_id", empresaId).single(),
-    admin.from("planos").select("id, nome").eq("ativo", true).order("ordem"),
-    admin.from("plataforma").select("nome_produto").single(),
+    admin.from("planos").select("*").eq("ativo", true).order("ordem"),
+    admin.from("plataforma").select("*").single(),
   ]);
-  // Só vende o plano à venda (Básico), mesmo que mandem outro id
-  const plano = planoAVenda(planos ?? []);
-  if (!a || !plano || plano.id !== d.planoId) return { ok: false, erro: FALHOU };
+  // Só vende os planos à venda (Básico e, com o vídeo ligado, Pro), mesmo que mandem outro id
+  const plano = planosAVenda(planos ?? [], Boolean(plat?.video_ligado)).find((p) => p.id === d.planoId);
+  if (!a || !plano) return { ok: false, erro: FALHOU };
 
   // Já tem assinatura no Asaas em andamento: não cria outra, leva para a cobrança em aberto
   if (a.provedor === PROVEDOR_ASAAS && a.id_assinatura_externa && a.status !== "cancelada" && a.status !== "inadimplente") {
