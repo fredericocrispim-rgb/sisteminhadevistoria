@@ -12,7 +12,7 @@ import { textos } from "@/lib/textos";
 import { sair } from "../mais/acoes";
 import { continuarSemPagar } from "./acoes";
 import { asaasLigado } from "@/lib/pagamentos/asaas";
-import { PROVEDOR_ASAAS, nomeForma } from "@/lib/pagamentos/config";
+import { PROVEDOR_ASAAS, faturaEmAberto, nomeForma } from "@/lib/pagamentos/config";
 import { BotaoPagar, BotoesAssinatura, TrocarPlano } from "./botoes-assinatura";
 
 export const metadata: Metadata = { title: "Meu plano" };
@@ -91,7 +91,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
   const planoPro = planos?.find((p) => p.video_segundos > 0);
   const oferecerPro = Boolean(plat?.video_ligado && planoBasico && planoPro);
   const ehPro = m.planoId === planoPro?.id;
-  const emAberto = faturas?.find((f) => f.status === "pendente" || f.status === "vencida");
+  const emAberto = faturaEmAberto(faturas);
   const cartao = doAsaas && plano.formaPagamento === "CREDIT_CARD";
   // O valor (e o QR Code) acompanha o tamanho da equipe: usuário a mais soma na mensalidade
   const valor = m.valor;

@@ -52,6 +52,17 @@ export const STATUS_PAGO = ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"] as cons
  */
 export const PIX_AUTOMATICO_LIGADO = false;
 
+/**
+ * Cobrança que a oficina deve pagar agora: a em aberto que vence PRIMEIRO.
+ * O Asaas já gera a do mês seguinte logo depois de assinar (cerca de 40 dias antes), então
+ * costuma haver duas em aberto; pagar a mais nova deixaria a do mês atual vencer.
+ */
+export function faturaEmAberto<T extends { status: string; vencimento: string }>(faturas: T[] | null | undefined): T | undefined {
+  return (faturas ?? [])
+    .filter((f) => f.status === "pendente" || f.status === "vencida")
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0];
+}
+
 export function nomeForma(forma: string | null | undefined) {
   return FORMAS_PAGAMENTO.find((f) => f.valor === forma)?.rotulo ?? "Pix";
 }
