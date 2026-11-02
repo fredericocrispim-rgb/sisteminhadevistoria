@@ -137,7 +137,9 @@ export async function assinar(dados: z.input<typeof esquema>): Promise<Resultado
         id_assinatura_externa: sub.id,
         forma_pagamento: d.forma,
         // Assinou de novo depois de cancelar: com dias pagos, segue ativa; senão vale a régua normal (o pagamento confirma "ativa")
-        ...(a.status === "cancelada" ? { status: aindaPago ? "ativa" : "em_atraso" } : {}),
+        // Sempre grava o status: o aviso SUBSCRIPTION_DELETED da assinatura antiga (cancelada logo acima)
+        // pode chegar antes desta linha e marcar a oficina como "cancelada" por engano.
+        status: a.status === "cancelada" ? (aindaPago ? "ativa" : "em_atraso") : a.status,
         atualizado_em: new Date().toISOString(),
       })
       .eq("id", a.id);
