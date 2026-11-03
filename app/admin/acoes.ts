@@ -87,6 +87,31 @@ export async function gerarLinkSenha(_: unknown, formData: FormData): Promise<{ 
   return { email, link: r.link };
 }
 
+/**
+ * Atendimento rápido: o administrador digita o e-mail e a senha nova da pessoa e já troca.
+ * Depois é só avisar a pessoa (e pedir que troque em Mais > Trocar senha, se quiser).
+ */
+export async function trocarSenhaAgora(_: unknown, formData: FormData): Promise<{ ok?: string; erro?: string; email?: string }> {
+  const ctx = await exigirSuperadmin();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const senha = String(formData.get("senha") ?? "");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { erro: "E-mail incompleto", email };
+  if (senha.length < 6 || senha.length > 72) return { erro: "A senha precisa de pelo menos 6 letras ou números", email };
+  const admin = criarClienteAdmin();
+  let usuario: { id: string } | undefined;
+  for (let pagina = 1; pagina <= 50 && !usuario; pagina++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page: pagina, perPage: 1000 });
+    if (error) return { erro: "Não deu certo. Tente de novo.", email };
+    usuario = data.users.find((u) => u.email?.toLowerCase() === email);
+    if (data.users.length < 1000) break;
+  }
+  if (!usuario) return { erro: "Não achei uma conta com esse e-mail", email };
+  const { error } = await admin.auth.admin.updateUserById(usuario.id, { password: senha });
+  if (error) return { erro: error.code === "weak_password" ? "Senha fraca demais. Use outra." : "Não deu certo. Tente de novo.", email };
+  await admin.from("auditoria").insert({ usuario_id: ctx.usuario.id, acao: "trocou_senha_de_usuario", entidade: "auth.users", detalhes: { email } });
+  return { ok: `Senha de ${email} trocada. Avise a pessoa.` };
+}
+
 // ---------------------------------------------------------------------
 // Gerenciar o acesso de cada oficina (painel do administrador)
 // ---------------------------------------------------------------------

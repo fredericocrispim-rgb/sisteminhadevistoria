@@ -10,6 +10,7 @@ import { gerarPixCopiaECola } from "@/lib/pix";
 import { situacaoOficina } from "@/lib/admin-painel";
 import { textos } from "@/lib/textos";
 import { LinkSenha } from "./link-senha";
+import { TrocarSenha } from "./trocar-senha";
 import { mudarVideo } from "./acoes";
 import { PainelOficinas, type OficinaPainel, type PessoaPainel } from "./painel";
 import { RelatorioComissoes, type Vendedor } from "./comissoes";
@@ -245,6 +246,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
             vendedores={vendedores}
             comissaoAtiva={bancoComissoesPronto}
           />
+          <TrocarSenha />
           <LinkSenha />
           {plat && "video_ligado" in plat && (
             <form action={mudarVideo} className="flex flex-col gap-2 rounded-2xl bg-superficie p-4 sm:flex-row sm:items-center sm:justify-between">
