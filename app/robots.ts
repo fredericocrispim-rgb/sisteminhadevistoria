@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         "/entrar",
         "/cadastro",
         "/nova-senha",
+        "/criar-senha",
         "/convite/",
         "/v/",
         "/verificar/",

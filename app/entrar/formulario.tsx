@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, KeyRound, LogIn, MessageCircle, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, KeyRound, LogIn, Mail, MessageCircle, UserPlus } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, Campo, CampoSenha, LogoProduto, MensagemErroCampo } from "@/components/vf";
 import { criarClienteNavegador } from "@/lib/supabase/cliente";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
 import { textos } from "@/lib/textos";
-import { criarConta } from "./acoes";
+import { criarConta, pedirLinkSenha } from "./acoes";
 
 const t = textos.conta;
 const emailValido = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim());
@@ -23,19 +23,21 @@ function traduzirErro(erro: { status?: number; code?: string; message?: string }
 }
 
 /**
- * Entrar com e-mail e senha. Nada de e-mail enviado:
- * criar conta é feito no servidor (já confirmada); esqueci a senha = falar com o suporte no WhatsApp.
+ * Entrar com e-mail e senha. Criar conta não manda e-mail (feito no servidor, já confirmada).
+ * Esqueci a senha: link por e-mail (Resend); sem o e-mail configurado, WhatsApp do suporte.
  */
 export function FormularioEntrar({
   destino,
   modoInicial,
   aviso,
   whatsappSuporte,
+  emailPronto,
 }: {
   destino: string;
-  modoInicial: "entrar" | "criar";
+  modoInicial: Modo;
   aviso?: string;
   whatsappSuporte: string | null;
+  emailPronto: boolean;
 }) {
   const router = useRouter();
   const [modo, setModo] = useState<Modo>(modoInicial);
@@ -45,6 +47,8 @@ export function FormularioEntrar({
   const [erro, setErro] = useState<string>();
   const [info, setInfo] = useState<string | undefined>(aviso);
   const [carregando, setCarregando] = useState(false);
+  const [porEmail, setPorEmail] = useState(emailPronto);
+  const [linkEnviado, setLinkEnviado] = useState(false);
 
   const emailLimpo = email.trim().toLowerCase();
   const erroEmail = conferir && !emailValido(email) ? t.erros.emailInvalido : undefined;
@@ -55,6 +59,7 @@ export function FormularioEntrar({
     setErro(undefined);
     setInfo(undefined);
     setConferir(false);
+    setLinkEnviado(false);
   }
 
   async function entrarComSenha() {
@@ -93,27 +98,82 @@ export function FormularioEntrar({
 
   if (modo === "esqueci") {
     const mensagem = `Olá! Esqueci minha senha do ${textos.produto.nome}. Meu e-mail é: ${emailLimpo || "(digite aqui)"}`;
+    const linkWhatsapp = whatsappSuporte ? `https://wa.me/${telefoneParaWhatsapp(whatsappSuporte)}?text=${encodeURIComponent(mensagem)}` : null;
+    const botaoWhatsapp = linkWhatsapp ? (
+      <a
+        href={linkWhatsapp}
+        target="_blank"
+        rel="noreferrer"
+        className={
+          porEmail
+            ? "tocavel inline-flex min-h-toque items-center justify-center gap-2 rounded-2xl bg-superficie px-5 text-lg font-bold [&_svg]:size-6"
+            : "tocavel inline-flex min-h-toque-grande items-center justify-center gap-3 rounded-2xl bg-[#1f8f4e] px-5 text-xl font-bold text-white [&_svg]:size-7"
+        }
+      >
+        <MessageCircle aria-hidden /> {porEmail ? t.ouSuporte : "Falar no WhatsApp"}
+      </a>
+    ) : (
+      !porEmail && <p className="rounded-2xl bg-superficie px-4 py-3 text-lg">Peça ao responsável pelo sistema um link de senha nova.</p>
+    );
+
+    async function pedirLink() {
+      setConferir(true);
+      setErro(undefined);
+      if (!emailValido(email)) return;
+      setCarregando(true);
+      try {
+        const r = await pedirLinkSenha(emailLimpo);
+        if (r.ok) setLinkEnviado(true);
+        else if (r.semEmail) setPorEmail(false);
+        else setErro(r.erro);
+      } catch {
+        setErro(t.erros.falhou);
+      }
+      setCarregando(false);
+    }
+
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10 pb-10">
         {cabecalho}
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-3">
             <KeyRound aria-hidden className="size-10 text-oficina" />
-            <h1 className="text-[2rem] leading-tight font-extrabold">{t.esqueciTitulo}</h1>
+            <h1 className="text-[2rem] leading-tight font-extrabold">{linkEnviado ? t.linkEnviadoTitulo : t.esqueciTitulo}</h1>
           </div>
-          <p className="text-xl text-muted-foreground">Fale com o suporte. Mandamos um link para você criar uma senha nova.</p>
-          {whatsappSuporte ? (
-            <a
-              href={`https://wa.me/${telefoneParaWhatsapp(whatsappSuporte)}?text=${encodeURIComponent(mensagem)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="tocavel inline-flex min-h-toque-grande items-center justify-center gap-3 rounded-2xl bg-[#1f8f4e] px-5 text-xl font-bold text-white [&_svg]:size-7"
+          {linkEnviado ? (
+            <p className="flex items-start gap-2 rounded-2xl bg-acao-clara px-4 py-3 text-lg font-bold text-acao">
+              <CheckCircle2 aria-hidden className="mt-0.5 size-6 shrink-0" /> {t.linkEnviadoTexto(emailLimpo)} Olhe também no lixo eletrônico.
+            </p>
+          ) : porEmail ? (
+            <form
+              className="flex flex-col gap-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                pedirLink();
+              }}
             >
-              <MessageCircle aria-hidden /> Falar no WhatsApp
-            </a>
+              <p className="text-xl text-muted-foreground">{t.esqueciTexto}</p>
+              <Campo
+                rotulo={t.email}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="nome@email.com"
+                valor={email}
+                onValor={setEmail}
+                erro={erroEmail}
+              />
+              {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
+              <BotaoPrincipal type="submit" carregando={carregando} icone={<Mail aria-hidden />}>
+                {t.mandarLink}
+              </BotaoPrincipal>
+            </form>
           ) : (
-            <p className="rounded-2xl bg-superficie px-4 py-3 text-lg">Peça ao responsável pelo sistema um link de senha nova.</p>
+            <p className="text-xl text-muted-foreground">Fale com o suporte. Mandamos um link para você criar uma senha nova.</p>
           )}
+          {botaoWhatsapp}
           <BotaoSecundario icone={<ArrowLeft aria-hidden />} onClick={() => trocar("entrar")}>
             {t.voltarEntrar}
           </BotaoSecundario>

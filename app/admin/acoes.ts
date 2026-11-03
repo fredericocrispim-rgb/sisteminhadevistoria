@@ -1,7 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { gerarLinkCriarSenha } from "@/lib/senha";
 import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
@@ -82,11 +82,9 @@ export async function gerarLinkSenha(_: unknown, formData: FormData): Promise<{ 
   await exigirSuperadmin();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return { erro: "E-mail incompleto" };
-  const { data, error } = await criarClienteAdmin().auth.admin.generateLink({ type: "recovery", email });
-  if (error || !data.properties?.hashed_token) return { erro: "Não achei uma conta com esse e-mail", email };
-  const h = await headers();
-  const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
-  return { email, link: `${base}/auth/confirmar?token_hash=${data.properties.hashed_token}&type=recovery&voltar=/nova-senha` };
+  const r = await gerarLinkCriarSenha(email);
+  if (!r) return { erro: "Não achei uma conta com esse e-mail", email };
+  return { email, link: r.link };
 }
 
 // ---------------------------------------------------------------------

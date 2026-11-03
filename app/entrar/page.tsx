@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { textos } from "@/lib/textos";
+import { emailConfigurado } from "@/lib/senha";
 import { FormularioEntrar } from "./formulario";
 
 // Fora do Google (tela de login)
 export const metadata: Metadata = { title: "Entrar", robots: { index: false, follow: false } };
 
 export default async function PaginaEntrar({ searchParams }: PageProps<"/entrar">) {
-  const { voltar, criar, confirmado, erro, novo } = await searchParams;
+  const { voltar, criar, confirmado, erro, novo, esqueci } = await searchParams;
   const destino = typeof voltar === "string" && voltar.startsWith("/") && !voltar.startsWith("//") ? voltar : "/inicio";
   const aviso =
     confirmado === "1" ? textos.conta.confirmado
@@ -18,9 +19,10 @@ export default async function PaginaEntrar({ searchParams }: PageProps<"/entrar"
   return (
     <FormularioEntrar
       destino={destino}
-      modoInicial={criar === "1" ? "criar" : "entrar"}
+      modoInicial={esqueci === "1" ? "esqueci" : criar === "1" ? "criar" : "entrar"}
       aviso={aviso}
       whatsappSuporte={plat?.whatsapp_suporte || plat?.fornecedor_whatsapp || null}
+      emailPronto={emailConfigurado()}
     />
   );
 }

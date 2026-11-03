@@ -207,6 +207,8 @@ export const textos = {
     linkVencido: "Este link não vale mais. Peça outro.",
     enderecoNovo: "Endereço novo: vistoriarapida.digital. Entre de novo e instale o app outra vez.",
     salvarSenha: "Salvar nova senha",
+    pedirOutroLink: "Pedir outro link",
+    ouSuporte: "Não chegou? Fale com o suporte",
     senhaSalva: "Senha nova salva",
     erros: {
       emailInvalido: "E-mail incompleto. Confira.",
@@ -216,6 +218,7 @@ export const textos = {
       jaExiste: "Este e-mail já tem conta. Toque em \"Já tenho conta\" e entre.",
       muitasTentativas: "Muitas tentativas. Espere alguns minutos e tente de novo.",
       falhou: "Não deu certo. Confira a internet e tente de novo.",
+      senhaIgual: "Use uma senha diferente da antiga",
     },
   },
 

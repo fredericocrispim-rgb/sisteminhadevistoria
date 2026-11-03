@@ -15,6 +15,12 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const tipo = searchParams.get("type") as EmailOtpType | null;
 
+  // Senha nova: NÃO usa o link aqui (a prévia do WhatsApp abre o link sozinha e gastaria o link).
+  // Leva para /criar-senha, que só usa o link quando a pessoa toca em "Salvar nova senha".
+  if (tokenHash && tipo === "recovery") {
+    return NextResponse.redirect(new URL(`/criar-senha?token=${encodeURIComponent(tokenHash)}`, origin));
+  }
+
   const supabase = await criarClienteServidor();
   let ok = false;
   if (code) {

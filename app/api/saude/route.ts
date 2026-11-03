@@ -15,5 +15,8 @@ export function GET() {
     NEXT_PUBLIC_SUPABASE_URL: verificar(url, /^https:\/\/[a-z0-9]+\.supabase\.co\/?$/.test(url)),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: verificar(publica, /^(sb_publishable_|eyJ)[A-Za-z0-9._-]+$/.test(publica)),
     SUPABASE_SECRET_KEY: verificar(secreta, /^(sb_secret_|eyJ)[A-Za-z0-9._-]+$/.test(secreta)),
+    // E-mail do "Esqueci minha senha" (Resend)
+    RESEND_API_KEY: verificar(process.env.RESEND_API_KEY ?? "", /^re_[A-Za-z0-9_]+$/.test(process.env.RESEND_API_KEY ?? "")),
+    EMAIL_REMETENTE: verificar(process.env.EMAIL_REMETENTE ?? "", /@/.test(process.env.EMAIL_REMETENTE ?? "")),
   });
 }
