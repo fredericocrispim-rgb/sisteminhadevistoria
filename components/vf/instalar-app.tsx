@@ -102,7 +102,7 @@ export function InstalarApp({ podeFechar = true }: { podeFechar?: boolean }) {
   }
 
   return (
-    <div className="relative flex flex-col gap-3 rounded-3xl bg-oficina-clara p-4">
+    <div className="relative flex flex-col gap-3 rounded-3xl bg-oficina-clara p-4 ring-1 ring-oficina/15">
       {podeFechar && (
         <button
           type="button"
@@ -115,7 +115,7 @@ export function InstalarApp({ podeFechar = true }: { podeFechar?: boolean }) {
       )}
       <div className="flex items-center gap-3 pr-10">
         {/* eslint-disable-next-line @next/next/no-img-element -- ícone fixo do app */}
-        <img src="/app-maskable-192.png" alt="" className="size-14 shrink-0 rounded-2xl" />
+        <img src="/app-maskable-192.png" alt="" className="size-14 shrink-0 rounded-2xl shadow-[0_8px_18px_-8px_rgb(37_99_235/0.6)]" />
         <div>
           <p className="text-xl leading-tight font-extrabold">{t.titulo}</p>
           <p className="text-base font-semibold text-muted-foreground">{t.texto}</p>

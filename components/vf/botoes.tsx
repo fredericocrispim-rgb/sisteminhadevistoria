@@ -60,7 +60,7 @@ export function BotaoPrincipal({ className, fixo, ...props }: BotaoProps & { fix
     <BotaoOuLink
       className={cn(
         baseBotao,
-        "min-h-toque-grande bg-acao text-xl text-acao-texto shadow-[0_10px_24px_-10px_rgb(19_134_90/0.7)] hover:bg-acao-escura",
+        "brilho min-h-toque-grande bg-acao text-xl text-acao-texto shadow-[0_14px_28px_-12px_rgb(19_134_90/0.75)] hover:bg-acao-escura",
         className,
       )}
       {...props}
@@ -71,18 +71,18 @@ export function BotaoPrincipal({ className, fixo, ...props }: BotaoProps & { fix
     <>
       {/* Espaço reservado para o conteúdo não ficar escondido atrás do botão */}
       <div aria-hidden className="h-24" />
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-background from-70% to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-xl">{botao}</div>
       </div>
     </>
   );
 }
 
-/** Botão secundário: cinza claro, sem borda. */
+/** Botão secundário: cartão branco com contorno fino e sombra leve. */
 export function BotaoSecundario({ className, ...props }: BotaoProps) {
   return (
     <BotaoOuLink
-      className={cn(baseBotao, "min-h-toque bg-superficie text-lg text-foreground hover:brightness-95", className)}
+      className={cn(baseBotao, "cartao min-h-toque text-lg text-foreground hover:bg-superficie", className)}
       {...props}
     />
   );

@@ -11,9 +11,12 @@ export default async function Patio() {
   await exigirOficina();
   const carros = await listarPatio();
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6">
-      <h1 className="text-[1.75rem] font-extrabold">
-        No pátio {carros.length > 0 && <span className="text-muted-foreground">({carros.length})</span>}
+    <main className="entrar-tela mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6">
+      <h1 className="flex items-center gap-3 text-[1.75rem] font-extrabold">
+        No pátio
+        {carros.length > 0 && (
+          <span className="grid min-w-10 place-items-center rounded-full bg-oficina px-3 py-0.5 text-lg text-oficina-texto tabular-nums">{carros.length}</span>
+        )}
       </h1>
       {carros.length ? (
         <>

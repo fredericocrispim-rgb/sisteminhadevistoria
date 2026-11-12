@@ -41,12 +41,14 @@ export function BotaoModoSol({ className }: { className?: string }) {
       aria-checked={ativo}
       onClick={() => definir(!ativo)}
       className={cn(
-        "tocavel flex min-h-toque w-full items-center gap-3 rounded-2xl px-4 text-left",
-        ativo ? "bg-foreground text-background" : "bg-superficie",
+        "tocavel flex min-h-toque-grande w-full items-center gap-3 rounded-2xl px-3 text-left",
+        ativo ? "bg-foreground text-background" : "cartao",
         className,
       )}
     >
-      <Sun aria-hidden className="size-7 shrink-0" />
+      <span aria-hidden className={cn("icone-chip grid size-12 shrink-0 place-items-center rounded-2xl [&_svg]:size-6", ativo ? "bg-atencao text-atencao-texto" : "bg-atencao-clara text-atencao-texto")}>
+        <Sun strokeWidth={2.2} />
+      </span>
       <span className="flex-1 text-lg font-bold">{textos.modoSol.ligar}</span>
       <span aria-hidden className={cn("relative h-8 w-14 shrink-0 rounded-full transition-colors", ativo ? "bg-acao" : "bg-input")}>
         <span className={cn("absolute top-1 size-6 rounded-full bg-white shadow transition-all", ativo ? "left-7" : "left-1")} />

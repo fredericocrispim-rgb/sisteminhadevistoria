@@ -33,7 +33,7 @@ export function ConfirmacaoImportante({
   return (
     <Dialog open={aberto} onOpenChange={onAberto}>
       <DialogContent showCloseButton={false} className="gap-4 rounded-3xl p-6 sm:max-w-md">
-        <div className={cn("grid size-16 place-items-center rounded-full", perigo ? "bg-perigo-clara text-perigo" : "bg-atencao-clara text-atencao-texto")}>
+        <div className={cn("icone-chip grid size-16 place-items-center rounded-[1.25rem]", perigo ? "bg-perigo-clara text-perigo" : "bg-atencao-clara text-atencao-texto")}>
           <AlertTriangle aria-hidden className="size-9" />
         </div>
         <DialogTitle className="text-2xl font-extrabold">{titulo}</DialogTitle>
@@ -47,12 +47,12 @@ export function ConfirmacaoImportante({
             }}
             className={cn(
               "tocavel min-h-toque-grande rounded-2xl px-4 text-xl font-bold",
-              perigo ? "bg-perigo text-white" : "bg-acao text-acao-texto",
+              perigo ? "brilho bg-perigo text-white shadow-[0_14px_28px_-12px_rgb(200_30_30/0.7)]" : "brilho bg-acao text-acao-texto shadow-[0_14px_28px_-12px_rgb(19_134_90/0.75)]",
             )}
           >
             {textoConfirmar}
           </button>
-          <button type="button" onClick={() => onAberto(false)} className="tocavel min-h-toque rounded-2xl bg-superficie px-4 text-lg font-bold">
+          <button type="button" onClick={() => onAberto(false)} className="tocavel cartao min-h-toque rounded-2xl px-4 text-lg font-bold">
             {textoCancelar}
           </button>
         </div>

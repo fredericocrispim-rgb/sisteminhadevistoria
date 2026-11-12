@@ -11,7 +11,7 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
   const { bloqueado } = await exigirOficina({ permitirBloqueado: true });
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col pb-24">{children}</div>
+      <div className="flex flex-1 flex-col pb-32">{children}</div>
       {!bloqueado && <MenuInferior />}
     </div>
   );

@@ -14,9 +14,9 @@ export type OpcaoSeletor<T extends string> = {
 };
 
 const corMarcado: Record<Tom, string> = {
-  bom: "bg-acao text-acao-texto shadow-[0_8px_20px_-10px_rgb(19_134_90/0.8)]",
-  ruim: "bg-perigo text-white shadow-[0_8px_20px_-10px_rgb(200_30_30/0.8)]",
-  neutro: "bg-oficina text-oficina-texto shadow-[0_8px_20px_-10px_rgb(37_99_235/0.8)]",
+  bom: "brilho bg-acao text-acao-texto shadow-[0_8px_20px_-10px_rgb(19_134_90/0.8)]",
+  ruim: "brilho bg-perigo text-white shadow-[0_8px_20px_-10px_rgb(200_30_30/0.8)]",
+  neutro: "brilho bg-oficina text-oficina-texto shadow-[0_8px_20px_-10px_rgb(37_99_235/0.8)]",
 };
 
 /**
@@ -77,7 +77,7 @@ export function SeletorGrande<T extends string>({
               className={cn(
                 "tocavel flex items-center justify-center gap-2 rounded-2xl px-2 text-lg font-extrabold [&_svg]:size-7",
                 compacto ? "min-h-toque" : "min-h-[4.5rem]",
-                marcado ? corMarcado[o.tom ?? "neutro"] : "bg-superficie text-foreground",
+                marcado ? corMarcado[o.tom ?? "neutro"] : "cartao text-foreground hover:bg-superficie",
                 erro && !marcado && "ring-2 ring-perigo",
               )}
             >

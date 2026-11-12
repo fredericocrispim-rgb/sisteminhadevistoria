@@ -19,7 +19,7 @@ export function EstadoVazio({
 }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-      <div className="grid size-20 place-items-center rounded-full bg-superficie text-muted-foreground [&_svg]:size-10">
+      <div className="icone-chip grid size-24 rotate-[-4deg] place-items-center rounded-[1.75rem] bg-oficina-clara text-oficina [&_svg]:size-12 [&_svg]:rotate-[4deg]">
         {icone ?? <Inbox aria-hidden />}
       </div>
       <p className="text-xl font-extrabold">{titulo}</p>
@@ -55,8 +55,10 @@ export function AvisoSemInternet({ pendentes = 0, forcar }: { pendentes?: number
   const semInternet = useSemInternet();
   if (!semInternet && !forcar && pendentes === 0) return null;
   return (
-    <div role="status" className="flex items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3 text-atencao-texto">
-      <CloudOff aria-hidden className="size-7 shrink-0" />
+    <div role="status" className="flex items-center gap-3 rounded-2xl bg-atencao-clara px-3 py-3 text-atencao-texto ring-1 ring-atencao/30">
+      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-atencao text-atencao-texto [&_svg]:size-6">
+        <CloudOff aria-hidden strokeWidth={2.4} />
+      </span>
       <div className="flex flex-col">
         <span className="text-lg font-extrabold">{textos.avisos.semInternet}</span>
         <span className="text-base font-semibold">

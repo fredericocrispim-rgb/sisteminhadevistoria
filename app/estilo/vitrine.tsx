@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowRight,
@@ -8,11 +8,11 @@ import {
   CarFront,
   ChevronRight,
   ClipboardList,
-  Home,
+  House,
+  LayoutGrid,
   LogIn,
   LogOut,
-  Menu,
-  ParkingSquare,
+  PencilLine,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -21,6 +21,7 @@ import {
   AjudaRapida,
   AvisoSemInternet,
   BarraEtapas,
+  BotaoGigante,
   BotaoModoSol,
   BotaoPrincipal,
   BotaoSecundario,
@@ -31,6 +32,7 @@ import {
   CartaoFoto,
   ConfirmacaoImportante,
   EstadoVazio,
+  IconeChip,
   MedidorCombustivel,
   PagarPix,
   SeletorGrande,
@@ -73,7 +75,7 @@ export function VitrineEstilo() {
         }
       }}
     >
-      <nav aria-label="Prévia das telas" className="border-b bg-superficie">
+      <nav aria-label="Prévia das telas" className="sticky top-0 z-30 border-b border-foreground/5 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-xl gap-1 overflow-x-auto p-2">
           {telas.map((t) => (
             <button
@@ -86,7 +88,7 @@ export function VitrineEstilo() {
               aria-pressed={tela === t.id}
               className={cn(
                 "tocavel min-h-11 shrink-0 rounded-full px-4 text-base font-bold",
-                tela === t.id ? "bg-foreground text-background" : "text-muted-foreground",
+                tela === t.id ? "bg-oficina text-oficina-texto shadow-[0_8px_18px_-10px_rgb(37_99_235/0.9)]" : "text-muted-foreground hover:bg-superficie",
               )}
             >
               {t.nome}
@@ -110,27 +112,37 @@ export function VitrineEstilo() {
 function TelaInicio() {
   return (
     <>
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-3 px-4 pt-4 pb-28">
+      <main className="entrar-tela mx-auto flex w-full max-w-xl flex-1 flex-col gap-3 px-4 pt-4 pb-32">
         <header className="flex items-center gap-3 py-1">
-          <div className="grid size-12 place-items-center rounded-2xl bg-oficina text-xl font-extrabold text-oficina-texto">AS</div>
+          <div className="brilho grid size-12 place-items-center rounded-2xl bg-oficina text-xl font-extrabold text-oficina-texto">AS</div>
           <p className="text-xl leading-tight font-extrabold">Auto Center Silva</p>
         </header>
 
-        <BotaoGigante href="#" cor="bg-oficina text-oficina-texto" icone={<LogIn aria-hidden />} texto={textos.vistoria.chegadaBotao} />
-        <BotaoGigante href="#" cor="bg-acao text-acao-texto" icone={<LogOut aria-hidden />} texto={textos.vistoria.entregaBotao} />
+        <BotaoGigante href="#" cor="oficina" icone={<LogIn aria-hidden />}>
+          {textos.vistoria.chegadaBotao}
+        </BotaoGigante>
+        <BotaoGigante href="#" cor="acao" icone={<LogOut aria-hidden />}>
+          {textos.vistoria.entregaBotao}
+        </BotaoGigante>
 
-        <a href="#" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-4 py-3">
-          <span className="flex-1">
+        <a href="#" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-atencao-clara px-3 py-3 ring-1 ring-atencao/30">
+          <IconeChip tom="atencao" className="bg-atencao">
+            <PencilLine />
+          </IconeChip>
+          <span className="min-w-0 flex-1">
             <span className="block text-base font-bold text-atencao-texto">{textos.vistoria.continuar}</span>
             <span className="block font-mono text-2xl font-extrabold tracking-wider">ABC1D23</span>
           </span>
-          <ChevronRight aria-hidden className="size-8 text-atencao-texto" />
+          <ChevronRight aria-hidden className="size-7 shrink-0 text-atencao-texto" />
         </a>
 
-        <a href="#" className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-superficie px-4">
-          <ParkingSquare aria-hidden className="size-8 text-muted-foreground" />
+        <a href="#" className="tocavel cartao flex min-h-toque-grande items-center gap-3 rounded-2xl px-3 py-3">
+          <IconeChip tom="oficina">
+            <CarFront />
+          </IconeChip>
           <span className="flex-1 text-xl font-bold">{textos.menu.veiculosNoPatio}</span>
-          <span className="grid min-w-10 place-items-center rounded-full bg-foreground px-3 py-1 text-lg font-extrabold text-background">3</span>
+          <span className="grid min-w-10 place-items-center rounded-full bg-oficina px-3 py-1 text-lg font-extrabold text-oficina-texto tabular-nums">3</span>
+          <ChevronRight aria-hidden className="size-6 shrink-0 text-muted-foreground" />
         </a>
       </main>
       <MenuInferior />
@@ -138,44 +150,28 @@ function TelaInicio() {
   );
 }
 
-function BotaoGigante({ href, cor, icone, texto }: { href: string; cor: string; icone: ReactNode; texto: string }) {
-  return (
-    <a
-      href={href}
-      className={cn(
-        "tocavel flex min-h-[30svh] flex-col items-center justify-center gap-3 rounded-3xl bg-linear-to-b from-white/15 to-transparent px-4",
-        "shadow-[0_18px_36px_-18px_rgb(15_23_42/0.55)] [&_svg]:size-14",
-        cor,
-      )}
-    >
-      <span className="grid size-24 place-items-center rounded-full bg-white/15 ring-1 ring-white/25">{icone}</span>
-      <span className="text-[1.75rem] font-extrabold tracking-wide">{texto}</span>
-    </a>
-  );
-}
-
 function MenuInferior() {
   const itens = [
-    { nome: textos.menu.inicio, icone: <Home aria-hidden />, ativo: true },
-    { nome: textos.menu.vistorias, icone: <ClipboardList aria-hidden /> },
-    { nome: textos.menu.patio, icone: <CarFront aria-hidden /> },
-    { nome: textos.menu.mais, icone: <Menu aria-hidden /> },
+    { nome: textos.menu.inicio, icone: House, ativo: true },
+    { nome: textos.menu.vistorias, icone: ClipboardList },
+    { nome: textos.menu.patio, icone: CarFront },
+    { nome: textos.menu.mais, icone: LayoutGrid },
   ];
   return (
-    <nav aria-label="Menu" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto grid max-w-xl grid-cols-4">
-        {itens.map((i) => (
-          <li key={i.nome}>
+    <nav aria-label="Menu" className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <ul className="mx-auto grid max-w-xl grid-cols-4 gap-1 rounded-[1.75rem] bg-background/85 p-1.5 shadow-[0_18px_40px_-14px_rgb(15_23_42/0.35)] ring-1 ring-foreground/8 backdrop-blur-xl backdrop-saturate-150">
+        {itens.map(({ nome, icone: Icone, ativo }) => (
+          <li key={nome}>
             <a
               href="#"
-              aria-current={i.ativo ? "page" : undefined}
+              aria-current={ativo ? "page" : undefined}
               className={cn(
-                "flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 text-sm font-bold [&_svg]:size-7",
-                i.ativo ? "text-oficina" : "text-muted-foreground",
+                "tocavel flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-[1.35rem] text-sm font-bold",
+                ativo ? "bg-oficina-clara text-oficina" : "text-muted-foreground",
               )}
             >
-              {i.icone}
-              {i.nome}
+              <Icone aria-hidden className="size-6" strokeWidth={ativo ? 2.5 : 2} />
+              {nome}
             </a>
           </li>
         ))}
@@ -346,12 +342,12 @@ function TelaPecas() {
 
       <ul className="flex flex-col gap-2">
         {itens.map((o, i) => (
-          <li key={o} className="flex items-center gap-2 rounded-2xl bg-superficie py-1 pr-1 pl-4 text-lg font-semibold">
+          <li key={o} className="cartao flex items-center gap-2 rounded-2xl py-1 pr-1 pl-4 text-lg font-semibold">
             <span className="flex-1">{o}</span>
             <button
               type="button"
               onClick={() => apagar(i)}
-              className="tocavel inline-flex min-h-toque items-center gap-1.5 rounded-xl px-3 font-bold text-perigo [&_svg]:size-6"
+              className="tocavel inline-flex min-h-12 items-center gap-1.5 rounded-xl bg-perigo-clara px-3 font-bold text-perigo [&_svg]:size-5"
             >
               <Trash2 aria-hidden />
               Apagar

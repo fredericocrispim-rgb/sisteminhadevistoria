@@ -11,7 +11,7 @@ import { textos } from "@/lib/textos";
 export function AjudaRapida({ titulo, dica, videoUrl }: { titulo: string; dica: string; videoUrl?: string }) {
   return (
     <Dialog>
-      <DialogTrigger className="tocavel inline-flex min-h-toque shrink-0 items-center gap-1.5 rounded-2xl px-3 text-lg font-bold text-oficina [&_svg]:size-7">
+      <DialogTrigger className="tocavel my-1 inline-flex min-h-12 shrink-0 items-center gap-1.5 rounded-full bg-oficina-clara px-4 text-lg font-bold text-oficina [&_svg]:size-6">
         <CircleHelp aria-hidden />
         {textos.geral.ajuda}
       </DialogTrigger>

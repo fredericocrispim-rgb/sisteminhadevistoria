@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronRight, Gift, ImageIcon, Users, KeyRound, LogOut, QrCode, ShieldCheck } from "lucide-react";
-import { BotaoModoSol, InstalarApp } from "@/components/vf";
+import { BotaoModoSol, IconeChip, InstalarApp, type TomIcone } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { textos } from "@/lib/textos";
 import { sair } from "./acoes";
@@ -14,45 +14,65 @@ export default async function Mais() {
   const gestor = papel === "dono" || papel === "gerente";
   const nomePapel = { dono: "Dono", gerente: "Gerente", vistoriador: "Vistoriador" }[papel];
 
+  const nome = usuario.nome ?? usuario.email ?? "";
+  const iniciais =
+    nome
+      .split(/[\s@.]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "?";
+
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-3 px-4 pt-6">
+    <main className="entrar-tela mx-auto flex w-full max-w-xl flex-col gap-3 px-4 pt-6">
       <h1 className="text-[1.75rem] font-extrabold">{textos.menu.mais}</h1>
 
-      <div className="rounded-2xl bg-superficie px-4 py-3">
-        <p className="text-lg font-extrabold">{usuario.nome ?? usuario.email}</p>
-        <p className="text-base text-muted-foreground">
-          {nomePapel} · {empresa.nome_fantasia}
-        </p>
-        <p className="text-base break-all text-muted-foreground">{usuario.email}</p>
+      {/* Quem está usando: bolinha com as iniciais */}
+      <div className="cartao flex items-center gap-3 rounded-3xl p-3">
+        <span
+          aria-hidden
+          className="brilho grid size-14 shrink-0 place-items-center rounded-2xl bg-oficina text-xl font-extrabold text-oficina-texto shadow-[0_10px_20px_-10px_rgb(37_99_235/0.8)]"
+        >
+          {iniciais}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-extrabold">{nome}</p>
+          <p className="flex flex-wrap items-center gap-x-2 text-base text-muted-foreground">
+            <span className="rounded-full bg-oficina-clara px-2 py-0.5 text-sm font-bold text-oficina">{nomePapel}</span>
+            <span className="truncate">{empresa.nome_fantasia}</span>
+          </p>
+          <p className="truncate text-sm text-muted-foreground">{usuario.email}</p>
+        </div>
       </div>
 
-      {gestor && (
-        <>
-          <Item href="/equipe" icone={<Users aria-hidden />}>
-            {textos.menu.equipe}
-          </Item>
-          {papel === "dono" && (
-            <Item href="/plano" icone={<QrCode aria-hidden />}>
-              {textos.menu.meuPlano}
+      <ul className="flex flex-col gap-2.5">
+        {gestor && (
+          <>
+            <Item href="/equipe" tom="oficina" icone={<Users />}>
+              {textos.menu.equipe}
             </Item>
-          )}
-          <Item href="/cadastro?passo=2" icone={<ImageIcon aria-hidden />}>
-            Logo da empresa
+            {papel === "dono" && (
+              <Item href="/plano" tom="acao" icone={<QrCode />}>
+                {textos.menu.meuPlano}
+              </Item>
+            )}
+            <Item href="/cadastro?passo=2" tom="oficina" icone={<ImageIcon />}>
+              Logo da empresa
+            </Item>
+            <Item href="/indicar" tom="atencao" icone={<Gift />}>
+              {textos.indicar.menu}
+            </Item>
+          </>
+        )}
+        {superadmin && (
+          <Item href="/admin" tom="neutro" icone={<ShieldCheck />}>
+            Painel do administrador
           </Item>
-          <Item href="/indicar" icone={<Gift aria-hidden />}>
-            {textos.indicar.menu}
-          </Item>
-        </>
-      )}
-      {superadmin && (
-        <Item href="/admin" icone={<ShieldCheck aria-hidden />}>
-          Painel do administrador
+        )}
+        <Item href="/nova-senha" tom="neutro" icone={<KeyRound />}>
+          Trocar minha senha
         </Item>
-      )}
-
-      <Item href="/nova-senha" icone={<KeyRound aria-hidden />}>
-        Trocar minha senha
-      </Item>
+      </ul>
 
       <InstalarApp podeFechar={false} />
 
@@ -61,21 +81,23 @@ export default async function Mais() {
       <form action={sair} className="mt-4">
         <button
           type="submit"
-          className="tocavel flex min-h-toque w-full items-center justify-center gap-2 rounded-2xl px-4 text-lg font-bold text-perigo [&_svg]:size-6"
+          className="tocavel flex min-h-toque w-full items-center justify-center gap-2 rounded-2xl bg-perigo-clara px-4 text-lg font-bold text-perigo [&_svg]:size-6"
         >
-          <LogOut aria-hidden /> {textos.entrar.sair}
+          <LogOut aria-hidden strokeWidth={2.4} /> {textos.entrar.sair}
         </button>
       </form>
     </main>
   );
 }
 
-function Item({ href, icone, children }: { href: string; icone: ReactNode; children: ReactNode }) {
+function Item({ href, icone, tom, children }: { href: string; icone: ReactNode; tom: TomIcone; children: ReactNode }) {
   return (
-    <Link href={href} className="tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl bg-superficie px-4 [&_svg]:size-7">
-      {icone}
-      <span className="flex-1 text-lg font-bold">{children}</span>
-      <ChevronRight aria-hidden className="text-muted-foreground" />
-    </Link>
+    <li>
+      <Link href={href} className="tocavel cartao flex min-h-toque-grande items-center gap-3 rounded-2xl px-3 py-2">
+        <IconeChip tom={tom}>{icone}</IconeChip>
+        <span className="flex-1 text-lg font-bold">{children}</span>
+        <ChevronRight aria-hidden className="size-6 text-muted-foreground" />
+      </Link>
+    </li>
   );
 }

@@ -19,15 +19,17 @@ export function BarraEtapas({
   ajuda?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-30 bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-foreground/5 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex max-w-xl items-center gap-1 px-2 pt-2">
         {onVoltar && (
           <button
             type="button"
             onClick={onVoltar}
-            className="tocavel inline-flex min-h-toque shrink-0 items-center gap-1.5 rounded-2xl px-3 text-lg font-bold [&_svg]:size-7"
+            className="tocavel inline-flex min-h-toque shrink-0 items-center gap-2 rounded-2xl pr-3 pl-1 text-lg font-bold"
           >
-            <ArrowLeft aria-hidden />
+            <span className="cartao grid size-11 place-items-center rounded-full [&_svg]:size-6">
+              <ArrowLeft aria-hidden strokeWidth={2.4} />
+            </span>
             {textos.geral.voltar}
           </button>
         )}
@@ -36,7 +38,7 @@ export function BarraEtapas({
       </div>
       <div className="mx-auto flex max-w-xl items-end justify-between gap-3 px-4 pt-1" aria-live="polite">
         <h1 className="text-[1.75rem] leading-tight font-extrabold">{etapas[atual - 1]}</h1>
-        <span className="mb-1 shrink-0 rounded-full bg-superficie px-3 py-0.5 text-base font-bold">
+        <span className="mb-1 shrink-0 rounded-full bg-oficina-clara px-3 py-0.5 text-base font-extrabold text-oficina tabular-nums">
           <span className="sr-only">Passo </span>
           {atual} de {etapas.length}
         </span>
@@ -46,7 +48,10 @@ export function BarraEtapas({
           <li
             key={e}
             aria-current={i + 1 === atual ? "step" : undefined}
-            className={cn("h-1.5 flex-1 rounded-full", i + 1 <= atual ? (i + 1 < atual ? "bg-acao" : "bg-oficina") : "bg-superficie")}
+            className={cn(
+              "h-2 flex-1 rounded-full transition-colors duration-300",
+              i + 1 <= atual ? (i + 1 < atual ? "bg-acao" : "bg-oficina shadow-[0_0_0_3px_rgb(37_99_235/0.15)]") : "bg-foreground/10",
+            )}
           >
             <span className="sr-only">
               {e}
