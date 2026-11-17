@@ -4,16 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BarraEtapas } from "@/components/vf";
 import { textos } from "@/lib/textos";
-import { PassoVoce } from "./passo-voce";
+import { PassoVoce, type PerguntaVoce } from "./passo-voce";
 import { PassoLogo } from "./passo-logo";
 import { TelaPronto } from "./tela-pronto";
 
 export type EmpresaCadastro = { id: string; nome: string; logo: string | null };
 export type UsuarioCadastro = { nome: string; whatsapp: string; email: string };
 
-const etapas = [...textos.cadastro.etapas];
+/** Uma pergunta por tela: o título de cada tela é a própria pergunta. */
+const perguntas = [...textos.cadastro.perguntas];
+const TELA_LOGO = perguntas.length; // 4
+const TELA_PRONTO = TELA_LOGO + 1;
 
-/** Cadastro em 2 passos: (1) você e a oficina, (2) logo. */
+/**
+ * Cadastro em 4 telas: (1) seu nome, (2) seu WhatsApp, (3) nome da oficina, (4) logo.
+ * `passoInicial` vem da página: 1 = começar do início, 2 = só falta a logo.
+ */
 export function Assistente({
   passoInicial,
   usuario,
@@ -29,11 +35,12 @@ export function Assistente({
   somenteEdicao: boolean;
 }) {
   const router = useRouter();
-  const [passo, setPasso] = useState(passoInicial);
+  const [tela, setTela] = useState(passoInicial >= 2 ? TELA_LOGO : 1);
   const [empresa, setEmpresa] = useState(empresaInicial);
+  const [voce, setVoce] = useState(usuario);
 
   function ir(p: number) {
-    setPasso(p);
+    setTela(p);
     window.scrollTo(0, 0);
   }
 
@@ -42,31 +49,39 @@ export function Assistente({
     router.refresh();
   }
 
-  if (passo === 3 && empresa) return <TelaPronto empresa={empresa} diasTeste={diasTeste} />;
+  if (tela === TELA_PRONTO && empresa) return <TelaPronto empresa={empresa} diasTeste={diasTeste} />;
 
-  const voltar = somenteEdicao ? terminarEdicao : passo === 2 ? () => ir(1) : undefined;
+  const voltar = somenteEdicao ? terminarEdicao : tela > 1 ? () => ir(tela - 1) : undefined;
 
   return (
     <>
-      <BarraEtapas etapas={etapas} atual={passo} onVoltar={voltar} />
+      {somenteEdicao ? (
+        <BarraEtapas etapas={[textos.cadastro.logo.escolher]} atual={1} onVoltar={voltar} />
+      ) : (
+        <BarraEtapas etapas={perguntas} atual={tela} onVoltar={voltar} />
+      )}
       <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-2">
-        {passo === 1 && (
+        {/* Fica montado nas 3 primeiras telas para guardar o que já foi digitado */}
+        {tela < TELA_LOGO && (
           <PassoVoce
-            inicial={usuario}
+            pergunta={tela as PerguntaVoce}
+            inicial={voce}
             oficinaInicial={empresa?.nome ?? ""}
-            aoTerminar={(e) => {
+            aoAvancar={ir}
+            aoTerminar={(e, dados) => {
+              setVoce((atual) => ({ ...atual, ...dados }));
               setEmpresa((atual) => ({ ...e, logo: atual?.logo ?? null }));
-              ir(2);
+              ir(TELA_LOGO);
             }}
           />
         )}
-        {passo === 2 && empresa && (
+        {tela === TELA_LOGO && empresa && (
           <PassoLogo
             empresa={empresa}
             aoTerminar={(e) => {
               setEmpresa(e);
               if (somenteEdicao) terminarEdicao();
-              else ir(3);
+              else ir(TELA_PRONTO);
             }}
           />
         )}

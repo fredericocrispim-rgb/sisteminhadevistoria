@@ -182,6 +182,11 @@ export const textos = {
   conta: {
     entrarTitulo: "Entrar",
     criarTitulo: "Criar conta",
+    // Criar conta: uma pergunta por tela
+    perguntaEmail: "Qual é o seu e-mail?",
+    perguntaSenha: "Crie uma senha para entrar",
+    emailDica: "É com ele que você entra no sistema",
+    trocarEmail: "Trocar",
     email: "Seu e-mail",
     senha: "Senha",
     novaSenha: "Crie uma senha",
@@ -245,10 +250,14 @@ export const textos = {
   },
 
   cadastro: {
-    etapas: ["Você e a oficina", "Logo"],
+    // Uma pergunta por tela: o título de cada tela é a pergunta
+    perguntas: ["Qual é o seu nome?", "Qual é o seu WhatsApp?", "Qual é o nome da oficina?", "Logo da oficina"],
+    proximo: "Próximo",
     voce: {
       nome: "Seu nome",
       whatsapp: "Seu WhatsApp",
+      whatsappDica: "Com DDD. É por ele que falamos com você.",
+      aceiteAoContinuar: "Ao tocar em Próximo, você aceita os",
       aceite: "Li e aceito os",
       termos: "Termos de Uso",
       e: "e a",
@@ -400,6 +409,17 @@ export const textos = {
       `O plano inclui o dono + ${inclusos - 1} pessoas. Cada pessoa a mais: + ${extra} por mês.`,
     hoje: (pessoas: number, valor: string) => `Hoje: ${pessoas} ${pessoas === 1 ? "pessoa" : "pessoas"} · ${valor} por mês`,
     adicionar: "Adicionar pessoa",
+    // Adicionar pessoa: uma pergunta por tela ({nome} = primeiro nome da pessoa)
+    perguntas: ["Qual é o nome da pessoa?", "Qual é o WhatsApp de {nome}?", "Qual é o e-mail de {nome}?", "O que {nome} vai fazer?", "Confira e cadastre"],
+    pessoa: "a pessoa",
+    whatsappDica: "Com DDD. O acesso vai para este WhatsApp.",
+    emailDica: "É com ele que a pessoa entra no sistema",
+    erroNome: "Coloque o nome da pessoa",
+    erroEmail: "E-mail incompleto. Confira.",
+    erroEmailFalta: "Coloque o e-mail",
+    trocar: "Trocar",
+    fechar: "Cancelar",
+    senhaAutomatica: "A senha é criada sozinha e vai na mensagem do WhatsApp.",
     nome: "Nome da pessoa",
     papel: "O que ela faz",
     vistoriador: "Vistoriador",

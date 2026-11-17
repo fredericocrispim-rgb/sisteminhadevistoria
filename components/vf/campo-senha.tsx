@@ -13,6 +13,7 @@ export function CampoSenha({
   onValor,
   erro,
   nova,
+  autoFocus,
 }: {
   rotulo: string;
   dica?: string;
@@ -21,6 +22,8 @@ export function CampoSenha({
   erro?: string;
   /** Senha nova (cadastro): o celular pode sugerir uma senha. */
   nova?: boolean;
+  /** Já abre com o teclado (telas de uma pergunta só). */
+  autoFocus?: boolean;
 }) {
   const [ver, setVer] = useState(false);
   return (
@@ -36,6 +39,8 @@ export function CampoSenha({
         valor={valor}
         onValor={onValor}
         erro={erro}
+        autoFocus={autoFocus}
+        enterKeyHint="go"
         className="pr-32"
       />
       <button

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, KeyRound, LogIn, Mail, MessageCircle, UserPlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, KeyRound, LogIn, Mail, MessageCircle, UserPlus } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, Campo, CampoSenha, LogoProduto, MensagemErroCampo } from "@/components/vf";
 import { criarClienteNavegador } from "@/lib/supabase/cliente";
 import { telefoneParaWhatsapp } from "@/lib/formatos";
@@ -49,6 +49,10 @@ export function FormularioEntrar({
   const [carregando, setCarregando] = useState(false);
   const [porEmail, setPorEmail] = useState(emailPronto);
   const [linkEnviado, setLinkEnviado] = useState(false);
+  // Criar conta: uma pergunta por tela (1 = e-mail, 2 = senha)
+  const [etapaCriar, setEtapaCriar] = useState<1 | 2>(1);
+  const pedeEmail = modo !== "criar" || etapaCriar === 1;
+  const pedeSenha = modo !== "criar" || etapaCriar === 2;
 
   const emailLimpo = email.trim().toLowerCase();
   const erroEmail = conferir && !emailValido(email) ? t.erros.emailInvalido : undefined;
@@ -60,6 +64,7 @@ export function FormularioEntrar({
     setInfo(undefined);
     setConferir(false);
     setLinkEnviado(false);
+    setEtapaCriar(1);
   }
 
   async function entrarComSenha() {
@@ -78,6 +83,12 @@ export function FormularioEntrar({
     setConferir(true);
     setErro(undefined);
     setInfo(undefined);
+    if (modo === "criar" && etapaCriar === 1) {
+      if (!emailValido(email)) return;
+      setConferir(false);
+      setEtapaCriar(2);
+      return;
+    }
     if (!emailValido(email) || senha.length < 6) return;
     setCarregando(true);
     if (modo === "criar") {
@@ -192,7 +203,15 @@ export function FormularioEntrar({
           enviar();
         }}
       >
-        <h1 className="text-[2rem] leading-tight font-extrabold">{modo === "entrar" ? t.entrarTitulo : t.criarTitulo}</h1>
+        {modo === "criar" && (
+          <span className="-mb-4 self-start rounded-full bg-oficina-clara px-3 py-0.5 text-base font-extrabold text-oficina tabular-nums">
+            <span className="sr-only">Passo </span>
+            {etapaCriar} de 2
+          </span>
+        )}
+        <h1 className="text-[2rem] leading-tight font-extrabold">
+          {modo === "entrar" ? t.entrarTitulo : etapaCriar === 1 ? t.perguntaEmail : t.perguntaSenha}
+        </h1>
 
         {info && (
           <p className="flex items-center gap-2 rounded-2xl bg-acao-clara px-4 py-3 text-lg font-bold text-acao">
@@ -200,31 +219,54 @@ export function FormularioEntrar({
           </p>
         )}
 
-        <Campo
-          rotulo={t.email}
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="nome@email.com"
-          valor={email}
-          onValor={setEmail}
-          erro={erroEmail}
-        />
-        <CampoSenha
-          rotulo={modo === "criar" ? t.novaSenha : t.senha}
-          dica={modo === "criar" ? t.senhaDica : undefined}
-          nova={modo === "criar"}
-          valor={senha}
-          onValor={setSenha}
-          erro={erroSenha}
-        />
+        {pedeEmail && (
+          <Campo
+            key={`email-${modo}`}
+            rotulo={t.email}
+            dica={modo === "criar" ? t.emailDica : undefined}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint={modo === "criar" ? "next" : undefined}
+            autoFocus={modo === "criar"}
+            placeholder="nome@email.com"
+            valor={email}
+            onValor={setEmail}
+            erro={erroEmail}
+          />
+        )}
+        {modo === "criar" && etapaCriar === 2 && (
+          <p className="-mt-2 flex flex-wrap items-center gap-x-2 text-lg">
+            <span className="text-muted-foreground">{t.email}:</span>
+            <strong className="break-all">{emailLimpo}</strong>
+            <button type="button" onClick={() => setEtapaCriar(1)} className="tocavel min-h-toque font-bold text-oficina underline underline-offset-4">
+              {t.trocarEmail}
+            </button>
+          </p>
+        )}
+        {pedeSenha && (
+          <CampoSenha
+            key={`senha-${modo}`}
+            rotulo={t.senha}
+            dica={modo === "criar" ? t.senhaDica : undefined}
+            nova={modo === "criar"}
+            autoFocus={modo === "criar"}
+            valor={senha}
+            onValor={setSenha}
+            erro={erroSenha}
+          />
+        )}
 
         {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
 
-        <BotaoPrincipal type="submit" carregando={carregando} icone={modo === "entrar" ? <LogIn aria-hidden /> : <UserPlus aria-hidden />}>
-          {modo === "entrar" ? t.entrar : t.criar}
+        <BotaoPrincipal
+          type="submit"
+          carregando={carregando}
+          icone={modo === "entrar" ? <LogIn aria-hidden /> : etapaCriar === 1 ? <ArrowRight aria-hidden /> : <UserPlus aria-hidden />}
+        >
+          {modo === "entrar" ? t.entrar : etapaCriar === 1 ? textos.cadastro.proximo : t.criar}
         </BotaoPrincipal>
 
         <div className="flex flex-col gap-2">

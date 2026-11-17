@@ -834,7 +834,6 @@ function DetalhesOficina({
           avisoPlano={!o.gratuita && o.vagas > 0 ? textos.equipe.dentroDoPlano(o.vagas) : null}
           avisoPreco={!o.gratuita && o.valorComMaisUm > o.valor ? textos.equipe.comEssaPessoa(formatarReais(o.valorComMaisUm)) : null}
           cadastrar={(d) => cadastrarPessoaAdmin(o.id, d)}
-          senhaNaMensagem
         />
         <ul className="flex flex-col gap-2">
           {o.equipe.map((p) => (
