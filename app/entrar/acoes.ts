@@ -4,25 +4,25 @@ import { z } from "zod";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { textos } from "@/lib/textos";
 import { emailConfigurado, gerarLinkCriarSenha, mandarEmail } from "@/lib/senha";
+import { SENHA_PADRAO } from "@/lib/senha-padrao";
 
 const t = textos.conta;
 
 const esquema = z.object({
   email: z.string().trim().toLowerCase().email(t.erros.emailInvalido).max(160),
-  senha: z.string().min(6, t.erros.senhaCurta).max(72),
 });
 
 /**
  * Cria a conta direto no servidor, JÁ CONFIRMADA: não manda e-mail nenhum
  * (o Supabase grátis só deixa mandar poucos e-mails por hora).
- * Depois disso a tela entra com e-mail e senha normalmente.
+ * Toda conta nova começa com a senha padrão (SENHA_PADRAO); a pessoa troca depois em Mais, se quiser.
  */
 export async function criarConta(dados: z.input<typeof esquema>): Promise<{ ok: true } | { ok: false; erro: string }> {
   const v = esquema.safeParse(dados);
   if (!v.success) return { ok: false, erro: v.error.issues[0].message };
   const { error } = await criarClienteAdmin().auth.admin.createUser({
     email: v.data.email,
-    password: v.data.senha,
+    password: SENHA_PADRAO,
     email_confirm: true,
   });
   if (error) {

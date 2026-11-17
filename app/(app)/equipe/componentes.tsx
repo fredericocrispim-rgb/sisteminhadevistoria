@@ -8,6 +8,7 @@ import { BotaoPrincipal, BotaoSecundario, Campo, CampoTelefone, ConfirmacaoImpor
 import { textos } from "@/lib/textos";
 import { formatarTelefone, telefoneParaWhatsapp, telefoneValido } from "@/lib/formatos";
 import { cadastrarUsuario, cancelarConvite, tirarDaEquipe } from "./acoes";
+import { SENHA_PADRAO } from "@/lib/senha-padrao";
 
 const t = textos.equipe;
 const whatsapp = (mensagem: string) => `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
@@ -122,19 +123,13 @@ export function ConvitePendente({ id, nome, papel, mensagem }: { id: string; nom
 type Papel = "vistoriador" | "gerente";
 type DadosCadastro = Parameters<typeof cadastrarUsuario>[0];
 
-/** Senha fácil de digitar no celular, ex.: vistoria4821. */
-function senhaFacil() {
-  const n = new Uint32Array(1);
-  crypto.getRandomValues(n);
-  return `vistoria${String(n[0] % 10000).padStart(4, "0")}`;
-}
 
 /** 1 nome · 2 WhatsApp · 3 e-mail · 4 o que faz · 5 conferir e cadastrar */
 const TELAS = t.perguntas.length;
 
 /**
  * Cadastrar pessoa direto, UMA pergunta por tela: nome, WhatsApp, e-mail, o que ela faz e conferir.
- * A senha é criada pelo sistema e vai junto na mensagem do WhatsApp: quem cadastra não inventa nada,
+ * A senha é a padrão (SENHA_PADRAO) e vai junto na mensagem do WhatsApp: quem cadastra não inventa nada,
  * e a pessoa entra sozinha. Usado pelo dono/gerente em /equipe e pelo administrador no /admin.
  */
 export function AdicionarPessoa({
@@ -243,7 +238,7 @@ export function AdicionarPessoa({
     if (!nomeOk) return ir(1);
     if (!zapOk) return ir(2);
     if (!emailOk) return ir(3);
-    const senha = senhaFacil();
+    const senha = SENHA_PADRAO;
     setCarregando(true);
     const r = await acaoCadastrar({ nome, whatsapp: zap, email, senha, papel, cupom });
     setCarregando(false);
