@@ -123,6 +123,11 @@ describe("o que cada evento faz", () => {
     });
     expect(acaoDoEvento({ id: "e", event: "SUBSCRIPTION_INACTIVATED", subscription: { id: "sub_1" } }).tipo).toBe("assinatura_encerrada");
   });
+  it("cartão recusado avisa (não cancela a cobrança)", () => {
+    expect(acaoDoEvento(evento({ event: "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED" })).tipo).toBe("cartao_recusado");
+    expect(acaoDoEvento(evento({ event: "PAYMENT_REPROVED_BY_RISK_ANALYSIS" })).tipo).toBe("cartao_recusado");
+    expect(acaoDoEvento(evento({ event: "PAYMENT_DELETED" })).tipo).toBe("cobranca_removida");
+  });
   it("cobrança nova fica pendente", () => {
     expect(acaoDoEvento(evento({ event: "PAYMENT_CREATED", payment: { ...cobranca, status: "PENDING" } })).tipo).toBe("cobranca");
   });

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, KeyRound, QrCode } from "lucide-react";
+import { ArrowRight, CheckCircle2, KeyRound, QrCode, Wallet } from "lucide-react";
 import { BotaoPrincipal, BotaoSecundario, InstalarApp, LogoOficina } from "@/components/vf";
 import { SENHA_PADRAO } from "@/lib/senha-padrao";
 import { textos } from "@/lib/textos";
@@ -14,12 +14,22 @@ const t = textos.cadastro.pronto;
  * Fim do cadastro, antes do pagamento: senha provisória em vermelho bem destacada,
  * "Pagar pelo Pix" (abre o QR Code) e, logo abaixo, "Pular para o teste" (vai para o Início).
  */
-export function TelaPronto({ empresa, diasTeste }: { empresa: EmpresaCadastro; diasTeste: number }) {
+export function TelaPronto({
+  empresa,
+  diasTeste,
+  pagamentoAutomatico,
+}: {
+  empresa: EmpresaCadastro;
+  diasTeste: number;
+  pagamentoAutomatico: boolean;
+}) {
   const router = useRouter();
+  // Asaas ligado: escolher Pix, cartão ou boleto (assinatura mensal). Sem Asaas: QR Code do Pix manual.
+  const pagar = pagamentoAutomatico ? "/assinar" : "/plano?aviso=1";
   useEffect(() => {
-    router.prefetch("/plano?aviso=1");
+    router.prefetch(pagar);
     router.prefetch("/inicio");
-  }, [router]);
+  }, [router, pagar]);
 
   function ir(destino: string) {
     router.push(destino);
@@ -36,7 +46,7 @@ export function TelaPronto({ empresa, diasTeste }: { empresa: EmpresaCadastro; d
       <p className="text-xl text-muted-foreground">
         {t.texto}
         <br />
-        {t.prazo(diasTeste)}
+        {pagamentoAutomatico ? t.prazoAutomatico(diasTeste) : t.prazo(diasTeste)}
       </p>
 
       {/* Senha provisória: vermelha e bem destacada (todo mundo começa com a mesma) */}
@@ -49,8 +59,8 @@ export function TelaPronto({ empresa, diasTeste }: { empresa: EmpresaCadastro; d
       </div>
 
       <div className="flex w-full flex-col gap-3">
-        <BotaoPrincipal icone={<QrCode aria-hidden />} onClick={() => ir("/plano?aviso=1")}>
-          {t.comecar}
+        <BotaoPrincipal icone={pagamentoAutomatico ? <Wallet aria-hidden /> : <QrCode aria-hidden />} onClick={() => ir(pagar)}>
+          {pagamentoAutomatico ? t.comecarAutomatico : t.comecar}
         </BotaoPrincipal>
         <BotaoSecundario icone={<ArrowRight aria-hidden />} onClick={() => ir("/inicio")}>
           {t.pularTeste}

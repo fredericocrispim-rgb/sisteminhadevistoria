@@ -22,7 +22,8 @@ export default async function Inicio() {
   const dono = papel === "dono"; // aviso do Pix e do teste grátis: só para o dono
   // Cartão no Asaas renova sozinho: só avisa se atrasar
   const cartaoAutomatico = plano.provedor === "asaas" && plano.formaPagamento === "CREDIT_CARD";
-  const avisar = dono && (plano.fase === "atrasado" || (plano.fase === "vence_logo" && !cartaoAutomatico));
+  const avisar = dono && (plano.fase === "atrasado" || plano.cartaoRecusado || (plano.fase === "vence_logo" && !cartaoAutomatico));
+  const atencao = plano.fase === "atrasado" || plano.cartaoRecusado;
   if (avisar && (await cookies()).get("vf_aviso_pix")?.value !== hojeBR()) redirect("/plano?aviso=1");
 
   const supabaseInicio = await criarClienteServidor();
@@ -114,17 +115,19 @@ export default async function Inicio() {
           href="/plano"
           className={cn(
             "tocavel flex min-h-toque-grande items-center gap-3 rounded-2xl px-3 py-3 ring-1",
-            plano.fase === "atrasado" ? "bg-atencao-clara text-atencao-texto ring-atencao/30" : "bg-oficina-clara text-oficina ring-oficina/15",
+            atencao ? "bg-atencao-clara text-atencao-texto ring-atencao/30" : "bg-oficina-clara text-oficina ring-oficina/15",
           )}
         >
           <IconeChip
-            tom={plano.fase === "atrasado" ? "atencao" : "oficina"}
-            className={plano.fase === "atrasado" ? "bg-atencao" : "bg-oficina text-oficina-texto"}
+            tom={atencao ? "atencao" : "oficina"}
+            className={atencao ? "bg-atencao" : "bg-oficina text-oficina-texto"}
           >
             {plano.status === "teste" ? <QrCode /> : <AlertTriangle />}
           </IconeChip>
           <span className="flex-1 text-lg font-extrabold">
-            {plano.status === "teste" // cadastro novo: o QR Code do Pix fica sempre a um toque
+            {plano.cartaoRecusado
+              ? textos.assinatura.recusadoAviso
+              : plano.status === "teste" // cadastro novo: o QR Code do Pix fica sempre a um toque
               ? plano.diasParaVencer === 0
                 ? "Último dia. Pagar pelo Pix"
                 : plano.diasParaVencer === 1

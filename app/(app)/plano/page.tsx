@@ -171,6 +171,16 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
           };
   }
 
+  // Cartão recusado na renovação: continua usando até vencimento + carência, com aviso para resolver
+  if (plano.cartaoRecusado && plano.fase !== "bloqueado" && plano.bloqueiaEm) {
+    situacao = {
+      icone: <AlertTriangle aria-hidden />,
+      titulo: textos.assinatura.recusadoTitulo,
+      texto: textos.assinatura.recusadoTexto(dataBR(plano.bloqueiaEm)),
+      classe: "bg-atencao-clara text-atencao-texto",
+    };
+  }
+
   const mostrarContinuar = !bloqueado && aviso === "1";
 
   return (

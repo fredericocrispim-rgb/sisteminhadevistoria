@@ -21,6 +21,7 @@ export type AcaoWebhook =
   | { tipo: "cobranca"; cobranca: CobrancaAsaas }
   | { tipo: "atrasado"; cobranca: CobrancaAsaas }
   | { tipo: "cobranca_removida"; cobranca: CobrancaAsaas }
+  | { tipo: "cartao_recusado"; cobranca: CobrancaAsaas }
   | { tipo: "estorno"; cobranca: CobrancaAsaas }
   | { tipo: "assinatura_encerrada"; assinaturaId: string }
   | { tipo: "ignorar" }
@@ -62,9 +63,11 @@ export function acaoDoEvento(e: EventoAsaas): AcaoWebhook {
     case "PAYMENT_OVERDUE":
       return c ? { tipo: "atrasado", cobranca: c } : { tipo: "desconhecido" };
     case "PAYMENT_DELETED":
+      return c ? { tipo: "cobranca_removida", cobranca: c } : { tipo: "desconhecido" };
+    // Cartão recusado: a cobrança continua em aberto; avisa e vale a tolerância de 5 dias depois do vencimento
     case "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED":
     case "PAYMENT_REPROVED_BY_RISK_ANALYSIS":
-      return c ? { tipo: "cobranca_removida", cobranca: c } : { tipo: "desconhecido" };
+      return c ? { tipo: "cartao_recusado", cobranca: c } : { tipo: "desconhecido" };
     case "PAYMENT_REFUNDED":
     case "PAYMENT_PARTIALLY_REFUNDED":
     case "PAYMENT_REFUND_IN_PROGRESS":

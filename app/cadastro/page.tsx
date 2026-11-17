@@ -5,6 +5,7 @@ import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { valorMensalidade } from "@/lib/cobranca";
 import { planosAVenda } from "@/lib/pagamentos/config";
+import { asaasLigado } from "@/lib/pagamentos/asaas";
 import { Assistente } from "./assistente";
 
 export const metadata: Metadata = { title: "Cadastro", robots: { index: false, follow: false } };
@@ -44,6 +45,8 @@ export default async function PaginaCadastro({ searchParams }: PageProps<"/cadas
       empresaInicial={ctx.empresa ? { id: ctx.empresa.id, nome: ctx.empresa.nome_fantasia, logo: ctx.empresa.logo_app_url } : null}
       diasTeste={plat?.dias_teste ?? 1}
       planos={opcoesPlano}
+      // Asaas ligado: o fim do cadastro leva para escolher Pix, cartão ou boleto (assinatura mensal)
+      pagamentoAutomatico={asaasLigado(ctx.empresa?.id ?? "")}
       somenteEdicao={somenteEdicao}
     />
   );

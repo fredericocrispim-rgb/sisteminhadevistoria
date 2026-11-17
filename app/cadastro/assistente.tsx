@@ -27,6 +27,7 @@ export function Assistente({
   empresaInicial,
   diasTeste,
   planos,
+  pagamentoAutomatico,
   somenteEdicao,
 }: {
   passoInicial: number;
@@ -35,6 +36,8 @@ export function Assistente({
   diasTeste: number;
   /** Planos à venda (Básico e, com o vídeo ligado, o Pro). */
   planos: OpcaoPlano[];
+  /** Asaas ligado: "Escolher como pagar" (Pix, cartão ou boleto) em vez do Pix manual. */
+  pagamentoAutomatico: boolean;
   /** Veio do menu "Mais" para trocar a logo: ao terminar, volta para o início. */
   somenteEdicao: boolean;
 }) {
@@ -56,7 +59,7 @@ export function Assistente({
     router.refresh();
   }
 
-  if (tela === TELA_PRONTO && empresa) return <TelaPronto empresa={empresa} diasTeste={diasTeste} />;
+  if (tela === TELA_PRONTO && empresa) return <TelaPronto empresa={empresa} diasTeste={diasTeste} pagamentoAutomatico={pagamentoAutomatico} />;
 
   const voltar = somenteEdicao ? terminarEdicao : tela > 1 ? () => ir(tela - 1) : undefined;
 

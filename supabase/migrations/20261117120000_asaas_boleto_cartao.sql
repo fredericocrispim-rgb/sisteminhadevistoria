@@ -8,7 +8,9 @@ alter table public.assinaturas
 alter table public.assinaturas
   add column if not exists cartao_token text,
   add column if not exists cartao_final text,
-  add column if not exists cartao_bandeira text;
+  add column if not exists cartao_bandeira text,
+  -- Cartão recusado na renovação: avisa a oficina (continua usando até vencimento + 5 dias). Pagou: volta a vazio.
+  add column if not exists cartao_recusado_em timestamptz;
 
 -- Webhook responde na hora e processa depois: o evento que falhou fica sem processado_em
 -- (com o erro anotado) e a rotina diária tenta de novo.

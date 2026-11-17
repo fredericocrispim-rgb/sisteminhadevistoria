@@ -104,6 +104,7 @@ export async function aplicarPagamento(c: CobrancaAsaas) {
       proximo_vencimento: proximo,
       acesso_ate: somarDias(proximo, plat?.dias_carencia ?? 5),
       forma_pagamento: formaDaAssinatura(c.billingType),
+      cartao_recusado_em: null,
       atualizado_em: new Date().toISOString(),
     })
     .eq("id", a.id);
@@ -129,6 +130,15 @@ export async function aplicarAcao(acao: AcaoWebhook) {
       await admin.from("faturas").update({ status: "vencida" }).eq("id_externo", acao.cobranca.id).eq("status", "pendente");
       // Continua usando até acesso_ate / carência (a regra de acesso cuida do bloqueio)
       if (a.status === "ativa") await admin.from("assinaturas").update({ status: "em_atraso", atualizado_em: new Date().toISOString() }).eq("id", a.id);
+      return;
+    }
+    case "cartao_recusado": {
+      const a = await acharAssinatura(acao.cobranca);
+      if (!a) return;
+      await guardarCobranca(acao.cobranca, a);
+      // Continua usando até vencimento + carência; a tela avisa para trocar o cartão ou pagar de outro jeito
+      await admin.from("assinaturas").update({ cartao_recusado_em: new Date().toISOString(), atualizado_em: new Date().toISOString() }).eq("id", a.id);
+      console.log(`Asaas: cartão recusado na cobrança ${acao.cobranca.id}`);
       return;
     }
     case "cobranca_removida":

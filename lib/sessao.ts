@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { fasePagamento, hojeBR, type FasePagamento } from "@/lib/cadastro";
+import { somarDias } from "@/lib/pagamentos/webhook";
 
 export type Papel = "dono" | "gerente" | "vistoriador";
 
@@ -95,6 +96,10 @@ export type SituacaoPlano = {
   /** Até quando usa (Asaas): vencimento do ciclo pago + carência. Assinatura cancelada usa até esta data. */
   acessoAte: string | null;
   idAssinaturaExterna: string | null;
+  /** Cartão recusado na renovação (Asaas): avisar para trocar o cartão ou pagar de outro jeito. */
+  cartaoRecusado: boolean;
+  /** Último dia de uso sem pagar (vencimento + carência). */
+  bloqueiaEm: string | null;
 };
 
 /**
@@ -112,7 +117,7 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
   const [{ data: a }, { data: plat }, { data: emp }] = await Promise.all([
     admin
       .from("assinaturas")
-      .select("status, fim_teste, proximo_vencimento, provedor, forma_pagamento, acesso_ate, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle(),
+      .select("status, fim_teste, proximo_vencimento, provedor, forma_pagamento, acesso_ate, id_assinatura_externa, cartao_recusado_em").eq("empresa_id", empresaId).maybeSingle(),
     admin.from("plataforma").select("dias_carencia").single(),
     admin.from("empresas").select("ativa").eq("id", empresaId).maybeSingle(),
   ]);
@@ -141,6 +146,8 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     formaPagamento: (a?.forma_pagamento as SituacaoPlano["formaPagamento"]) ?? null,
     acessoAte: a?.acesso_ate ?? null,
     idAssinaturaExterna: a?.id_assinatura_externa ?? null,
+    cartaoRecusado: Boolean(a?.cartao_recusado_em) && a?.forma_pagamento === "CREDIT_CARD" && status !== "cancelada",
+    bloqueiaEm: vencimento ? somarDias(vencimento, carencia) : null,
   };
 });
 
