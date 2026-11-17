@@ -4,9 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
-import { criarClienteAdmin } from "@/lib/supabase/admin";
-import { formatarTelefone, telefoneValido } from "@/lib/formatos";
 import { atualizarValorAsaas } from "@/lib/pagamentos/servidor";
+import { cadastrarNaEquipe, type DadosPessoa } from "@/lib/equipe";
 
 type Resultado<T = object> = ({ ok: true } & T) | { ok: false; erro: string };
 
@@ -39,64 +38,15 @@ export async function criarConvite(dados: z.input<typeof esquemaConvite>): Promi
   return { ok: true, token: data.token };
 }
 
-const esquemaUsuario = z.object({
-  nome: z.string().trim().min(2, "Coloque o nome da pessoa").max(80),
-  whatsapp: z.string().refine(telefoneValido, "WhatsApp incompleto. Confira o DDD e o número."),
-  email: z.string().trim().toLowerCase().email("E-mail incompleto. Confira.").max(160),
-  senha: z.string().min(6, "A senha precisa de pelo menos 6 letras ou números").max(72),
-  papel: z.enum(["vistoriador", "gerente"]),
-  cupom: z.string().trim().toUpperCase().max(30).default(""),
-});
-
 /**
  * Cadastra a pessoa direto: o dono/gerente digita nome, e-mail e senha e ela já pode entrar.
  * A conta é criada já confirmada (sem e-mail). Usuário a mais aumenta a mensalidade (lib/mensalidade.ts).
  */
-export async function cadastrarUsuario(dados: z.input<typeof esquemaUsuario>): Promise<Resultado> {
+export async function cadastrarUsuario(dados: DadosPessoa): Promise<Resultado> {
   const ctx = await gestor();
   if (!ctx) return { ok: false, erro: FALHOU };
-  const v = esquemaUsuario.safeParse(dados);
-  if (!v.success) return { ok: false, erro: v.error.issues[0].message };
-  const d = v.data;
-  const admin = criarClienteAdmin();
-
-  // Cupom (ex.: CORTESIA): esse usuário não entra na cobrança. Vazio = cobra normalmente.
-  let cupom: string | null = null;
-  if (d.cupom) {
-    const { data: c } = await admin.from("cupons").select("codigo").eq("codigo", d.cupom).eq("ativo", true).eq("usuario_gratis", true).maybeSingle();
-    if (!c) return { ok: false, erro: "Este cupom não existe. Confira ou deixe em branco." };
-    cupom = c.codigo;
-  }
-
-  const { data: criado, error } = await admin.auth.admin.createUser({
-    email: d.email,
-    password: d.senha,
-    email_confirm: true,
-    user_metadata: { nome: d.nome, whatsapp: formatarTelefone(d.whatsapp) },
-  });
-  if (error || !criado.user) {
-    if (error?.code === "email_exists" || /already/i.test(error?.message ?? "")) {
-      return { ok: false, erro: "Este e-mail já tem conta no sistema. Use outro e-mail." };
-    }
-    if (error?.code === "weak_password") return { ok: false, erro: "Senha fraca. Use pelo menos 6 letras ou números." };
-    return { ok: false, erro: FALHOU };
-  }
-
-  const { error: erroEquipe } = await admin
-    .from("usuarios_empresa")
-    .insert({ empresa_id: ctx.empresa.id, user_id: criado.user.id, nome: d.nome, papel: d.papel, cupom });
-  if (erroEquipe) {
-    await admin.auth.admin.deleteUser(criado.user.id); // não deixa conta solta sem oficina
-    return { ok: false, erro: FALHOU };
-  }
-  await admin.from("auditoria").insert({
-    empresa_id: ctx.empresa.id,
-    usuario_id: ctx.usuario.id,
-    acao: "cadastrou_usuario",
-    entidade: "usuarios_empresa",
-    detalhes: { nome: d.nome, papel: d.papel, cupom, whatsapp: formatarTelefone(d.whatsapp) },
-  });
-  await atualizarValorAsaas(ctx.empresa.id); // pessoa a mais muda a mensalidade
+  const r = await cadastrarNaEquipe(ctx.empresa.id, ctx.usuario.id, dados);
+  if (!r.ok) return r;
   revalidatePath("/equipe");
   revalidatePath("/plano");
   return { ok: true };

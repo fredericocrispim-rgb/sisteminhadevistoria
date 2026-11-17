@@ -418,6 +418,9 @@ export const textos = {
     hojeCortesia: (n: number) => (n === 1 ? "+ 1 pessoa de cortesia (sem custo)" : `+ ${n} pessoas de cortesia (sem custo)`),
     cadastrado: (nome: string) => `${nome} já pode entrar`,
     cadastradoTexto: "Ela entra no site com o e-mail e a senha que você criou.",
+    cadastradoTextoComSenha: "Mande o acesso: o link, o e-mail e a senha vão juntos na mensagem.",
+    mensagemAcessoComSenha: (nome: string, oficina: string, link: string, email: string, senha: string) =>
+      `Olá, ${nome}! Você já pode fazer vistorias da ${oficina} no Vistoria Rápida.\n\nEntre em ${link}\nE-mail: ${email}\nSenha: ${senha}`,
     mandarAcesso: "Mandar acesso no WhatsApp",
     mandarAcessoPara: (nome: string) => `Mandar acesso para ${nome}`,
     reenviar: "Mandar acesso",

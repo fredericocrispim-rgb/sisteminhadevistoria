@@ -8,6 +8,7 @@ import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { criarComissoes } from "@/lib/comissoes-servidor";
 import { cancelarAssinatura as cancelarNoAsaas } from "@/lib/pagamentos/asaas";
 import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
+import { cadastrarNaEquipe, type DadosPessoa, type ResultadoCadastro } from "@/lib/equipe";
 
 const hoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // aaaa-mm-dd
 
@@ -117,6 +118,20 @@ export async function trocarSenhaAgora(_: unknown, formData: FormData): Promise<
 // ---------------------------------------------------------------------
 
 export type Resultado = { ok?: boolean; erro?: string };
+
+/**
+ * O administrador cadastra uma pessoa na equipe de uma oficina (para donos que têm dificuldade).
+ * Mesma regra de /equipe: conta já confirmada, entra na mensalidade (ou cortesia com cupom).
+ */
+export async function cadastrarPessoaAdmin(empresaId: string, dados: DadosPessoa): Promise<ResultadoCadastro> {
+  const ctx = await exigirSuperadmin();
+  if (!/^[0-9a-f-]{36}$/.test(empresaId)) return { ok: false, erro: "Oficina não encontrada." };
+  const { data: empresa } = await criarClienteAdmin().from("empresas").select("id").eq("id", empresaId).maybeSingle();
+  if (!empresa) return { ok: false, erro: "Oficina não encontrada." };
+  const r = await cadastrarNaEquipe(empresaId, ctx.usuario.id, dados, { pelo_administrador: true });
+  if (r.ok) revalidatePath("/admin");
+  return r;
+}
 
 const ehId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
 const ehData = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00Z`));

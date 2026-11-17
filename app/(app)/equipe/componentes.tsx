@@ -120,13 +120,27 @@ export function ConvitePendente({ id, nome, papel, mensagem }: { id: string; nom
 }
 
 type Papel = "vistoriador" | "gerente";
+type DadosCadastro = Parameters<typeof cadastrarUsuario>[0];
 
-/** Cadastrar pessoa direto: nome, e-mail, senha e o que ela faz. Ela já pode entrar na hora. */
+/** Senha fácil de digitar no celular, ex.: vistoria4821. */
+function senhaFacil() {
+  const n = new Uint32Array(1);
+  crypto.getRandomValues(n);
+  return `vistoria${String(n[0] % 10000).padStart(4, "0")}`;
+}
+
+/**
+ * Cadastrar pessoa direto: nome, e-mail, senha e o que ela faz. Ela já pode entrar na hora.
+ * No /admin (`senhaNaMensagem`): a senha já vem sugerida e vai junto na mensagem do WhatsApp,
+ * para a pessoa entrar sozinha, sem depender do dono.
+ */
 export function AdicionarPessoa({
   oficina,
   base,
   avisoPlano,
   avisoPreco,
+  cadastrar: acaoCadastrar = cadastrarUsuario,
+  senhaNaMensagem = false,
 }: {
   oficina: string;
   base: string;
@@ -134,25 +148,28 @@ export function AdicionarPessoa({
   avisoPlano: string | null;
   /** "Com essa pessoa, a mensalidade passa para R$ X" (quando passa do plano). */
   avisoPreco: string | null;
+  /** Ação que cria a conta (padrão: a do dono/gerente; no /admin, a do administrador). */
+  cadastrar?: (d: DadosCadastro) => Promise<{ ok: true } | { ok: false; erro: string }>;
+  senhaNaMensagem?: boolean;
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
   const [zap, setZap] = useState("");
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [senha, setSenha] = useState(() => (senhaNaMensagem ? senhaFacil() : ""));
   const [cupom, setCupom] = useState("");
   const [papel, setPapel] = useState<Papel>("vistoriador");
   const [conferir, setConferir] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string>();
-  const [pronto, setPronto] = useState<{ nome: string; email: string; whatsapp: string } | null>(null);
+  const [pronto, setPronto] = useState<{ nome: string; email: string; whatsapp: string; senha: string } | null>(null);
 
   function recomecar() {
     setNome("");
     setZap("");
     setEmail("");
-    setSenha("");
+    setSenha(senhaNaMensagem ? senhaFacil() : "");
     setCupom("");
     setPapel("vistoriador");
     setConferir(false);
@@ -167,14 +184,25 @@ export function AdicionarPessoa({
         <p className="flex items-center gap-2 text-xl font-extrabold text-acao">
           <Check aria-hidden className="size-7" /> {t.cadastrado(primeiro)}
         </p>
-        <p className="text-lg font-semibold">{t.cadastradoTexto}</p>
+        <p className="text-lg font-semibold">{senhaNaMensagem ? t.cadastradoTextoComSenha : t.cadastradoTexto}</p>
         <p className="rounded-2xl bg-background px-4 py-3 text-lg break-all">
           <span className="block text-base text-muted-foreground">E-mail</span>
           <strong>{pronto.email}</strong>
+          {senhaNaMensagem && (
+            <>
+              <span className="mt-2 block text-base text-muted-foreground">{t.senha}</span>
+              <strong>{pronto.senha}</strong>
+            </>
+          )}
         </p>
         <BotaoPrincipal
           nativo
-          href={whatsappPara(pronto.whatsapp, t.mensagemAcesso(primeiro, oficina, base, pronto.email))}
+          href={whatsappPara(
+            pronto.whatsapp,
+            senhaNaMensagem
+              ? t.mensagemAcessoComSenha(primeiro, oficina, base, pronto.email, pronto.senha)
+              : t.mensagemAcesso(primeiro, oficina, base, pronto.email),
+          )}
           icone={<MessageCircle aria-hidden />}
         >
           {t.mandarAcessoPara(primeiro)}
@@ -219,10 +247,10 @@ export function AdicionarPessoa({
       return;
     }
     setCarregando(true);
-    const r = await cadastrarUsuario({ nome, whatsapp: zap, email, senha, papel, cupom });
+    const r = await acaoCadastrar({ nome, whatsapp: zap, email, senha, papel, cupom });
     setCarregando(false);
     if (!r.ok) return setErro(r.erro);
-    setPronto({ nome: nome.trim(), email: email.trim().toLowerCase(), whatsapp: zap });
+    setPronto({ nome: nome.trim(), email: email.trim().toLowerCase(), whatsapp: zap, senha });
     router.refresh();
   }
 

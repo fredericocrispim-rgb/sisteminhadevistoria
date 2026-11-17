@@ -137,9 +137,10 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
     const cortesias = ativos.filter((p) => p.cortesia).length;
     const usuarios = Math.max(1, ativos.length - cortesias); // quem tem cupom não é cobrado
     const pl = planos?.find((x) => x.id === a?.plano_id) ?? planos?.[0];
-    const valor = pl
-      ? valorMensalidade({ base: Number(pl.preco_mensal), inclusos: pl.limite_usuarios, extra: Number(pl.preco_usuario_extra ?? 0) }, usuarios)
-      : 0;
+    const precoPlano = pl ? { base: Number(pl.preco_mensal), inclusos: pl.limite_usuarios, extra: Number(pl.preco_usuario_extra ?? 0) } : null;
+    const valor = precoPlano ? valorMensalidade(precoPlano, usuarios) : 0;
+    const valorComMaisUm = precoPlano ? valorMensalidade(precoPlano, usuarios + 1) : 0;
+    const vagas = pl?.limite_usuarios == null ? 0 : Math.max(0, pl.limite_usuarios - usuarios);
     const pix =
       plat?.pix_chave && plat.pix_nome_recebedor && plat.pix_cidade && valor > 0
         ? gerarPixCopiaECola({
@@ -173,6 +174,8 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       usuarios,
       cortesias,
       valor,
+      vagas,
+      valorComMaisUm,
       pix,
       ultimoUso: maisRecente(uso.ultima, ...equipe.map((p) => p.ultimoUso)),
       vistoriasTotal: uso.total,
@@ -243,6 +246,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
             oficinas={oficinas}
             produto={produto}
             linkPlano={`${site}/plano`}
+            site={site}
             vendedores={vendedores}
             comissaoAtiva={bancoComissoesPronto}
           />

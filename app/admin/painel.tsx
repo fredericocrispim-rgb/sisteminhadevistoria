@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { ConfirmacaoImportante, LogoOficina } from "@/components/vf";
 import type { Vendedor } from "./comissoes";
+import { AdicionarPessoa } from "@/app/(app)/equipe/componentes";
+import { textos } from "@/lib/textos";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatarReais } from "@/lib/pix";
@@ -40,6 +42,7 @@ import {
 } from "@/lib/admin-painel";
 import {
   bloquearAcesso,
+  cadastrarPessoaAdmin,
   darMaisDias,
   liberarAcesso,
   marcarComoPago,
@@ -80,6 +83,10 @@ export type OficinaPainel = {
   usuarios: number;
   cortesias: number;
   valor: number;
+  /** Quantas pessoas ainda cabem no plano sem pagar a mais. */
+  vagas: number;
+  /** Mensalidade se entrar mais uma pessoa (sem cupom). */
+  valorComMaisUm: number;
   pix: string | null;
   ultimoUso: string | null;
   vistoriasTotal: number;
@@ -161,12 +168,15 @@ export function PainelOficinas({
   oficinas,
   produto,
   linkPlano,
+  site,
   vendedores,
   comissaoAtiva,
 }: {
   oficinas: OficinaPainel[];
   produto: string;
   linkPlano: string;
+  /** Endereço do site (vai no acesso que o administrador manda pelo WhatsApp). */
+  site: string;
   vendedores: Vendedor[];
   /** Banco preparado para comissões. */
   comissaoAtiva: boolean;
@@ -519,6 +529,7 @@ export function PainelOficinas({
 
       <PainelLateral
         oficina={aberta}
+        site={site}
         vendedores={vendedores}
         comissaoAtiva={comissaoAtiva}
         onFechar={() => setAbertaId(null)}
@@ -602,12 +613,14 @@ function useAcao() {
 /** Painel que abre do lado com tudo da oficina: dados, ações de acesso, vendedor, equipe e pagamentos. */
 function PainelLateral({
   oficina: o,
+  site,
   vendedores,
   comissaoAtiva,
   onFechar,
   onCobrar,
 }: {
   oficina: OficinaPainel | null;
+  site: string;
   vendedores: Vendedor[];
   comissaoAtiva: boolean;
   onFechar: () => void;
@@ -646,7 +659,7 @@ function PainelLateral({
               >
                 <MessageCircle aria-hidden className="size-5" /> Mandar WhatsApp
               </button>
-              <DetalhesOficina key={o.id} oficina={o} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
+              <DetalhesOficina key={o.id} oficina={o} site={site} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
             </div>
           </>
         )}
@@ -721,7 +734,17 @@ function QuemVendeu({ oficina: o, vendedores }: { oficina: OficinaPainel; vended
   );
 }
 
-function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: OficinaPainel; vendedores: Vendedor[]; comissaoAtiva: boolean }) {
+function DetalhesOficina({
+  oficina: o,
+  site,
+  vendedores,
+  comissaoAtiva,
+}: {
+  oficina: OficinaPainel;
+  site: string;
+  vendedores: Vendedor[];
+  comissaoAtiva: boolean;
+}) {
   const { rodando, rodar } = useAcao();
   const [data, setData] = useState(o.situacao.vencimento ?? "");
   const [confirmarBloqueio, setConfirmarBloqueio] = useState(false);
@@ -804,6 +827,15 @@ function DetalhesOficina({ oficina: o, vendedores, comissaoAtiva }: { oficina: O
 
       <section className="flex flex-col gap-2">
         <h3 className="text-lg font-extrabold">Equipe ({o.equipe.length})</h3>
+        {/* O administrador cadastra a pessoa pela oficina e manda o acesso (link, e-mail e senha) no WhatsApp dela */}
+        <AdicionarPessoa
+          oficina={o.nome}
+          base={site}
+          avisoPlano={!o.gratuita && o.vagas > 0 ? textos.equipe.dentroDoPlano(o.vagas) : null}
+          avisoPreco={!o.gratuita && o.valorComMaisUm > o.valor ? textos.equipe.comEssaPessoa(formatarReais(o.valorComMaisUm)) : null}
+          cadastrar={(d) => cadastrarPessoaAdmin(o.id, d)}
+          senhaNaMensagem
+        />
         <ul className="flex flex-col gap-2">
           {o.equipe.map((p) => (
             <li key={p.vinculoId} className={cn("flex flex-col gap-1 rounded-2xl bg-superficie p-3", !p.ativo && "opacity-60")}>
