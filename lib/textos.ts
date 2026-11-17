@@ -323,6 +323,13 @@ export const textos = {
       senhaProvisoria: "Sua senha provisória é:",
       senhaAnote: "Anote! Depois você pode trocar em Mais.",
     },
+    plano: {
+      titulo: "Escolha seu plano",
+      porMes: "/mês",
+      basicoTexto: "Vistoria com fotos, assinatura e PDF",
+      pessoas: (inclusos: number) => (inclusos <= 1 ? "Só você" : `Você + ${inclusos - 1} pessoas da equipe`),
+      mudarQuandoQuiser: "Você pode mudar de plano a qualquer momento em Mais > Meu plano.",
+    },
     continuar: "Continuar",
   },
 

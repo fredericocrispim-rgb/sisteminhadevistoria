@@ -6,18 +6,19 @@ import { BarraEtapas } from "@/components/vf";
 import { textos } from "@/lib/textos";
 import { PassoVoce, type PerguntaVoce } from "./passo-voce";
 import { PassoLogo } from "./passo-logo";
+import { PassoPlano, type OpcaoPlano } from "./passo-plano";
 import { TelaPronto } from "./tela-pronto";
 
 export type EmpresaCadastro = { id: string; nome: string; logo: string | null };
 export type UsuarioCadastro = { nome: string; whatsapp: string; email: string };
 
 /** Uma pergunta por tela: o título de cada tela é a própria pergunta. */
-const perguntas = [...textos.cadastro.perguntas];
-const TELA_LOGO = perguntas.length; // 4
-const TELA_PRONTO = TELA_LOGO + 1;
+const TELA_LOGO = textos.cadastro.perguntas.length; // 4
+const TELA_PLANO = TELA_LOGO + 1; // 5 (só quando há mais de um plano à venda)
 
 /**
- * Cadastro em 4 telas: (1) seu nome, (2) seu WhatsApp, (3) nome da oficina, (4) logo.
+ * Cadastro: (1) seu nome completo, (2) seu WhatsApp, (3) nome da oficina, (4) logo,
+ * (5) escolha do plano (só com Básico e Pro à venda) e, no fim, a tela Tudo pronto (senha provisória e Pix).
  * `passoInicial` vem da página: 1 = começar do início, 2 = só falta a logo.
  */
 export function Assistente({
@@ -25,16 +26,22 @@ export function Assistente({
   usuario,
   empresaInicial,
   diasTeste,
+  planos,
   somenteEdicao,
 }: {
   passoInicial: number;
   usuario: UsuarioCadastro;
   empresaInicial: EmpresaCadastro | null;
   diasTeste: number;
+  /** Planos à venda (Básico e, com o vídeo ligado, o Pro). */
+  planos: OpcaoPlano[];
   /** Veio do menu "Mais" para trocar a logo: ao terminar, volta para o início. */
   somenteEdicao: boolean;
 }) {
   const router = useRouter();
+  const escolherPlano = planos.length > 1;
+  const perguntas = escolherPlano ? [...textos.cadastro.perguntas, textos.cadastro.plano.titulo] : [...textos.cadastro.perguntas];
+  const TELA_PRONTO = perguntas.length + 1;
   const [tela, setTela] = useState(passoInicial >= 2 ? TELA_LOGO : 1);
   const [empresa, setEmpresa] = useState(empresaInicial);
   const [voce, setVoce] = useState(usuario);
@@ -81,10 +88,11 @@ export function Assistente({
             aoTerminar={(e) => {
               setEmpresa(e);
               if (somenteEdicao) terminarEdicao();
-              else ir(TELA_PRONTO);
+              else ir(escolherPlano ? TELA_PLANO : TELA_PRONTO);
             }}
           />
         )}
+        {tela === TELA_PLANO && escolherPlano && <PassoPlano planos={planos} aoTerminar={() => ir(TELA_PRONTO)} />}
       </main>
     </>
   );
