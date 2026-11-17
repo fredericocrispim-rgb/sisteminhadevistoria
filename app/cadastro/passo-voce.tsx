@@ -121,6 +121,10 @@ export function PassoVoce({
         />
       )}
       {erro && <MensagemErroCampo>{erro}</MensagemErroCampo>}
+      {/* Logo abaixo do campo (sem `fixo`): preso no rodapé, o teclado do celular tampava o botão */}
+      <BotaoPrincipal type="submit" carregando={carregando} icone={<ArrowRight aria-hidden />}>
+        {textos.cadastro.proximo}
+      </BotaoPrincipal>
       {pergunta === 3 && (
         <p className="text-base text-muted-foreground">
           {t.aceiteAoContinuar}{" "}
@@ -134,9 +138,6 @@ export function PassoVoce({
           .
         </p>
       )}
-      <BotaoPrincipal fixo type="submit" carregando={carregando} icone={<ArrowRight aria-hidden />}>
-        {textos.cadastro.proximo}
-      </BotaoPrincipal>
     </form>
   );
 }

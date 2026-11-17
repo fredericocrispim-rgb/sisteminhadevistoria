@@ -98,7 +98,7 @@ export function FormularioEntrar({
   }
 
   const cabecalho = (
-    <div className="mb-8">
+    <div className="mb-5">
       <LogoProduto comNome />
     </div>
   );
@@ -140,7 +140,7 @@ export function FormularioEntrar({
     }
 
     return (
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10 pb-10">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-6 pb-10">
         {cabecalho}
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-3">
@@ -190,7 +190,7 @@ export function FormularioEntrar({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-10 pb-10">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pt-6 pb-10">
       {cabecalho}
       <form
         className="flex flex-col gap-6"
@@ -223,14 +223,6 @@ export function FormularioEntrar({
           onValor={setEmail}
           erro={erroEmail}
         />
-        {modo === "criar" && (
-          <p className="flex items-start gap-2 rounded-2xl bg-oficina-clara px-4 py-3 text-lg">
-            <KeyRound aria-hidden className="mt-0.5 size-6 shrink-0 text-oficina" />
-            <span>
-              {t.senhaPadraoAviso} <strong className="tabular-nums">{SENHA_PADRAO}</strong>. {t.senhaPadraoTrocar}
-            </span>
-          </p>
-        )}
         {pedeSenha && (
           <CampoSenha
             key={`senha-${modo}`}
@@ -250,6 +242,16 @@ export function FormularioEntrar({
         >
           {modo === "entrar" ? t.entrar : t.criar}
         </BotaoPrincipal>
+
+        {/* Embaixo do botão: em cima, empurrava o botão para trás do teclado do celular */}
+        {modo === "criar" && (
+          <p className="flex items-start gap-2 rounded-2xl bg-oficina-clara px-4 py-3 text-lg">
+            <KeyRound aria-hidden className="mt-0.5 size-6 shrink-0 text-oficina" />
+            <span>
+              {t.senhaPadraoAviso} <strong className="tabular-nums">{SENHA_PADRAO}</strong>. {t.senhaPadraoTrocar}
+            </span>
+          </p>
+        )}
 
         <div className="flex flex-col gap-2">
           {modo === "entrar" ? (

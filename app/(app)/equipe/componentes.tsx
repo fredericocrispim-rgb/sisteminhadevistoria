@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, MessageCircle, UserMinus, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -150,6 +150,11 @@ export function AdicionarPessoa({
 }) {
   const router = useRouter();
   const [tela, setTela] = useState(0); // 0 = fechado
+  const formulario = useRef<HTMLFormElement>(null);
+  // A cada tela, sobe o cartão para o alto: campo e botão Próximo ficam acima do teclado do celular
+  useEffect(() => {
+    if (tela > 0) formulario.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [tela]);
   const [nome, setNome] = useState("");
   const [zap, setZap] = useState("");
   const [email, setEmail] = useState("");
@@ -261,7 +266,8 @@ export function AdicionarPessoa({
 
   return (
     <form
-      className="flex flex-col gap-4 rounded-3xl bg-superficie p-4"
+      ref={formulario}
+      className="flex scroll-mt-3 flex-col gap-4 rounded-3xl bg-superficie p-4"
       onSubmit={(e) => {
         e.preventDefault();
         avancar();
