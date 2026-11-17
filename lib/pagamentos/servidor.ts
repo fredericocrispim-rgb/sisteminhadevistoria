@@ -3,8 +3,8 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarComissoes } from "@/lib/comissoes-servidor";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { asaasLigado, atualizarAssinatura, type CobrancaAsaas } from "./asaas";
-import { PROVEDOR_ASAAS } from "./config";
-import { somarDias, somarUmMes, type AcaoWebhook, type Deps, type EventoAsaas } from "./webhook";
+import { PROVEDOR_ASAAS, formaDaAssinatura, formaDaFatura } from "./config";
+import { processarEvento, somarDias, somarUmMes, type AcaoWebhook, type Deps, type EventoAsaas } from "./webhook";
 
 /**
  * Liga o webhook (e o botão "Já paguei") ao banco. Tudo com a chave secreta, só no servidor.
@@ -46,7 +46,7 @@ export async function guardarCobranca(c: CobrancaAsaas, a: Assinatura) {
     descricao: c.description || "Mensalidade",
     valor: c.value,
     vencimento: c.dueDate,
-    forma: c.billingType === "CREDIT_CARD" ? "cartao" : "pix",
+    forma: formaDaFatura(c.billingType),
     id_externo: c.id,
     link_fatura: c.invoiceUrl ?? null,
     link_comprovante: c.transactionReceiptUrl ?? null,
@@ -103,7 +103,7 @@ export async function aplicarPagamento(c: CobrancaAsaas) {
       status: a.status === "cancelada" ? "cancelada" : "ativa",
       proximo_vencimento: proximo,
       acesso_ate: somarDias(proximo, plat?.dias_carencia ?? 5),
-      forma_pagamento: c.billingType === "CREDIT_CARD" ? "CREDIT_CARD" : "PIX",
+      forma_pagamento: formaDaAssinatura(c.billingType),
       atualizado_em: new Date().toISOString(),
     })
     .eq("id", a.id);
@@ -123,6 +123,9 @@ export async function aplicarAcao(acao: AcaoWebhook) {
       const a = await acharAssinatura(acao.cobranca);
       if (!a) return;
       await guardarCobranca(acao.cobranca, a);
+      // Aviso velho chegando depois do pagamento (ou tentado de novo): não volta para atraso
+      const { data: f } = await admin.from("faturas").select("status").eq("id_externo", acao.cobranca.id).maybeSingle();
+      if (f?.status === "paga") return;
       await admin.from("faturas").update({ status: "vencida" }).eq("id_externo", acao.cobranca.id).eq("status", "pendente");
       // Continua usando até acesso_ate / carência (a regra de acesso cuida do bloqueio)
       if (a.status === "ativa") await admin.from("assinaturas").update({ status: "em_atraso", atualizado_em: new Date().toISOString() }).eq("id", a.id);
@@ -184,8 +187,32 @@ export function depsWebhook(): Deps {
     async concluirEvento(id) {
       await admin.from("eventos_pagamento").update({ processado_em: new Date().toISOString() }).eq("provedor", PROVEDOR_ASAAS).eq("id_evento_provedor", id);
     },
-    async desfazerEvento(id) {
-      await admin.from("eventos_pagamento").delete().eq("provedor", PROVEDOR_ASAAS).eq("id_evento_provedor", id);
+    async anotarFalha(id, erro) {
+      await admin.from("eventos_pagamento").update({ erro: erro.slice(0, 500) }).eq("provedor", PROVEDOR_ASAAS).eq("id_evento_provedor", id);
     },
   };
+}
+
+/**
+ * Tenta de novo os avisos do Asaas que falharam (ficaram sem processado_em), do mais antigo ao mais novo.
+ * Só os dos últimos 7 dias e com mais de 5 minutos (para não pegar um que ainda está sendo processado).
+ */
+export async function reprocessarPendentes() {
+  const admin = criarClienteAdmin();
+  const agora = Date.now();
+  const { data } = await admin
+    .from("eventos_pagamento")
+    .select("payload")
+    .eq("provedor", PROVEDOR_ASAAS)
+    .is("processado_em", null)
+    .gt("recebido_em", new Date(agora - 7 * 86400000).toISOString())
+    .lt("recebido_em", new Date(agora - 5 * 60000).toISOString())
+    .order("recebido_em")
+    .limit(100);
+  const deps = depsWebhook();
+  let ok = 0;
+  for (const linha of data ?? []) {
+    if (await processarEvento(linha.payload as EventoAsaas, deps)) ok++;
+  }
+  return { pendentes: data?.length ?? 0, processados: ok };
 }

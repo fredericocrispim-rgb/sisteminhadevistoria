@@ -79,7 +79,7 @@ export function TrocarPlano({ pro, valorPro, diferenca }: { pro: boolean; valorP
 }
 
 /** Trocar Pix ⇄ cartão (com cobrança em aberto, já abre o Asaas na forma nova) e cancelar (com confirmação). */
-export function BotoesAssinatura({ forma, temAberta }: { forma: "PIX" | "CREDIT_CARD" | null; temAberta: boolean }) {
+export function BotoesAssinatura({ forma, temAberta }: { forma: "PIX" | "CREDIT_CARD" | "BOLETO" | null; temAberta: boolean }) {
   const t = textos.assinatura;
   const router = useRouter();
   const [confirmar, setConfirmar] = useState(false);

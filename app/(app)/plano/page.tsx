@@ -225,7 +225,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
               </div>
               {emAberto && (
                 <BotaoPagar faturaId={emAberto.id} link={emAberto.link_fatura}>
-                  Pagar {formatarReais(Number(emAberto.valor))} {emAberto.forma === "cartao" ? "no cartão" : "pelo Pix"}
+                  Pagar {formatarReais(Number(emAberto.valor))} {emAberto.forma === "cartao" ? "no cartão" : emAberto.forma === "boleto" ? "no boleto" : "pelo Pix"}
                 </BotaoPagar>
               )}
               {faturas && faturas.length > 0 && (
@@ -244,7 +244,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                               {dataBR(f.vencimento)} · {formatarReais(Number(f.valor))}
                             </p>
                             <p className={`text-base font-bold ${s.classe}`}>
-                              {s.nome} · {f.forma === "cartao" ? "Cartão" : "Pix"}
+                              {s.nome} · {f.forma === "cartao" ? "Cartão" : f.forma === "boleto" ? "Boleto" : "Pix"}
                             </p>
                           </div>
                           {link && (

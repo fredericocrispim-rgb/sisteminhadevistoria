@@ -30,12 +30,25 @@ export function planosAVenda<T extends { nome: string; video_segundos?: number |
   return [basico, pro].filter((p): p is T => Boolean(p));
 }
 
-export type FormaPagamento = "PIX" | "CREDIT_CARD";
+export type FormaPagamento = "PIX" | "CREDIT_CARD" | "BOLETO";
 
 export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string; dica: string }[] = [
   { valor: "PIX", rotulo: "Pix", dica: "Paga todo mês pelo QR Code" },
   { valor: "CREDIT_CARD", rotulo: "Cartão de crédito", dica: "Renova sozinho todo mês" },
+  { valor: "BOLETO", rotulo: "Boleto", dica: "Paga todo mês o boleto" },
 ];
+
+/** Forma da cobrança do Asaas (billingType) como fica gravada em faturas.forma. */
+export function formaDaFatura(billingType: string | null | undefined): "pix" | "cartao" | "boleto" {
+  if (billingType === "CREDIT_CARD") return "cartao";
+  if (billingType === "BOLETO") return "boleto";
+  return "pix";
+}
+
+/** Forma da assinatura (assinaturas.forma_pagamento) a partir do billingType do Asaas. */
+export function formaDaAssinatura(billingType: string | null | undefined): FormaPagamento {
+  return billingType === "CREDIT_CARD" || billingType === "BOLETO" ? billingType : "PIX";
+}
 
 /** Ciclo da assinatura no Asaas (só mensal por enquanto). */
 export const CICLO_ASAAS = "MONTHLY" as const;

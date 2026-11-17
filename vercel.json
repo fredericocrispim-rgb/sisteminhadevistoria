@@ -1,5 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["gru1"],
-  "crons": [{ "path": "/api/rotinas/apagar-videos", "schedule": "0 7 * * *" }]
+  "regions": [
+    "gru1"
+  ],
+  "crons": [
+    {
+      "path": "/api/rotinas/apagar-videos",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/rotinas/asaas",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

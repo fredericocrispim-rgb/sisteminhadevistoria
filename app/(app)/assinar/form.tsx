@@ -2,17 +2,23 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CreditCard, QrCode } from "lucide-react";
+import { ArrowRight, Barcode, CheckCircle2, CreditCard, QrCode } from "lucide-react";
 import { BotaoPrincipal, Campo, CampoTelefone, MensagemErroCampo, SeletorGrande } from "@/components/vf";
 import { formatarCpfCnpj } from "@/lib/formatos";
 import { formatarReais } from "@/lib/pix";
 import { textos } from "@/lib/textos";
 import type { FormaPagamento } from "@/lib/pagamentos/config";
-import { fecharAba, levarAoPagamento, prepararAba } from "@/lib/pagamentos/abrir";
 import { assinar } from "./acoes";
+import { CAMPOS_CARTAO, CARTAO_VAZIO, CamposCartao, type DadosCartao } from "./campos-cartao";
 
 type Plano = { id: string; nome: string; valor: number; inclusos: number | null; video: boolean };
 
+const CAMPOS = ["forma", "nome", "cpfCnpj", "celular", ...CAMPOS_CARTAO];
+
+/**
+ * Assinar: plano, forma (Pix, cartão ou boleto), dados de quem paga e, no cartão, os dados do cartão.
+ * Cartão aprovado: libera na hora. Pix e boleto: vai para a tela da cobrança (QR Code ou boleto).
+ */
 export function FormAssinar({
   planos,
   planoInicial,
@@ -31,31 +37,50 @@ export function FormAssinar({
   const [nome, setNome] = useState(inicial.nome);
   const [cpfCnpj, setCpfCnpj] = useState(inicial.cpfCnpj);
   const [celular, setCelular] = useState(inicial.celular);
+  const [cartao, setCartao] = useState<DadosCartao>(CARTAO_VAZIO);
   const [erro, setErro] = useState<{ campo?: string; texto: string } | null>(null);
+  const [pago, setPago] = useState(false);
   const [enviando, iniciar] = useTransition();
   const plano = planos.find((p) => p.id === planoId);
+  const ehCartao = forma === "CREDIT_CARD";
 
   function enviar() {
-    if (!forma) return setErro({ campo: "forma", texto: "Escolha Pix ou cartão" });
+    if (!forma) return setErro({ campo: "forma", texto: "Escolha Pix, cartão ou boleto" });
     setErro(null);
-    // A aba do Asaas abre já no toque (o navegador bloqueia aba aberta depois de esperar o servidor)
-    const aba = prepararAba();
     iniciar(async () => {
-      const r = await assinar({ planoId, forma, nome, cpfCnpj, celular });
+      const r = await assinar({ planoId, forma, nome, cpfCnpj, celular, cartao: ehCartao ? cartao : undefined });
       if (!r.ok) {
-        fecharAba(aba);
+        // Cartão recusado: limpa só o código de segurança, para digitar de novo ou trocar de cartão
+        if (r.campo === "cartao") setCartao((c) => ({ ...c, cvv: "" }));
         return setErro({ campo: r.campo, texto: r.erro });
       }
-      if (!r.link) {
-        fecharAba(aba);
-        return router.push(r.destino);
+      if (r.pago) {
+        setPago(true);
+        setTimeout(() => {
+          router.replace(r.destino);
+          router.refresh();
+        }, 2500);
+        return;
       }
-      // Pix ou cartão na página do Asaas (o sistema não recebe dados do cartão); aqui fica esperando a confirmação
-      if (levarAoPagamento(aba, r.link)) router.push(r.destino);
+      router.push(r.destino);
     });
   }
 
   const erroDe = (campo: string) => (erro?.campo === campo ? erro.texto : undefined);
+
+  if (pago) {
+    return (
+      <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6">
+        <div role="status" className="flex items-center gap-4 rounded-3xl bg-acao-clara px-5 py-5 text-acao [&_svg]:size-10 [&_svg]:shrink-0">
+          <CheckCircle2 aria-hidden />
+          <div>
+            <p className="text-xl font-extrabold">{t.confirmado}</p>
+            <p className="text-base font-semibold">{t.confirmadoTexto}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6">
@@ -90,16 +115,17 @@ export function FormAssinar({
       <div className="flex flex-col gap-2">
         <SeletorGrande
           rotulo={t.forma}
-          colunas={2}
+          colunas={3}
           valor={forma}
           onChange={setForma}
           erro={Boolean(erroDe("forma"))}
           opcoes={[
-            { valor: "PIX", rotulo: "Pix", icone: <QrCode aria-hidden /> },
-            { valor: "CREDIT_CARD", rotulo: "Cartão de crédito", icone: <CreditCard aria-hidden /> },
+            { valor: "PIX", rotulo: t.pix, icone: <QrCode aria-hidden /> },
+            { valor: "CREDIT_CARD", rotulo: t.cartao, icone: <CreditCard aria-hidden /> },
+            { valor: "BOLETO", rotulo: t.boleto, icone: <Barcode aria-hidden /> },
           ]}
         />
-        {forma && <p className="text-base text-muted-foreground">{forma === "PIX" ? t.dicaPix : t.dicaCartao}</p>}
+        {forma && <p className="text-base text-muted-foreground">{forma === "PIX" ? t.dicaPix : ehCartao ? t.dicaCartao : t.dicaBoleto}</p>}
         {erroDe("forma") && <MensagemErroCampo>{erroDe("forma")}</MensagemErroCampo>}
       </div>
 
@@ -115,10 +141,12 @@ export function FormAssinar({
       />
       <CampoTelefone rotulo={t.celular} valor={celular} onValor={setCelular} erro={erroDe("celular")} />
 
-      {erro && !["forma", "nome", "cpfCnpj", "celular"].includes(erro.campo ?? "") && <MensagemErroCampo>{erro.texto}</MensagemErroCampo>}
+      {ehCartao && <CamposCartao valor={cartao} onValor={setCartao} erroDe={erroDe} />}
+
+      {erro && !CAMPOS.includes(erro.campo ?? "") && <MensagemErroCampo>{erro.texto}</MensagemErroCampo>}
 
       <BotaoPrincipal fixo onClick={enviar} carregando={enviando} icone={<ArrowRight aria-hidden />}>
-        {t.irParaPagamento}
+        {ehCartao ? t.pagarAgora : t.irParaPagamento}
       </BotaoPrincipal>
     </main>
   );

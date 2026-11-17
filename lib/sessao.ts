@@ -91,7 +91,7 @@ export type SituacaoPlano = {
   inativa: boolean;
   /** pix_manual (Pix conferido à mão) ou asaas (Pix/cartão com liberação automática). */
   provedor: string;
-  formaPagamento: "PIX" | "CREDIT_CARD" | null;
+  formaPagamento: "PIX" | "CREDIT_CARD" | "BOLETO" | null;
   /** Até quando usa (Asaas): vencimento do ciclo pago + carência. Assinatura cancelada usa até esta data. */
   acessoAte: string | null;
   idAssinaturaExterna: string | null;

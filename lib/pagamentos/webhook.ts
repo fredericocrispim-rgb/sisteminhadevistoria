@@ -100,13 +100,40 @@ export type Deps = {
   registrarEvento(e: EventoAsaas): Promise<boolean>;
   aplicar(acao: AcaoWebhook, e: EventoAsaas): Promise<void>;
   concluirEvento(id: string): Promise<void>;
-  /** Falhou ao processar: apaga o registro para o Asaas mandar de novo. */
-  desfazerEvento(id: string): Promise<void>;
+  /** Falhou ao processar: anota o erro e deixa o evento pendente (a rotina diária tenta de novo). */
+  anotarFalha(id: string, erro: string): Promise<void>;
   log?: (msg: string) => void;
 };
 
-export type RespostaWebhook = { status: number; corpo: { ok: boolean; motivo?: string } };
+export type RespostaWebhook = {
+  status: number;
+  corpo: { ok: boolean; motivo?: string };
+  /** Evento novo: processar DEPOIS de responder ao Asaas (resposta rápida). */
+  processar?: () => Promise<void>;
+};
 
+/** Aplica o evento no banco. Falhou: fica pendente, com o erro anotado, para tentar de novo. Nunca lança erro. */
+export async function processarEvento(evento: EventoAsaas, deps: Deps): Promise<boolean> {
+  const log = deps.log ?? console.log;
+  const acao = acaoDoEvento(evento);
+  if (acao.tipo === "desconhecido") log(`Webhook Asaas: evento não tratado ${evento.event} (${evento.id})`);
+  try {
+    await deps.aplicar(acao, evento);
+    await deps.concluirEvento(evento.id);
+    log(`Webhook Asaas: ${evento.event} (${evento.id}) processado`);
+    return true;
+  } catch (erro) {
+    const msg = erro instanceof Error ? erro.message : String(erro);
+    log(`Webhook Asaas: falha ao processar ${evento.event} (${evento.id}): ${msg}`);
+    await deps.anotarFalha(evento.id, msg).catch(() => undefined);
+    return false;
+  }
+}
+
+/**
+ * Recebe o aviso do Asaas: confere o token, ignora repetido (pelo id do evento), grava e responde 200 na hora.
+ * O processamento vem em `processar`, que a rota roda depois de responder.
+ */
 export async function receberWebhook(
   entrada: { token: string | null; tokenEsperado: string | undefined; corpo: string },
   deps: Deps,
@@ -132,17 +159,8 @@ export async function receberWebhook(
     return { status: 200, corpo: { ok: true, motivo: "repetido" } };
   }
 
-  const acao = acaoDoEvento(evento);
-  if (acao.tipo === "desconhecido") log(`Webhook Asaas: evento não tratado ${evento.event} (${evento.id})`);
-  try {
-    await deps.aplicar(acao, evento);
-    await deps.concluirEvento(evento.id);
-  } catch (erro) {
-    log(`Webhook Asaas: falha ao processar ${evento.event} (${evento.id}): ${erro instanceof Error ? erro.message : erro}`);
-    await deps.desfazerEvento(evento.id);
-    return { status: 500, corpo: { ok: false, motivo: "falha" } };
-  }
-  return { status: 200, corpo: { ok: true } };
+  log(`Webhook Asaas: recebido ${evento.event} (${evento.id})`);
+  return { status: 200, corpo: { ok: true }, processar: () => processarEvento(evento, deps).then(() => undefined) };
 }
 
 /** Vencimento seguinte do ciclo mensal (mesmo dia; fim do mês quando o dia não existe). */

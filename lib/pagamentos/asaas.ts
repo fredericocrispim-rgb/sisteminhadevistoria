@@ -22,6 +22,7 @@ export type CobrancaAsaas = {
   clientPaymentDate?: string | null;
   confirmedDate?: string | null;
   invoiceUrl?: string | null;
+  bankSlipUrl?: string | null;
   transactionReceiptUrl?: string | null;
   externalReference?: string | null;
   description?: string | null;
@@ -35,6 +36,27 @@ export type AssinaturaAsaas = {
   billingType: string;
   status: string;
   externalReference?: string | null;
+  /** Só quando assina com cartão: o Asaas devolve o token (nunca o número inteiro). */
+  creditCard?: { creditCardNumber?: string; creditCardBrand?: string; creditCardToken?: string } | null;
+};
+
+/** Dados do cartão: passam pelo servidor só para ir ao Asaas. NUNCA gravar nem pôr em log. */
+export type CartaoAsaas = {
+  nomeNoCartao: string;
+  numero: string;
+  mesValidade: string;
+  anoValidade: string;
+  cvv: string;
+};
+
+/** Dono do cartão (o Asaas exige CEP e número do endereço para a análise antifraude). */
+export type TitularCartao = {
+  nome: string;
+  email: string;
+  cpfCnpj: string;
+  cep: string;
+  numeroEndereco: string;
+  celular: string;
 };
 
 export type QrCodePix = { encodedImage: string; payload: string; expirationDate?: string };
@@ -73,6 +95,8 @@ async function chamar<T>(caminho: string, opcoes: { metodo?: string; corpo?: unk
     body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
     cache: "no-store",
   });
+  // Registro da chamada: só método, caminho e resultado (nunca o corpo, que pode ter dados do cartão)
+  console.log(`Asaas: ${opcoes.metodo ?? "GET"} ${caminho} -> ${resposta.status}`);
   const texto = await resposta.text();
   const dados = texto ? JSON.parse(texto) : null;
   if (!resposta.ok) {
@@ -117,6 +141,8 @@ export async function criarAssinatura(d: {
   primeiroVencimento: string;
   descricao: string;
   empresaId: string;
+  /** Cartão digitado no sistema: o Asaas já cobra a 1ª mensalidade e devolve o token. */
+  cartao?: { dados: CartaoAsaas; titular: TitularCartao; ip: string };
 }) {
   const corpo = {
     customer: d.cliente,
@@ -126,7 +152,10 @@ export async function criarAssinatura(d: {
     cycle: CICLO_ASAAS,
     description: d.descricao,
     externalReference: d.empresaId,
+    ...(d.cartao ? corpoCartao(d.cartao) : {}),
   };
+  // Cartão no sistema: não tem página do Asaas para voltar
+  if (d.cartao) return chamar<AssinaturaAsaas>("/subscriptions", { metodo: "POST", corpo });
   // Depois de pagar na fatura do Asaas, volta para o sistema. Voltar NÃO libera nada: quem libera é o webhook.
   // O Asaas só aceita se o site estiver cadastrado na conta (Minha conta > Informações); senão, assina sem a volta.
   const url = appUrl();
@@ -142,6 +171,32 @@ export async function criarAssinatura(d: {
     }
   }
   return chamar<AssinaturaAsaas>("/subscriptions", { metodo: "POST", corpo });
+}
+
+function corpoCartao(c: { dados: CartaoAsaas; titular: TitularCartao; ip: string }) {
+  return {
+    creditCard: {
+      holderName: c.dados.nomeNoCartao,
+      number: c.dados.numero,
+      expiryMonth: c.dados.mesValidade,
+      expiryYear: c.dados.anoValidade,
+      ccv: c.dados.cvv,
+    },
+    creditCardHolderInfo: {
+      name: c.titular.nome,
+      email: c.titular.email,
+      cpfCnpj: c.titular.cpfCnpj,
+      postalCode: c.titular.cep,
+      addressNumber: c.titular.numeroEndereco,
+      mobilePhone: c.titular.celular,
+    },
+    remoteIp: c.ip,
+  };
+}
+
+/** Troca o cartão da assinatura sem cobrar nada agora (as próximas mensalidades vão no cartão novo). */
+export function trocarCartaoAssinatura(id: string, c: { dados: CartaoAsaas; titular: TitularCartao; ip: string }) {
+  return chamar<AssinaturaAsaas>(`/subscriptions/${id}/creditCard`, { metodo: "PUT", corpo: corpoCartao(c) });
 }
 
 function appUrl() {
@@ -173,6 +228,11 @@ export async function cobrancasDaAssinatura(id: string) {
 
 export function obterCobranca(id: string) {
   return chamar<CobrancaAsaas>(`/payments/${id}`);
+}
+
+/** Linha digitável do boleto (para copiar e pagar no app do banco). */
+export function linhaDigitavel(idCobranca: string) {
+  return chamar<{ identificationField: string; nossoNumero?: string; barCode?: string }>(`/payments/${idCobranca}/identificationField`);
 }
 
 export function qrCodePix(idCobranca: string) {

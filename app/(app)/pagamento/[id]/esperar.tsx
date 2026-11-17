@@ -12,7 +12,7 @@ import { faturaPaga, jaPaguei } from "../../assinar/acoes";
  * a cada 15 s, pergunta direto ao Asaas (no servidor), caso o aviso atrase. Também confere na hora
  * em que a pessoa volta da aba do Asaas. Pago: "Pagamento confirmado!" e abre o sistema.
  */
-export function EsperarPagamento({ faturaId }: { faturaId: string }) {
+export function EsperarPagamento({ faturaId, texto }: { faturaId: string; texto?: string }) {
   const t = textos.assinatura;
   const router = useRouter();
   const [paga, setPaga] = useState(false);
@@ -80,7 +80,7 @@ export function EsperarPagamento({ faturaId }: { faturaId: string }) {
         <Loader2 aria-hidden className="size-9 shrink-0 animate-spin" />
         <div>
           <p className="text-xl font-extrabold">{t.esperando}</p>
-          <p className="text-base font-semibold">{aviso ?? t.esperandoTexto}</p>
+          <p className="text-base font-semibold">{aviso ?? texto ?? t.esperandoTexto}</p>
         </div>
       </div>
       <BotaoSecundario

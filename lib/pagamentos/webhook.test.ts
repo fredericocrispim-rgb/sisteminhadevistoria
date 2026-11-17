@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { acaoDoEvento, receberWebhook, somarUmMes, tokenValido, type Deps, type EventoAsaas } from "./webhook";
+import { acaoDoEvento, processarEvento, receberWebhook, somarUmMes, tokenValido, type Deps, type EventoAsaas } from "./webhook";
 
 const TOKEN = "token-de-teste-com-mais-de-32-caracteres-123";
 
@@ -25,18 +25,29 @@ function depsFalsas() {
     }),
     aplicar: vi.fn(async () => {}),
     concluirEvento: vi.fn(async () => {}),
-    desfazerEvento: vi.fn(async (id: string) => {
-      recebidos.delete(id);
-    }),
+    anotarFalha: vi.fn(async () => {}),
     log: vi.fn(),
   } satisfies Deps;
   return deps;
 }
 
-const receber = (deps: Deps, corpo: unknown, token: string | null = TOKEN) =>
-  receberWebhook({ token, tokenEsperado: TOKEN, corpo: JSON.stringify(corpo) }, deps);
+/** Como a rota: responde e depois roda o processamento. */
+async function receber(deps: Deps, corpo: unknown, token: string | null = TOKEN) {
+  const r = await receberWebhook({ token, tokenEsperado: TOKEN, corpo: JSON.stringify(corpo) }, deps);
+  await r.processar?.();
+  return r;
+}
 
 describe("webhook do Asaas", () => {
+  it("responde 200 antes de processar", async () => {
+    const deps = depsFalsas();
+    const r = await receberWebhook({ token: TOKEN, tokenEsperado: TOKEN, corpo: JSON.stringify(evento()) }, deps);
+    expect(r.status).toBe(200);
+    expect(deps.aplicar).not.toHaveBeenCalled();
+    await r.processar?.();
+    expect(deps.aplicar).toHaveBeenCalledTimes(1);
+  });
+
   it("evento válido: processa e responde 200", async () => {
     const deps = depsFalsas();
     const r = await receber(deps, evento());
@@ -69,13 +80,15 @@ describe("webhook do Asaas", () => {
     expect(deps.aplicar).toHaveBeenCalledTimes(1);
   });
 
-  it("falha ao processar: 500 e libera para o Asaas mandar de novo", async () => {
+  it("falha ao processar: fica pendente com o erro anotado e dá para tentar de novo", async () => {
     const deps = depsFalsas();
     deps.aplicar.mockRejectedValueOnce(new Error("banco fora"));
-    expect((await receber(deps, evento())).status).toBe(500);
-    expect(deps.desfazerEvento).toHaveBeenCalledWith("evt_1");
     expect((await receber(deps, evento())).status).toBe(200);
-    expect(deps.aplicar).toHaveBeenCalledTimes(2);
+    expect(deps.anotarFalha).toHaveBeenCalledWith("evt_1", "banco fora");
+    expect(deps.concluirEvento).not.toHaveBeenCalled();
+    // A rotina diária tenta de novo
+    expect(await processarEvento(evento(), deps)).toBe(true);
+    expect(deps.concluirEvento).toHaveBeenCalledWith("evt_1");
   });
 
   it("corpo inválido: 400", async () => {
