@@ -376,6 +376,9 @@ export const textos = {
     texto: "Depois é só tocar no ícone para entrar.",
     instalar: "Instalar app",
     agoraNao: "Agora não",
+    barraTitulo: "Instalar o sistema",
+    barraBotao: "Instalar",
+    instalado: "Sistema instalado",
     // iPhone: a Apple não deixa instalar com 1 toque; a pessoa segue estes passos no Safari
     iphoneTitulo: "No iPhone, siga os passos:",
     iphoneTresPontos: "Toque nos 3 pontinhos ••• lá embaixo",

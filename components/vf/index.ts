@@ -18,7 +18,7 @@ export { BarraMarca } from "./barra-marca";
 export { DesenhoCarro, type MarcaAvaria } from "./desenho-carro";
 export { AssinaturaDedo, type AssinaturaRef } from "./assinatura-dedo";
 export { CampoSenha } from "./campo-senha";
-export { InstalarApp, RegistrarApp } from "./instalar-app";
+export { BarraInstalar, InstalarApp, RegistrarApp } from "./instalar-app";
 export { VideoVistoria } from "./video-vistoria";
 export { IconeChip, type TomIcone } from "./icone-chip";
 export { BotaoGigante } from "./botao-gigante";

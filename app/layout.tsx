@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { scriptModoSol } from "@/components/vf/modo-sol";
-import { RegistrarApp } from "@/components/vf/instalar-app";
+import { BarraInstalar, RegistrarApp } from "@/components/vf/instalar-app";
 import { BarraMarca } from "@/components/vf/barra-marca";
 import { textos } from "@/lib/textos";
 import { ENDERECO_SITE, previaLink } from "@/lib/previa-link";
@@ -39,6 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: scriptModoSol }} />
       </head>
       <body className="flex min-h-full flex-col">
+        <BarraInstalar />
         <BarraMarca />
         {children}
         <Toaster />

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { Compass, Download, Ellipsis, Share, SquarePlus, X } from "lucide-react";
 import { BotaoPrincipal } from "./botoes";
 import { textos } from "@/lib/textos";
@@ -28,6 +30,7 @@ export function RegistrarApp() {
     const aoInstalar = () => {
       pedido = null;
       avisar();
+      toast.success(t.instalado);
     };
     window.addEventListener("beforeinstallprompt", aoPoder);
     window.addEventListener("appinstalled", aoInstalar);
@@ -166,6 +169,76 @@ function PassosIphone({ modo }: { modo: Modo }) {
         ))}
       </ol>
       {modo === "iphone_outro" && <p className="text-base font-semibold text-muted-foreground">{t.iphoneAbrirSafariDica}</p>}
+    </div>
+  );
+}
+
+/**
+ * Telas onde a barra NÃO aparece:
+ * - já mostram o cartão grande de instalar (Início, Mais, fim do cadastro);
+ * - são do dono do carro, não da oficina (link da vistoria e verificar documento).
+ */
+const SEM_BARRA = ["/inicio", "/mais", "/cadastro", "/v", "/verificar"];
+
+/**
+ * Faixa fina no alto de TODAS as páginas (site e sistema): "Instalar o sistema" com 1 toque.
+ * Computador e Android: o toque abre a confirmação do navegador e, ao aceitar, aparece "Sistema instalado".
+ * iPhone: o toque mostra os passos do Safari (a Apple não deixa instalar com 1 toque).
+ * Some quando já está instalado; o X esconde por 3 dias.
+ */
+export function BarraInstalar() {
+  const caminho = usePathname();
+  const modo = useSyncExternalStore(assinar, modoAtual, () => "nada" as Modo);
+  const escondido = useSyncExternalStore(assinar, fechadoHaPouco, () => true);
+  const [verPassos, setVerPassos] = useState(false);
+
+  if (modo === "nada" || escondido) return null;
+  if (SEM_BARRA.some((p) => caminho === p || caminho.startsWith(`${p}/`))) return null;
+
+  function fechar() {
+    try {
+      localStorage.setItem(CHAVE_FECHADO, String(Date.now()));
+    } catch {}
+    avisar();
+  }
+
+  async function tocar() {
+    if (!pedido) return setVerPassos((v) => !v);
+    await pedido.prompt();
+    await pedido.userChoice;
+    pedido = null;
+    avisar();
+  }
+
+  return (
+    <div className="w-full bg-oficina-clara ring-1 ring-oficina/15">
+      <div className="mx-auto flex w-full max-w-5xl items-center gap-3 py-2 pr-1 pl-4">
+        {/* eslint-disable-next-line @next/next/no-img-element -- ícone fixo do app */}
+        <img src="/app-maskable-192.png" alt="" className="size-10 shrink-0 rounded-xl" />
+        <p className="min-w-0 flex-1 text-base leading-tight font-bold">{t.barraTitulo}</p>
+        <button
+          type="button"
+          onClick={tocar}
+          aria-expanded={modo === "android" ? undefined : verPassos}
+          className="tocavel flex min-h-toque shrink-0 items-center gap-2 rounded-2xl bg-acao px-4 text-lg font-extrabold text-acao-texto [&_svg]:size-6"
+        >
+          <Download aria-hidden />
+          {t.barraBotao}
+        </button>
+        <button
+          type="button"
+          onClick={fechar}
+          aria-label={t.agoraNao}
+          className="tocavel grid size-12 shrink-0 place-items-center rounded-full text-muted-foreground [&_svg]:size-6"
+        >
+          <X aria-hidden />
+        </button>
+      </div>
+      {verPassos && modo !== "android" && (
+        <div className="mx-auto w-full max-w-5xl px-4 pb-3">
+          <PassosIphone modo={modo} />
+        </div>
+      )}
     </div>
   );
 }
