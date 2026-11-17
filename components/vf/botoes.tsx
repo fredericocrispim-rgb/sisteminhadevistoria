@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
+import { RodapeFixo } from "./rodape-fixo";
 
 type BaseProps = {
   icone?: ReactNode;
@@ -71,9 +72,8 @@ export function BotaoPrincipal({ className, fixo, ...props }: BotaoProps & { fix
     <>
       {/* Espaço reservado para o conteúdo não ficar escondido atrás do botão */}
       <div aria-hidden className="h-24" />
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-background via-background/90 to-transparent px-4 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-xl">{botao}</div>
-      </div>
+      {/* Sobe junto com o teclado do celular (nunca fica escondido atrás dele) */}
+      <RodapeFixo>{botao}</RodapeFixo>
     </>
   );
 }
