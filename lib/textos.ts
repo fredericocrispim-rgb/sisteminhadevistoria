@@ -251,10 +251,10 @@ export const textos = {
 
   cadastro: {
     // Uma pergunta por tela: o título de cada tela é a pergunta
-    perguntas: ["Qual é o seu nome?", "Qual é o seu WhatsApp?", "Qual é o nome da oficina?", "Logo da oficina"],
+    perguntas: ["Qual é o seu nome completo?", "Qual é o seu WhatsApp?", "Qual é o nome da oficina?", "Logo da oficina"],
     proximo: "Próximo",
     voce: {
-      nome: "Seu nome",
+      nome: "Seu nome completo",
       whatsapp: "Seu WhatsApp",
       whatsappDica: "Com DDD. É por ele que falamos com você.",
       aceiteAoContinuar: "Ao tocar em Próximo, você aceita os",
@@ -319,6 +319,9 @@ export const textos = {
       texto: "Sua oficina já está no sistema.",
       prazo: (dias: number) => (dias === 1 ? "Pague pelo Pix até amanhã." : `Pague pelo Pix em até ${dias} dias.`),
       comecar: "Pagar pelo Pix",
+      pularTeste: "Pular para o teste",
+      senhaProvisoria: "Sua senha provisória é:",
+      senhaAnote: "Anote! Depois você pode trocar em Mais.",
     },
     continuar: "Continuar",
   },
