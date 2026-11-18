@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { CreditCard, ExternalLink } from "lucide-react";
 import { PagarPix } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -42,6 +43,7 @@ export default async function Pagamento({ params }: PageProps<"/pagamento/[id]">
   const t = textos.assinatura;
   const pix = f.forma === "pix";
   const boleto = f.forma === "boleto";
+  const cartao = !pix && !boleto;
   let codigo: string | null = null;
   let linha: string | null = null;
   let linkBoleto: string | null = null;
@@ -80,8 +82,15 @@ export default async function Pagamento({ params }: PageProps<"/pagamento/[id]">
       )}
       {linha && <LinhaBoleto linha={linha} />}
 
-      {/* Cartão, ou Pix sem QR Code (falha ao buscar): a página do Asaas resolve */}
-      {!boleto && !codigo && f.link_fatura && (
+      {/* Cartão (recusado ou trocado): digitar o cartão aqui mesmo e pagar */}
+      {cartao && (
+        <Link href="/plano/forma?cartao=1" className={BOTAO_LINK}>
+          <CreditCard aria-hidden /> <span>{t.pagarComOutroCartao}</span>
+        </Link>
+      )}
+
+      {/* Pix sem QR Code (falha ao buscar): a página do Asaas resolve */}
+      {pix && !codigo && f.link_fatura && (
         <a href={f.link_fatura} target="_blank" rel="noopener" className={BOTAO_LINK}>
           <ExternalLink aria-hidden /> <span>{t.abrirPagina}</span>
         </a>

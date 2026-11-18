@@ -18,10 +18,14 @@ import {
   criarAssinatura,
   ErroAsaas,
   obterCobranca,
+  pagarComCartao,
+  trocarCartaoAssinatura,
   type AssinaturaAsaas,
+  type CartaoAsaas,
+  type TitularCartao,
   type CobrancaAsaas,
 } from "@/lib/pagamentos/asaas";
-import { DESCRICAO_ASSINATURA, PROVEDOR_ASAAS, nomeForma, planosAVenda } from "@/lib/pagamentos/config";
+import { DESCRICAO_ASSINATURA, PROVEDOR_ASAAS, formaDaFatura, nomeForma, planosAVenda, type FormaPagamento } from "@/lib/pagamentos/config";
 import { cepValido, cvvValido, lerValidade, numeroCartaoValido } from "@/lib/pagamentos/cartao";
 import { aplicarPagamento, guardarCobranca } from "@/lib/pagamentos/servidor";
 import { eStatusPago } from "@/lib/pagamentos/webhook";
@@ -77,6 +81,25 @@ async function primeiraCobranca(idAssinatura: string): Promise<CobrancaAsaas | n
 async function ipDoCliente() {
   const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0].trim() || h.get("x-real-ip") || "127.0.0.1";
+}
+
+/** Cartão digitado + dono do cartão, no formato do Asaas. Não guarda nada. */
+async function cartaoParaAsaas(
+  c: z.output<typeof esquemaCartao>,
+  quem: { nome: string; email: string; cpfCnpj: string; celular: string },
+): Promise<{ dados: CartaoAsaas; titular: TitularCartao; ip: string }> {
+  const validade = lerValidade(c.validade)!; // já conferida no esquema
+  return {
+    dados: {
+      nomeNoCartao: c.nomeNoCartao,
+      numero: soNumeros(c.numero),
+      mesValidade: validade.mes,
+      anoValidade: validade.ano,
+      cvv: soNumeros(c.cvv),
+    },
+    titular: { ...quem, cep: soNumeros(c.cep), numeroEndereco: c.numeroEndereco },
+    ip: await ipDoCliente(),
+  };
 }
 
 /** Recusa do cartão: o motivo que o Asaas dá, em frase simples. */
@@ -150,27 +173,9 @@ export async function assinar(dados: DadosAssinar): Promise<Resultado<{ destino:
       }
     }
 
-    const validade = d.cartao ? lerValidade(d.cartao.validade) : null;
     const cartao =
-      d.forma === "CREDIT_CARD" && d.cartao && validade
-        ? {
-            dados: {
-              nomeNoCartao: d.cartao.nomeNoCartao,
-              numero: soNumeros(d.cartao.numero),
-              mesValidade: validade.mes,
-              anoValidade: validade.ano,
-              cvv: soNumeros(d.cartao.cvv),
-            },
-            titular: {
-              nome: d.nome,
-              email: ctx.usuario.email,
-              cpfCnpj: soNumeros(d.cpfCnpj),
-              cep: soNumeros(d.cartao.cep),
-              numeroEndereco: d.cartao.numeroEndereco,
-              celular: soNumeros(d.celular),
-            },
-            ip: await ipDoCliente(),
-          }
+      d.forma === "CREDIT_CARD" && d.cartao
+        ? await cartaoParaAsaas(d.cartao, { nome: d.nome, email: ctx.usuario.email, cpfCnpj: soNumeros(d.cpfCnpj), celular: soNumeros(d.celular) })
         : undefined;
 
     let sub: AssinaturaAsaas;
@@ -274,29 +279,134 @@ export async function jaPaguei(faturaId: string): Promise<Resultado<{ paga: bool
   }
 }
 
-/** Troca Pix ⇄ cartão. Vale também para a cobrança em aberto, que volta para abrir a página do Asaas. */
-export async function trocarForma(forma: "PIX" | "CREDIT_CARD"): Promise<Resultado<{ faturaId?: string; link?: string }>> {
+/** Troca para Pix ou boleto. A cobrança em aberto também muda e a tela dela mostra o QR Code ou o boleto. */
+export async function trocarForma(forma: "PIX" | "BOLETO"): Promise<Resultado<{ faturaId?: string }>> {
   const ctx = await dono();
-  if (!ctx || (forma !== "PIX" && forma !== "CREDIT_CARD")) return { ok: false, erro: FALHOU };
+  if (!ctx || (forma !== "PIX" && forma !== "BOLETO")) return { ok: false, erro: FALHOU };
   const admin = criarClienteAdmin();
   const { data: a } = await admin.from("assinaturas").select("id, provedor, status, id_assinatura_externa").eq("empresa_id", ctx.empresa.id).single();
   if (a?.provedor !== PROVEDOR_ASAAS || !a.id_assinatura_externa || a.status === "cancelada") return { ok: false, erro: FALHOU };
   try {
     const sub = await atualizarAssinatura(a.id_assinatura_externa, { forma });
     // Pix virou boleto (conta sem chave Pix): não grava a troca
-    if (sub.billingType !== forma) return { ok: false, erro: textos.assinatura.formaIndisponivel(forma === "PIX" ? "Pix" : "Cartão") };
-    await admin.from("assinaturas").update({ forma_pagamento: forma, atualizado_em: new Date().toISOString() }).eq("id", a.id);
+    if (sub.billingType !== forma) return { ok: false, erro: textos.assinatura.formaIndisponivel(nomeForma(forma)) };
+    await admin
+      .from("assinaturas")
+      .update({
+        forma_pagamento: forma,
+        cartao_token: null,
+        cartao_final: null,
+        cartao_bandeira: null,
+        cartao_recusado_em: null,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq("id", a.id);
     const { data: abertas } = await admin
       .from("faturas")
-      .update({ forma: forma === "CREDIT_CARD" ? "cartao" : "pix" })
+      .update({ forma: formaDaFatura(forma) })
       .eq("assinatura_id", a.id)
       .in("status", ["pendente", "vencida"])
-      .select("id, link_fatura, vencimento");
+      .select("id, vencimento");
+    await admin.from("auditoria").insert({ empresa_id: ctx.empresa.id, usuario_id: ctx.usuario.id, acao: "trocou_forma", entidade: "assinaturas", detalhes: { forma } });
     revalidatePath("/plano");
     const aberta = abertas?.sort((x, y) => x.vencimento.localeCompare(y.vencimento))[0];
-    return { ok: true, faturaId: aberta?.id, link: aberta?.link_fatura ?? undefined };
+    return { ok: true, faturaId: aberta?.id };
   } catch (erro) {
-    console.error("Asaas: falha ao trocar a forma de pagamento", erro);
+    console.error("Asaas: falha ao trocar a forma de pagamento", erro instanceof Error ? erro.message : erro);
+    return { ok: false, erro: FALHOU };
+  }
+}
+
+/**
+ * Cartão novo (ou passar a pagar no cartão), digitado no sistema.
+ * - Tem mensalidade vencendo hoje ou já vencida: paga ela agora com o cartão novo.
+ * - As próximas mensalidades vão no cartão novo.
+ * Recusado: nada muda e a pessoa vê o motivo. Do cartão, só fica o token, os 4 últimos números e a bandeira.
+ */
+export async function trocarCartao(dados: z.input<typeof esquemaCartao>): Promise<Resultado<{ pago: boolean }>> {
+  const ctx = await dono();
+  if (!ctx) return { ok: false, erro: FALHOU };
+  const v = esquemaCartao.safeParse(dados);
+  if (!v.success) return { ok: false, erro: v.error.issues[0].message, campo: String(v.error.issues[0].path[0]) };
+  const admin = criarClienteAdmin();
+  const [{ data: a }, { data: emp }] = await Promise.all([
+    admin.from("assinaturas").select("id, provedor, status, forma_pagamento, id_assinatura_externa").eq("empresa_id", ctx.empresa.id).single(),
+    admin.from("empresas").select("cnpj_cpf, razao_social, nome_fantasia, whatsapp").eq("id", ctx.empresa.id).single(),
+  ]);
+  if (a?.provedor !== PROVEDOR_ASAAS || !a.id_assinatura_externa || a.status === "cancelada") return { ok: false, erro: FALHOU };
+  if (!emp?.cnpj_cpf) return { ok: false, erro: FALHOU };
+  const cartao = await cartaoParaAsaas(v.data, {
+    nome: emp.razao_social || ctx.usuario.nome || emp.nome_fantasia,
+    email: ctx.usuario.email,
+    cpfCnpj: soNumeros(emp.cnpj_cpf),
+    celular: soNumeros(emp.whatsapp || ctx.usuario.whatsapp || ""),
+  });
+  const idSub = a.id_assinatura_externa;
+  const eraCartao = a.forma_pagamento === "CREDIT_CARD";
+
+  // Mensalidade para pagar já (vence hoje ou venceu)
+  const { data: abertas } = await admin
+    .from("faturas")
+    .select("id, id_externo, vencimento")
+    .eq("assinatura_id", a.id)
+    .in("status", ["pendente", "vencida"])
+    .lte("vencimento", hojeBR())
+    .order("vencimento")
+    .limit(1);
+  const devida = abertas?.[0];
+
+  try {
+    if (!eraCartao) await atualizarAssinatura(idSub, { forma: "CREDIT_CARD" });
+    let pago = false;
+    let infoCartao: AssinaturaAsaas["creditCard"] = null;
+    if (devida?.id_externo) {
+      try {
+        const c = await pagarComCartao(devida.id_externo, cartao);
+        infoCartao = c.creditCard ?? null;
+        if (eStatusPago(c.status)) {
+          await aplicarPagamento(c);
+          pago = true;
+        }
+      } catch (erro) {
+        const recusa = erroDoCartao(erro);
+        if (!recusa) throw erro;
+        if (!eraCartao) await atualizarAssinatura(idSub, { forma: (a.forma_pagamento as FormaPagamento) ?? "PIX" }).catch(() => undefined);
+        console.log(`Asaas: cartão novo recusado na oficina ${ctx.empresa.id}`);
+        return { ok: false, erro: recusa, campo: "cartao" };
+      }
+    }
+    // Próximas mensalidades no cartão novo
+    try {
+      const sub = await trocarCartaoAssinatura(idSub, cartao);
+      infoCartao = sub.creditCard ?? infoCartao;
+    } catch (erro) {
+      const recusa = erroDoCartao(erro);
+      // Já pagou com este cartão: segue (o Asaas tenta o cartão da assinatura no próximo mês)
+      if (!recusa || pago) {
+        if (!pago) throw erro;
+        console.error("Asaas: pagou, mas não trocou o cartão da assinatura", erro instanceof Error ? erro.message : erro);
+      } else {
+        if (!eraCartao) await atualizarAssinatura(idSub, { forma: (a.forma_pagamento as FormaPagamento) ?? "PIX" }).catch(() => undefined);
+        return { ok: false, erro: recusa, campo: "cartao" };
+      }
+    }
+    await admin
+      .from("assinaturas")
+      .update({
+        forma_pagamento: "CREDIT_CARD",
+        cartao_token: infoCartao?.creditCardToken ?? null,
+        cartao_final: infoCartao?.creditCardNumber?.slice(-4) ?? null,
+        cartao_bandeira: infoCartao?.creditCardBrand ?? null,
+        cartao_recusado_em: null,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq("id", a.id);
+    await admin.from("faturas").update({ forma: "cartao" }).eq("assinatura_id", a.id).in("status", ["pendente", "vencida"]);
+    await admin.from("auditoria").insert({ empresa_id: ctx.empresa.id, usuario_id: ctx.usuario.id, acao: "trocou_cartao", entidade: "assinaturas", detalhes: { pagou_agora: pago } });
+    revalidatePath("/plano");
+    return { ok: true, pago };
+  } catch (erro) {
+    console.error("Asaas: falha ao trocar o cartão", erro instanceof Error ? erro.message : erro);
     return { ok: false, erro: FALHOU };
   }
 }

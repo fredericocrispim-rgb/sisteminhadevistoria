@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { AlertTriangle, CarFront, ChevronRight, Clock, ImagePlus, LogIn, LogOut, PencilLine, QrCode } from "lucide-react";
+import { AlertTriangle, CarFront, ChevronRight, Clock, ImagePlus, LogIn, LogOut, PencilLine, QrCode, Wallet } from "lucide-react";
 import { BotaoGigante, IconeChip, InstalarApp, LogoOficina } from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
 import { hojeBR } from "@/lib/cadastro";
@@ -11,6 +11,8 @@ import { placaParaMostrar } from "@/lib/vistoria";
 import { criarClienteServidor } from "@/lib/supabase/servidor";
 import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
+import { asaasLigado } from "@/lib/pagamentos/asaas";
+import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
 
 export const metadata: Metadata = { title: "Início" };
 
@@ -24,6 +26,8 @@ export default async function Inicio() {
   const cartaoAutomatico = plano.provedor === "asaas" && plano.formaPagamento === "CREDIT_CARD";
   const avisar = dono && (plano.fase === "atrasado" || plano.cartaoRecusado || (plano.fase === "vence_logo" && !cartaoAutomatico));
   const atencao = plano.fase === "atrasado" || plano.cartaoRecusado;
+  // Cliente do Pix manual com o plano em dia e o Asaas ligado: convite para a assinatura automática
+  const migrar = dono && !avisar && plano.status === "ativa" && plano.provedor !== PROVEDOR_ASAAS && plano.fase === "em_dia" && asaasLigado(empresa.id);
   if (avisar && (await cookies()).get("vf_aviso_pix")?.value !== hojeBR()) redirect("/plano?aviso=1");
 
   const supabaseInicio = await criarClienteServidor();
@@ -140,6 +144,16 @@ export default async function Inicio() {
                 : `Vence em ${plano.diasParaVencer} ${plano.diasParaVencer === 1 ? "dia" : "dias"}. Pague pelo Pix`}
           </span>
           <ChevronRight aria-hidden className="size-7 shrink-0" />
+        </Link>
+      )}
+
+      {migrar && (
+        <Link href="/assinar" className="tocavel cartao flex min-h-toque items-center gap-3 rounded-2xl px-3 py-3">
+          <IconeChip tom="neutro" tamanho="p">
+            <Wallet />
+          </IconeChip>
+          <span className="flex-1 text-lg font-bold">{textos.assinatura.migrarInicio}</span>
+          <ChevronRight aria-hidden className="size-6 shrink-0 text-muted-foreground" />
         </Link>
       )}
 

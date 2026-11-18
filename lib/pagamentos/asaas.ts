@@ -230,6 +230,15 @@ export function obterCobranca(id: string) {
   return chamar<CobrancaAsaas>(`/payments/${id}`);
 }
 
+/** Paga uma cobrança já existente com o cartão informado (cartão recusado, troca de cartão). */
+export function pagarComCartao(idCobranca: string, c: { dados: CartaoAsaas; titular: TitularCartao; ip: string }) {
+  const { creditCard, creditCardHolderInfo, remoteIp } = corpoCartao(c);
+  return chamar<CobrancaAsaas & { creditCard?: AssinaturaAsaas["creditCard"] }>(`/payments/${idCobranca}/payWithCreditCard`, {
+    metodo: "POST",
+    corpo: { creditCard, creditCardHolderInfo, remoteIp },
+  });
+}
+
 /** Linha digitável do boleto (para copiar e pagar no app do banco). */
 export function linhaDigitavel(idCobranca: string) {
   return chamar<{ identificationField: string; nossoNumero?: string; barCode?: string }>(`/payments/${idCobranca}/identificationField`);

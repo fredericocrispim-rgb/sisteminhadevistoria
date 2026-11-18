@@ -98,6 +98,8 @@ export type SituacaoPlano = {
   idAssinaturaExterna: string | null;
   /** Cartão recusado na renovação (Asaas): avisar para trocar o cartão ou pagar de outro jeito. */
   cartaoRecusado: boolean;
+  /** 4 últimos números do cartão da assinatura (nunca o número inteiro). */
+  cartaoFinal: string | null;
   /** Último dia de uso sem pagar (vencimento + carência). */
   bloqueiaEm: string | null;
 };
@@ -117,7 +119,7 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
   const [{ data: a }, { data: plat }, { data: emp }] = await Promise.all([
     admin
       .from("assinaturas")
-      .select("status, fim_teste, proximo_vencimento, provedor, forma_pagamento, acesso_ate, id_assinatura_externa, cartao_recusado_em").eq("empresa_id", empresaId).maybeSingle(),
+      .select("status, fim_teste, proximo_vencimento, provedor, forma_pagamento, acesso_ate, id_assinatura_externa, cartao_recusado_em, cartao_final").eq("empresa_id", empresaId).maybeSingle(),
     admin.from("plataforma").select("dias_carencia").single(),
     admin.from("empresas").select("ativa").eq("id", empresaId).maybeSingle(),
   ]);
@@ -147,6 +149,7 @@ export const situacaoPlano = cache(async (empresaId: string): Promise<SituacaoPl
     acessoAte: a?.acesso_ate ?? null,
     idAssinaturaExterna: a?.id_assinatura_externa ?? null,
     cartaoRecusado: Boolean(a?.cartao_recusado_em) && a?.forma_pagamento === "CREDIT_CARD" && status !== "cancelada",
+    cartaoFinal: a?.cartao_final ?? null,
     bloqueiaEm: vencimento ? somarDias(vencimento, carencia) : null,
   };
 });

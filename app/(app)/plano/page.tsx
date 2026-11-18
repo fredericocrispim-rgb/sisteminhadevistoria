@@ -181,6 +181,9 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
     };
   }
 
+  // Cliente do Pix manual com o plano pago: escolhe como pagar as próximas (a 1ª cobrança só vem no vencimento)
+  const pagoAinda = precisaAssinar && plano.status !== "cancelada" && plano.status !== "teste" && (plano.fase === "em_dia" || plano.fase === "vence_logo");
+
   const mostrarContinuar = !bloqueado && aviso === "1";
 
   return (
@@ -227,6 +230,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
               <div className="rounded-2xl bg-superficie px-4 py-3 text-lg">
                 <p>
                   Pagamento: <strong>{nomeForma(plano.formaPagamento)}</strong>
+                  {cartao && plano.cartaoFinal ? ` final ${plano.cartaoFinal}` : ""}
                   {cartao && " (renova sozinho)"}
                 </p>
                 <p>
@@ -234,7 +238,7 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                 </p>
               </div>
               {emAberto && (
-                <BotaoPagar faturaId={emAberto.id} link={emAberto.link_fatura}>
+                <BotaoPagar faturaId={emAberto.id}>
                   Pagar {formatarReais(Number(emAberto.valor))} {emAberto.forma === "cartao" ? "no cartão" : emAberto.forma === "boleto" ? "no boleto" : "pelo Pix"}
                 </BotaoPagar>
               )}
@@ -273,15 +277,21 @@ export default async function MeuPlano({ searchParams }: PageProps<"/plano">) {
                   </ul>
                 </section>
               )}
-              <BotoesAssinatura forma={plano.formaPagamento} temAberta={Boolean(emAberto)} />
+              <BotoesAssinatura forma={plano.formaPagamento} />
             </>
           ) : precisaAssinar ? (
-            <Link
-              href="/assinar"
-              className="tocavel flex min-h-toque-grande w-full items-center justify-center gap-3 rounded-2xl bg-acao px-5 text-xl font-bold text-acao-texto hover:bg-acao-escura [&_svg]:size-7"
-            >
-              {plano.status === "cancelada" ? textos.assinatura.assinarDeNovo : "Pagar: Pix ou cartão"} <ArrowRight aria-hidden />
-            </Link>
+            <>
+              {pagoAinda && plano.vencimento && (
+                <p className="rounded-2xl bg-oficina-clara px-4 py-3 text-lg font-bold text-oficina">{textos.assinatura.migrarAviso(dataBR(plano.vencimento))}</p>
+              )}
+              <Link
+                href="/assinar"
+                className="tocavel flex min-h-toque-grande w-full items-center justify-center gap-3 rounded-2xl bg-acao px-5 text-xl font-bold text-acao-texto hover:bg-acao-escura [&_svg]:size-7"
+              >
+                {plano.status === "cancelada" ? textos.assinatura.assinarDeNovo : pagoAinda ? textos.assinatura.escolherComoPagar : "Pagar: Pix, cartão ou boleto"}{" "}
+                <ArrowRight aria-hidden />
+              </Link>
+            </>
           ) : codigo ? (
             <PagarPix codigo={codigo} valor={valor} descricao="Mensalidade" />
           ) : (

@@ -12,6 +12,8 @@ import { textos } from "@/lib/textos";
 import { LinkSenha } from "./link-senha";
 import { TrocarSenha } from "./trocar-senha";
 import { mudarVideo } from "./acoes";
+import { MigrarAsaas } from "./migrar-asaas";
+import { contarParaMigrar } from "@/lib/pagamentos/migrar";
 import { PainelOficinas, type OficinaPainel, type PessoaPainel } from "./painel";
 import { RelatorioComissoes, type Vendedor } from "./comissoes";
 import type { Comissao } from "@/lib/comissao";
@@ -41,6 +43,8 @@ const maisRecente = (...datas: (string | null | undefined)[]) =>
 export default async function Admin({ searchParams }: PageProps<"/admin">) {
   await exigirSuperadmin();
   const { aba } = await searchParams;
+  // Clientes do Pix manual que dá para passar para a assinatura automática (só com o Asaas configurado)
+  const migracao = process.env.ASAAS_API_KEY ? await contarParaMigrar().catch(() => null) : null;
   const admin = criarClienteAdmin();
   // Comissões em consultas separadas: se o banco ainda não foi preparado, o resto do painel funciona igual
   const [vend, vendaPorOficina, coms, gratis] = await Promise.all([
@@ -250,6 +254,9 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
             vendedores={vendedores}
             comissaoAtiva={bancoComissoesPronto}
           />
+          {migracao && (migracao.prontas > 0 || migracao.semDocumento > 0) && (
+            <MigrarAsaas prontas={migracao.prontas} semDocumento={migracao.semDocumento} />
+          )}
           <TrocarSenha />
           <LinkSenha />
           {plat && "video_ligado" in plat && (

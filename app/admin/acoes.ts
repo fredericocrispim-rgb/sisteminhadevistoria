@@ -9,6 +9,18 @@ import { criarComissoes } from "@/lib/comissoes-servidor";
 import { cancelarAssinatura as cancelarNoAsaas } from "@/lib/pagamentos/asaas";
 import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
 import { cadastrarNaEquipe, type DadosPessoa, type ResultadoCadastro } from "@/lib/equipe";
+import { migrarParaAsaas } from "@/lib/pagamentos/migrar";
+
+/** Passa até 20 oficinas do Pix manual para a assinatura mensal do Asaas (1ª cobrança no fim do período pago). */
+export async function migrarClientesAsaas(): Promise<
+  { ok: true; migradas: number; restantes: number; erros: string[] } | { ok: false; erro: string }
+> {
+  const ctx = await exigirSuperadmin();
+  if (!process.env.ASAAS_API_KEY) return { ok: false, erro: "Asaas não configurado (falta ASAAS_API_KEY)." };
+  const r = await migrarParaAsaas(ctx.usuario.id);
+  revalidatePath("/admin");
+  return { ok: true, ...r };
+}
 
 const hoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }); // aaaa-mm-dd
 
