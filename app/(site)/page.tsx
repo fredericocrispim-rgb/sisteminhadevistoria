@@ -95,9 +95,9 @@ export default async function Inicio() {
             </ul>
           </section>
 
-          <section aria-label="Telas do app Vistoria Rápida" className="relative mx-auto h-[470px] w-full max-w-[420px] sm:h-[560px]">
-            <Celular tela="inicio" prioridade className="absolute top-0 left-0 w-[58%] -rotate-[5deg]" />
-            <Celular tela="concluida" prioridade className="absolute top-10 right-0 w-[58%] rotate-[4deg]" />
+          <section aria-label="Telas do app Vistoria Rápida" className="relative mx-auto h-[410px] w-full max-w-[420px] sm:h-[530px]">
+            <Celular tela="inicio" prioridade className="absolute top-0 left-[2%] w-[50%] -rotate-[5deg]" />
+            <Celular tela="concluida" prioridade className="absolute top-8 right-[2%] w-[50%] rotate-[4deg]" />
             <div className="absolute bottom-10 left-[-4px] flex items-center gap-2 rounded-2xl bg-background px-4 py-3 shadow-xl ring-1 ring-border sm:bottom-16">
               <PenLine aria-hidden className="size-6 text-oficina" />
               <span className="text-sm font-bold">Assinado pelo cliente</span>
