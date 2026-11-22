@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ChevronRight, Gift, ImageIcon, Users, KeyRound, LogOut, QrCode, ShieldCheck } from "lucide-react";
-import { BotaoModoSol, IconeChip, InstalarApp, type TomIcone } from "@/components/vf";
+import {
+  ChevronRight,
+  Gift,
+  ImageIcon,
+  Users,
+  KeyRound,
+  LogOut,
+  QrCode,
+  ShieldCheck,
+} from "lucide-react";
+import {
+  BotaoModoSol,
+  IconeChip,
+  InstalarApp,
+  type TomIcone,
+} from "@/components/vf";
 import { exigirOficina } from "@/lib/sessao";
+import { INDICACAO_ATIVA } from "@/lib/indicacao";
 import { textos } from "@/lib/textos";
 import { sair } from "./acoes";
 
@@ -12,7 +27,11 @@ export const metadata: Metadata = { title: "Mais" };
 export default async function Mais() {
   const { usuario, empresa, papel, superadmin } = await exigirOficina();
   const gestor = papel === "dono" || papel === "gerente";
-  const nomePapel = { dono: "Dono", gerente: "Gerente", vistoriador: "Vistoriador" }[papel];
+  const nomePapel = {
+    dono: "Dono",
+    gerente: "Gerente",
+    vistoriador: "Vistoriador",
+  }[papel];
 
   const nome = usuario.nome ?? usuario.email ?? "";
   const iniciais =
@@ -38,10 +57,14 @@ export default async function Mais() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-extrabold">{nome}</p>
           <p className="flex flex-wrap items-center gap-x-2 text-base text-muted-foreground">
-            <span className="rounded-full bg-oficina-clara px-2 py-0.5 text-sm font-bold text-oficina">{nomePapel}</span>
+            <span className="rounded-full bg-oficina-clara px-2 py-0.5 text-sm font-bold text-oficina">
+              {nomePapel}
+            </span>
             <span className="truncate">{empresa.nome_fantasia}</span>
           </p>
-          <p className="truncate text-sm text-muted-foreground">{usuario.email}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {usuario.email}
+          </p>
         </div>
       </div>
 
@@ -59,9 +82,11 @@ export default async function Mais() {
             <Item href="/cadastro?passo=2" tom="oficina" icone={<ImageIcon />}>
               Logo da empresa
             </Item>
-            <Item href="/indicar" tom="atencao" icone={<Gift />}>
-              {textos.indicar.menu}
-            </Item>
+            {INDICACAO_ATIVA && (
+              <Item href="/indicar" tom="atencao" icone={<Gift />}>
+                {textos.indicar.menu}
+              </Item>
+            )}
           </>
         )}
         {superadmin && (
@@ -90,10 +115,23 @@ export default async function Mais() {
   );
 }
 
-function Item({ href, icone, tom, children }: { href: string; icone: ReactNode; tom: TomIcone; children: ReactNode }) {
+function Item({
+  href,
+  icone,
+  tom,
+  children,
+}: {
+  href: string;
+  icone: ReactNode;
+  tom: TomIcone;
+  children: ReactNode;
+}) {
   return (
     <li>
-      <Link href={href} className="tocavel cartao flex min-h-toque-grande items-center gap-3 rounded-2xl px-3 py-2">
+      <Link
+        href={href}
+        className="tocavel cartao flex min-h-toque-grande items-center gap-3 rounded-2xl px-3 py-2"
+      >
         <IconeChip tom={tom}>{icone}</IconeChip>
         <span className="flex-1 text-lg font-bold">{children}</span>
         <ChevronRight aria-hidden className="size-6 text-muted-foreground" />
