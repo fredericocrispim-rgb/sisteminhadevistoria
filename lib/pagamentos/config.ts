@@ -79,3 +79,35 @@ export function faturaEmAberto<T extends { status: string; vencimento: string }>
 export function nomeForma(forma: string | null | undefined) {
   return FORMAS_PAGAMENTO.find((f) => f.valor === forma)?.rotulo ?? "Pix";
 }
+
+/** aaaa-mm-dd + n dias */
+function maisDias(data: string, dias: number) {
+  const d = new Date(`${data}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Folga para o dia de vencimento do Asaas não bater exatamente com o do sistema. */
+const FOLGA_DIAS = 5;
+
+type CobrancaSimples = { id: string; status: string; dueDate: string };
+
+/**
+ * Mudou o plano (ou a equipe): quais cobranças já geradas recebem o valor novo.
+ * Só as do PRÓXIMO período: em aberto, vencendo depois de hoje e a partir do fim do período já pago
+ * (`pagoAte` = próximo vencimento da oficina). A do período pago ou em andamento fica com o valor antigo.
+ */
+export function cobrancasParaValorNovo<T extends CobrancaSimples>(cobrancas: T[], hoje: string, pagoAte: string | null): T[] {
+  const inicioProximo = pagoAte ? maisDias(pagoAte, -FOLGA_DIAS) : null;
+  return cobrancas.filter((c) => c.status === "PENDING" && c.dueDate > hoje && (!inicioProximo || c.dueDate >= inicioProximo));
+}
+
+/**
+ * Pagamento confirmado à mão no painel (Pix direto na conta) para uma oficina do Asaas:
+ * as cobranças em aberto desse mesmo período (vencendo antes do novo vencimento) sobram e devem sair.
+ * A do período seguinte fica.
+ */
+export function cobrancasDoPeriodoPago<T extends CobrancaSimples>(cobrancas: T[], novoVencimento: string): T[] {
+  const limite = maisDias(novoVencimento, -FOLGA_DIAS);
+  return cobrancas.filter((c) => (c.status === "PENDING" || c.status === "OVERDUE") && c.dueDate < limite);
+}

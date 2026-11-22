@@ -6,8 +6,8 @@ import { exigirSuperadmin } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
 import { criarComissoes } from "@/lib/comissoes-servidor";
-import { cancelarAssinatura as cancelarNoAsaas } from "@/lib/pagamentos/asaas";
-import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
+import { cancelarAssinatura as cancelarNoAsaas, cobrancasDaAssinatura, removerCobranca } from "@/lib/pagamentos/asaas";
+import { PROVEDOR_ASAAS, cobrancasDoPeriodoPago } from "@/lib/pagamentos/config";
 import { cadastrarNaEquipe, type DadosPessoa, type ResultadoCadastro } from "@/lib/equipe";
 import { migrarParaAsaas } from "@/lib/pagamentos/migrar";
 import { atualizarValorAsaas } from "@/lib/pagamentos/servidor";
@@ -41,7 +41,7 @@ export async function marcarComoPago(formData: FormData) {
 
   const admin = criarClienteAdmin();
   const [{ data: assinatura }, m] = await Promise.all([
-    admin.from("assinaturas").select("id, plano_id, proximo_vencimento, status").eq("empresa_id", empresaId).single(),
+    admin.from("assinaturas").select("id, plano_id, proximo_vencimento, status, provedor, id_assinatura_externa").eq("empresa_id", empresaId).single(),
     mensalidadeDaOficina(empresaId),
   ]);
   if (!assinatura) return;
@@ -84,6 +84,20 @@ export async function marcarComoPago(formData: FormData) {
     entidade_id: assinatura.id,
     detalhes: { ate: novoVencimento },
   });
+
+  // Oficina do Asaas paga à mão: tira do Asaas a cobrança em aberto deste mesmo período,
+  // senão ela fica vencida (o cliente recebe aviso de cobrança e a oficina pode ser bloqueada).
+  if (assinatura.provedor === PROVEDOR_ASAAS && assinatura.id_assinatura_externa && process.env.ASAAS_API_KEY) {
+    try {
+      const sobrando = cobrancasDoPeriodoPago(await cobrancasDaAssinatura(assinatura.id_assinatura_externa), novoVencimento);
+      for (const c of sobrando) {
+        await removerCobranca(c.id);
+        await admin.from("faturas").update({ status: "cancelada" }).eq("id_externo", c.id).in("status", ["pendente", "vencida"]);
+      }
+    } catch (erro) {
+      console.error("Asaas: falha ao remover a cobrança já paga à mão", erro instanceof Error ? erro.message : erro);
+    }
+  }
 
   revalidatePath("/admin");
 }

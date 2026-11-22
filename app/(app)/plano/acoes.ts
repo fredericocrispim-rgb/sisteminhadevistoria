@@ -17,7 +17,7 @@ export async function continuarSemPagar() {
 
 /**
  * Básico ⇄ Pro (só o dono). Vale na hora para gravar vídeo; o valor novo entra na próxima
- * mensalidade (no Asaas, a assinatura e a cobrança em aberto já passam para o valor novo).
+ * mensalidade (a cobrança do período pago ou em andamento não muda; ver atualizarValorAsaas).
  * Os vídeos já gravados continuam guardados se voltar para o Básico.
  */
 export async function trocarPlano(pro: boolean): Promise<{ ok: true } | { ok: false; erro: string }> {

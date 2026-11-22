@@ -2,8 +2,9 @@ import "server-only";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarComissoes } from "@/lib/comissoes-servidor";
 import { mensalidadeDaOficina } from "@/lib/mensalidade";
-import { asaasLigado, atualizarAssinatura, type CobrancaAsaas } from "./asaas";
-import { PROVEDOR_ASAAS, formaDaAssinatura, formaDaFatura } from "./config";
+import { asaasLigado, atualizarAssinatura, cobrancasDaAssinatura, mudarValorCobranca, type CobrancaAsaas } from "./asaas";
+import { PROVEDOR_ASAAS, cobrancasParaValorNovo, formaDaAssinatura, formaDaFatura } from "./config";
+import { hojeBR } from "@/lib/cadastro";
 import { processarEvento, somarDias, somarUmMes, type AcaoWebhook, type Deps, type EventoAsaas } from "./webhook";
 
 /**
@@ -165,17 +166,27 @@ export async function aplicarAcao(acao: AcaoWebhook) {
 }
 
 /**
- * A equipe mudou: acerta o valor da assinatura no Asaas (plano + pessoas a mais), inclusive da cobrança em aberto.
- * Não trava o cadastro da pessoa se o Asaas falhar (fica no log; o valor é acertado na próxima mudança).
+ * Plano ou equipe mudou: acerta o valor da assinatura no Asaas (plano + pessoas a mais).
+ * O valor novo vale só a partir do PRÓXIMO período: a cobrança do período já pago ou em andamento
+ * não muda; a do mês seguinte, se o Asaas já gerou, passa para o valor novo.
+ * Não trava quem chamou se o Asaas falhar (fica no log; o valor é acertado na próxima mudança).
  */
 export async function atualizarValorAsaas(empresaId: string) {
   if (!asaasLigado(empresaId)) return;
   const admin = criarClienteAdmin();
-  const { data: a } = await admin.from("assinaturas").select("provedor, status, id_assinatura_externa").eq("empresa_id", empresaId).maybeSingle();
+  const { data: a } = await admin
+    .from("assinaturas")
+    .select("provedor, status, proximo_vencimento, id_assinatura_externa")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
   if (a?.provedor !== PROVEDOR_ASAAS || !a.id_assinatura_externa || a.status === "cancelada") return;
   try {
     const m = await mensalidadeDaOficina(empresaId);
-    if (m.valor > 0) await atualizarAssinatura(a.id_assinatura_externa, { valor: m.valor });
+    if (m.valor <= 0) return;
+    await atualizarAssinatura(a.id_assinatura_externa, { valor: m.valor });
+    const pagoAte = a.status === "teste" ? null : a.proximo_vencimento;
+    const proximas = cobrancasParaValorNovo(await cobrancasDaAssinatura(a.id_assinatura_externa), hojeBR(), pagoAte);
+    for (const c of proximas) if (Number(c.value) !== m.valor) await mudarValorCobranca(c.id, m.valor);
   } catch (erro) {
     console.error("Asaas: falha ao atualizar o valor da assinatura", erro);
   }

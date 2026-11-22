@@ -208,12 +208,27 @@ export function obterAssinatura(id: string) {
   return chamar<AssinaturaAsaas>(`/subscriptions/${id}`);
 }
 
-/** Troca a forma de pagamento e/ou o valor (equipe mudou). updatePendingPayments também muda a cobrança em aberto. */
+/**
+ * Troca a forma de pagamento e/ou o valor.
+ * - Forma: também muda as cobranças em aberto (a tela delas mostra o Pix ou o boleto novo).
+ * - Valor (plano ou equipe mudou): só a assinatura; as cobranças já geradas ficam como estão
+ *   (quem decide qual delas recebe o valor novo é atualizarValorAsaas).
+ */
 export function atualizarAssinatura(id: string, d: { forma?: FormaPagamento; valor?: number }) {
   return chamar<AssinaturaAsaas>(`/subscriptions/${id}`, {
     metodo: "PUT",
-    corpo: { billingType: d.forma, value: d.valor, updatePendingPayments: true },
+    corpo: { billingType: d.forma, value: d.valor, updatePendingPayments: d.valor === undefined },
   });
+}
+
+/** Muda o valor de uma cobrança em aberto. */
+export function mudarValorCobranca(idCobranca: string, valor: number) {
+  return chamar<CobrancaAsaas>(`/payments/${idCobranca}`, { metodo: "PUT", corpo: { value: valor } });
+}
+
+/** Remove uma cobrança em aberto (sem avisar o cliente). */
+export function removerCobranca(idCobranca: string) {
+  return chamar<{ deleted: boolean; id: string }>(`/payments/${idCobranca}`, { metodo: "DELETE" });
 }
 
 /** Cancela no Asaas (apaga as cobranças em aberto). O acesso pago continua até acesso_ate. */
