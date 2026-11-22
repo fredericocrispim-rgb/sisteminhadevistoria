@@ -10,6 +10,7 @@ import { formatarReais } from "@/lib/pix";
 import { textos } from "@/lib/textos";
 import { EsperarPagamento } from "./esperar";
 import { LinhaBoleto } from "./linha-boleto";
+import { QrPixAguardando } from "./qr-pix";
 
 export const metadata: Metadata = { title: "Pagamento" };
 
@@ -48,10 +49,15 @@ export default async function Pagamento({ params }: PageProps<"/pagamento/[id]">
   let linha: string | null = null;
   let linkBoleto: string | null = null;
   if (pix) {
-    try {
-      codigo = (await qrCodePix(f.id_externo)).payload;
-    } catch (erro) {
-      console.error("Asaas: falha ao pegar o QR Code", erro instanceof Error ? erro.message : erro);
+    // Cobrança recém-criada: o Asaas leva alguns segundos para gerar o QR Code. Tenta 3 vezes;
+    // se ainda não vier, a tela continua tentando sozinha (QrPixAguardando).
+    for (let vez = 1; vez <= 3 && !codigo; vez++) {
+      try {
+        codigo = (await qrCodePix(f.id_externo)).payload || null;
+      } catch (erro) {
+        console.error(`Asaas: falha ao pegar o QR Code (tentativa ${vez})`, erro instanceof Error ? erro.message : erro);
+      }
+      if (!codigo && vez < 3) await new Promise((r) => setTimeout(r, 1500));
     }
   }
   if (boleto) {
@@ -74,6 +80,7 @@ export default async function Pagamento({ params }: PageProps<"/pagamento/[id]">
       <EsperarPagamento faturaId={f.id} texto={pix ? t.esperandoPix : boleto ? t.esperandoBoleto : undefined} />
 
       {codigo && <PagarPix codigo={codigo} valor={Number(f.valor)} descricao="Mensalidade" />}
+      {pix && !codigo && <QrPixAguardando faturaId={f.id} valor={Number(f.valor)} />}
 
       {boleto && enderecoBoleto && (
         <a href={enderecoBoleto} target="_blank" rel="noopener" className={BOTAO_LINK}>
@@ -89,7 +96,7 @@ export default async function Pagamento({ params }: PageProps<"/pagamento/[id]">
         </Link>
       )}
 
-      {/* Pix sem QR Code (falha ao buscar): a página do Asaas resolve */}
+      {/* Pix sem QR Code ainda: a página do Asaas também mostra o QR Code e o copia e cola */}
       {pix && !codigo && f.link_fatura && (
         <a href={f.link_fatura} target="_blank" rel="noopener" className={BOTAO_LINK}>
           <ExternalLink aria-hidden /> <span>{t.abrirPagina}</span>

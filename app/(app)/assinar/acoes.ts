@@ -19,6 +19,7 @@ import {
   ErroAsaas,
   obterCobranca,
   pagarComCartao,
+  qrCodePix,
   trocarCartaoAssinatura,
   type AssinaturaAsaas,
   type CartaoAsaas,
@@ -258,6 +259,25 @@ export async function faturaPaga(faturaId: string): Promise<boolean> {
   if (!/^[0-9a-f-]{36}$/.test(faturaId)) return false;
   const { data } = await criarClienteAdmin().from("faturas").select("status").eq("id", faturaId).eq("empresa_id", ctx.empresa.id).maybeSingle();
   return data?.status === "paga";
+}
+
+/** QR Code do Pix de uma cobrança da oficina (a tela pergunta de novo enquanto o Asaas ainda está gerando). */
+export async function qrCodeDaFatura(faturaId: string): Promise<string | null> {
+  const ctx = await dono();
+  if (!ctx || !/^[0-9a-f-]{36}$/.test(faturaId)) return null;
+  const { data: f } = await criarClienteAdmin()
+    .from("faturas")
+    .select("status, forma, id_externo")
+    .eq("id", faturaId)
+    .eq("empresa_id", ctx.empresa.id)
+    .maybeSingle();
+  if (!f?.id_externo || f.forma !== "pix" || f.status === "paga" || f.status === "cancelada") return null;
+  try {
+    return (await qrCodePix(f.id_externo)).payload || null;
+  } catch (erro) {
+    console.error("Asaas: QR Code ainda não disponível", erro instanceof Error ? erro.message : erro);
+    return null;
+  }
 }
 
 /** "Já paguei": confere direto na API do Asaas (no servidor). Se estiver paga, libera como o webhook faria. */

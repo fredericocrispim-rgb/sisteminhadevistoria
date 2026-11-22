@@ -423,6 +423,8 @@ export const textos = {
     copiarLinha: "Copiar a linha",
     linhaCopiada: "Linha copiada",
     verQrAqui: "Ver o QR Code do Pix aqui",
+    gerandoQr: "Gerando o QR Code do Pix...",
+    qrSemResposta: "O QR Code está demorando. Toque no botão abaixo para pagar o Pix.",
     minha: "Minha assinatura",
     historico: "Pagamentos",
     trocarParaCartao: "Pagar com cartão",
