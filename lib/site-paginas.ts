@@ -46,6 +46,7 @@ export const PAGINAS_COM_CABECALHO_SITE = [
   "/checklist-de-entrada-de-veiculo",
   "/precos",
   "/blog",
+  "/verificar",
 ];
 
 /** A página tem o cabeçalho do site? (inclui os artigos do blog) */
