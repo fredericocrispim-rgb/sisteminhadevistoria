@@ -1,5 +1,6 @@
 import { Apple, Smartphone } from "lucide-react";
 import { enderecoCompleto } from "@/lib/site";
+import { cn } from "@/lib/utils";
 import { JsonLd } from "./blocos";
 
 /**
@@ -8,7 +9,8 @@ import { JsonLd } from "./blocos";
  * e acrescente a aula ou a opção abaixo. Opção sem vídeo mostra só os passos escritos.
  */
 type Opcao = {
-  celular: "iPhone" | "Android";
+  /** Vazio quando o vídeo serve para qualquer celular. */
+  celular?: "iPhone" | "Android";
   video?: { arquivo: string; capa: string; duracao: string; publicado: string };
   passos: string[];
 };
@@ -42,6 +44,24 @@ export const AULAS: Aula[] = [
       },
     ],
   },
+  {
+    titulo: "Como fazer a vistoria",
+    resumo: "Do CHEGOU CARRO até o cliente receber no WhatsApp, em cerca de 3 minutos.",
+    opcoes: [
+      {
+        video: { arquivo: "/videos/fazer-vistoria.mp4", capa: "/videos/fazer-vistoria.jpg", duracao: "PT38S", publicado: "2026-11-22" },
+        passos: [
+          "Toque em CHEGOU CARRO",
+          "Digite a placa, o carro e o cliente",
+          "Tire as 6 fotos que o app mostra",
+          "Marque os riscos no desenho do carro",
+          "Confira os pneus",
+          "O cliente assina com o dedo",
+          "Toque em Enviar para o cliente",
+        ],
+      },
+    ],
+  },
 ];
 
 export function VideosDeUso() {
@@ -50,8 +70,8 @@ export function VideosDeUso() {
       .filter((o) => o.video)
       .map((o) => ({
         "@type": "VideoObject",
-        name: `${a.titulo} (${o.celular})`,
-        description: `${a.resumo} Passo a passo no ${o.celular}.`,
+        name: o.celular ? `${a.titulo} (${o.celular})` : a.titulo,
+        description: `${a.resumo} Passo a passo${o.celular ? ` no ${o.celular}` : ""}.`,
         thumbnailUrl: `${enderecoCompleto(o.video!.capa)}`,
         contentUrl: `${enderecoCompleto(o.video!.arquivo)}`,
         uploadDate: o.video!.publicado,
@@ -64,33 +84,38 @@ export function VideosDeUso() {
     <section aria-labelledby="videos-de-uso">
       {videos.length > 0 && <JsonLd dados={{ "@context": "https://schema.org", "@graph": videos }} />}
       <h2 id="videos-de-uso">Vídeos de uso</h2>
-      <p>Vídeos curtos, passo a passo. Escolha o seu celular.</p>
+      <p>Vídeos curtos, passo a passo.</p>
       {AULAS.map((aula, i) => (
         <div key={aula.titulo}>
           <h3>
             {i + 1}. {aula.titulo}
           </h3>
           <p>{aula.resumo}</p>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className={cn("mt-4 grid grid-cols-1 gap-4", aula.opcoes.length > 1 && "sm:grid-cols-2")}>
             {aula.opcoes.map((o) => (
-              <figure key={o.celular} className="flex flex-col gap-3 rounded-3xl bg-superficie p-4">
-                <figcaption className="flex items-center gap-2 text-xl font-extrabold">
-                  {o.celular === "iPhone" ? <Apple aria-hidden className="size-6" /> : <Smartphone aria-hidden className="size-6" />}
-                  No {o.celular}
-                </figcaption>
+              <figure
+                key={o.celular ?? aula.titulo}
+                className={cn("flex flex-col gap-3 rounded-3xl bg-superficie p-4", !o.celular && "sm:flex-row sm:items-start sm:gap-6")}
+              >
+                {o.celular && (
+                  <figcaption className="flex items-center gap-2 text-xl font-extrabold">
+                    {o.celular === "iPhone" ? <Apple aria-hidden className="size-6" /> : <Smartphone aria-hidden className="size-6" />}
+                    No {o.celular}
+                  </figcaption>
+                )}
                 {o.video ? (
                   <video
                     controls
                     playsInline
                     preload="none"
                     poster={o.video.capa}
-                    className="mx-auto aspect-[6/13] w-full max-w-[300px] rounded-2xl bg-black"
-                    aria-label={`Vídeo: ${aula.titulo} no ${o.celular}`}
+                    className="mx-auto aspect-[6/13] w-full max-w-[300px] shrink-0 rounded-2xl bg-black"
+                    aria-label={`Vídeo: ${aula.titulo}${o.celular ? ` no ${o.celular}` : ""}`}
                   >
                     <source src={o.video.arquivo} type="video/mp4" />
                   </video>
                 ) : null}
-                <ol className="!mt-0 text-base">
+                <ol className={cn("!mt-0 text-base", !o.celular && "sm:text-lg")}>
                   {o.passos.map((p) => (
                     <li key={p}>{p}</li>
                   ))}
