@@ -7,6 +7,7 @@ export const INSTAGRAM = { usuario: "@sisteminha.digital", link: "https://www.in
 
 /** Menu do topo (na ordem em que aparece). */
 export const MENU_SITE = [
+  { caminho: "/", nome: "Início" },
   { caminho: "/videos", nome: "Vídeos" },
   { caminho: "/precos", nome: "Preços" },
   { caminho: "/blog", nome: "Dicas" },

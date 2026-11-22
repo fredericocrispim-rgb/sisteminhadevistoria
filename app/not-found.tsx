@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Página não encontrada", robots: { 
 
 /** Página 404: explica e leva para as páginas principais. */
 export default function NaoEncontrada() {
-  const links = [{ caminho: "/", nome: "Página inicial" }, ...MENU_SITE, { caminho: "/entrar", nome: "Entrar" }];
+  const links = [{ caminho: "/", nome: "Página inicial" }, ...MENU_SITE.filter((m) => m.caminho !== "/"), { caminho: "/entrar", nome: "Entrar" }];
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-5 py-10">
       <h1 className="text-[2.2rem] leading-tight font-extrabold">Página não encontrada</h1>
