@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginaConteudo } from "@/components/site/blocos";
 import { metadadosPagina } from "@/lib/site";
+import { VideosDeUso } from "@/components/site/videos-uso";
 
 const caminho = "/como-funciona";
 
@@ -18,6 +19,8 @@ export default function Pagina() {
       titulo="Como funciona o app de vistoria veicular"
       resumo="Seis telas simples, uma tarefa por vez. Em cerca de 3 minutos o carro está registrado e o cliente recebe o termo no WhatsApp."
     >
+      <VideosDeUso />
+
       <h2>Um app de vistoria veicular feito para o pátio</h2>
       <p>
         A Vistoria Rápida foi desenhada para quem trabalha no pátio: recepcionista, mecânico, funileiro ou motorista de guincho. Por isso cada tela tem uma única
