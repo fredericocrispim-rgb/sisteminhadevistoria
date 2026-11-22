@@ -25,7 +25,7 @@ export function Celular({
 }) {
   const t = TELAS[tela];
   return (
-    <div className={`relative rounded-[2.2rem] bg-[#0f172a] p-2 shadow-2xl ring-1 ring-black/10 ${className}`}>
+    <div className={`rounded-[2.2rem] bg-[#0f172a] p-2 shadow-2xl ring-1 ring-black/10 ${className}`}>
       <div className="overflow-hidden rounded-[1.8rem] bg-white">
         <Image src={t.src} alt={t.alt} width={1000} height={2080} priority={prioridade} sizes="(min-width: 1024px) 280px, 60vw" className="h-auto w-full" />
       </div>
