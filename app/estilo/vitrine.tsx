@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowRight,
@@ -64,6 +64,15 @@ type IdTela = (typeof telas)[number]["id"];
 /** Página interna: prévia das telas para aprovar o visual no celular. */
 export function VitrineEstilo() {
   const [tela, setTela] = useState<IdTela>("inicio");
+  // ?tela=fotos abre direto numa tela; ?foto=1 esconde a barra (para tirar os prints do site)
+  const [semBarra, setSemBarra] = useState(false);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const t = telas.find((x) => x.id === q.get("tela"));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lê a URL só uma vez, depois de montar
+    if (t) setTela(t.id);
+    setSemBarra(q.get("foto") === "1");
+  }, []);
   return (
     // Nesta vitrine os botões são só desenho: em vez de não fazer nada, avisam isso.
     <div
@@ -75,7 +84,7 @@ export function VitrineEstilo() {
         }
       }}
     >
-      <nav aria-label="Prévia das telas" className="sticky top-0 z-30 border-b border-foreground/5 bg-background/80 backdrop-blur-xl">
+      <nav aria-label="Prévia das telas" hidden={semBarra} className="sticky top-0 z-30 border-b border-foreground/5 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-xl gap-1 overflow-x-auto p-2">
           {telas.map((t) => (
             <button
