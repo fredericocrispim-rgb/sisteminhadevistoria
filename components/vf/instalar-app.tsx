@@ -176,9 +176,10 @@ function PassosIphone({ modo }: { modo: Modo }) {
 /**
  * Telas onde a barra NÃO aparece:
  * - já mostram o cartão grande de instalar (Início, Mais, fim do cadastro);
- * - são do dono do carro, não da oficina (link da vistoria e verificar documento).
+ * - são do dono do carro, não da oficina (link da vistoria e verificar documento);
+ * - vitrine /estilo (prints e vídeos do site).
  */
-const SEM_BARRA = ["/inicio", "/mais", "/cadastro", "/v", "/verificar"];
+const SEM_BARRA = ["/inicio", "/mais", "/cadastro", "/v", "/verificar", "/estilo"];
 
 /**
  * Faixa fina no alto de TODAS as páginas (site e sistema): "Instalar o sistema" com 1 toque.
