@@ -10,6 +10,7 @@ import { cancelarAssinatura as cancelarNoAsaas } from "@/lib/pagamentos/asaas";
 import { PROVEDOR_ASAAS } from "@/lib/pagamentos/config";
 import { cadastrarNaEquipe, type DadosPessoa, type ResultadoCadastro } from "@/lib/equipe";
 import { migrarParaAsaas } from "@/lib/pagamentos/migrar";
+import { atualizarValorAsaas } from "@/lib/pagamentos/servidor";
 
 /** Passa até 20 oficinas do Pix manual para a assinatura mensal do Asaas (1ª cobrança no fim do período pago). */
 export async function migrarClientesAsaas(): Promise<
@@ -373,4 +374,29 @@ export async function mudarVideo(formData: FormData) {
   const ligar = formData.get("ligar") === "sim";
   await criarClienteAdmin().from("plataforma").update({ video_ligado: ligar }).eq("id", 1);
   revalidatePath("/admin");
+}
+
+/**
+ * O administrador muda o plano de uma oficina (ex.: Básico ⇄ Pro). Mesma regra de /plano:
+ * vale na hora, e o valor novo entra na próxima mensalidade (no Asaas, a assinatura já passa para o valor novo).
+ */
+export async function mudarPlanoAdmin(empresaId: string, planoId: string): Promise<Resultado> {
+  const ctx = await exigirSuperadmin();
+  if (!/^[0-9a-f-]{36}$/.test(empresaId) || !/^[0-9a-f-]{36}$/.test(planoId)) return { erro: "Oficina ou plano não encontrado." };
+  const admin = criarClienteAdmin();
+  const { data: plano } = await admin.from("planos").select("id, nome").eq("id", planoId).eq("ativo", true).maybeSingle();
+  if (!plano) return { erro: "Plano não encontrado." };
+  const { data, error } = await admin.from("assinaturas").update({ plano_id: plano.id }).eq("empresa_id", empresaId).select("id");
+  if (error || !data?.length) return { erro: "Não consegui mudar o plano. Tente de novo." };
+  await admin.from("auditoria").insert({
+    empresa_id: empresaId,
+    usuario_id: ctx.usuario.id,
+    acao: "mudou_plano",
+    entidade: "assinaturas",
+    entidade_id: data[0].id,
+    detalhes: { plano: plano.nome, pelo_admin: true },
+  });
+  await atualizarValorAsaas(empresaId);
+  revalidatePath("/admin");
+  return { ok: true };
 }

@@ -52,6 +52,7 @@ import {
   definirVendedor,
   inativarOficina,
   mudarGratuita,
+  mudarPlanoAdmin,
   reativarOficina,
   type Resultado,
 } from "./acoes";
@@ -80,6 +81,7 @@ export type OficinaPainel = {
   situacao: Situacao;
   teste: boolean;
   planoNome: string;
+  planoId: string | null;
   usuarios: number;
   cortesias: number;
   valor: number;
@@ -104,6 +106,9 @@ export type OficinaPainel = {
   gratuita: boolean;
   pagamento: FormaPainel;
 };
+
+/** Plano que o administrador pode escolher para a oficina. */
+export type PlanoPainel = { id: string; nome: string; preco: number };
 
 export type FormaPainel = "pix_manual" | "asaas_pix" | "asaas_cartao";
 
@@ -171,8 +176,10 @@ export function PainelOficinas({
   site,
   vendedores,
   comissaoAtiva,
+  planos,
 }: {
   oficinas: OficinaPainel[];
+  planos: PlanoPainel[];
   produto: string;
   linkPlano: string;
   /** Endereço do site (vai no acesso que o administrador manda pelo WhatsApp). */
@@ -532,6 +539,7 @@ export function PainelOficinas({
         site={site}
         vendedores={vendedores}
         comissaoAtiva={comissaoAtiva}
+        planos={planos}
         onFechar={() => setAbertaId(null)}
         onCobrar={() => aberta && setCobrar(aberta)}
       />
@@ -616,10 +624,12 @@ function PainelLateral({
   site,
   vendedores,
   comissaoAtiva,
+  planos,
   onFechar,
   onCobrar,
 }: {
   oficina: OficinaPainel | null;
+  planos: PlanoPainel[];
   site: string;
   vendedores: Vendedor[];
   comissaoAtiva: boolean;
@@ -659,7 +669,7 @@ function PainelLateral({
               >
                 <MessageCircle aria-hidden className="size-5" /> Mandar WhatsApp
               </button>
-              <DetalhesOficina key={o.id} oficina={o} site={site} vendedores={vendedores} comissaoAtiva={comissaoAtiva} />
+              <DetalhesOficina key={o.id} oficina={o} site={site} vendedores={vendedores} comissaoAtiva={comissaoAtiva} planos={planos} />
             </div>
           </>
         )}
@@ -739,13 +749,17 @@ function DetalhesOficina({
   site,
   vendedores,
   comissaoAtiva,
+  planos,
 }: {
   oficina: OficinaPainel;
   site: string;
   vendedores: Vendedor[];
   comissaoAtiva: boolean;
+  planos: PlanoPainel[];
 }) {
   const { rodando, rodar } = useAcao();
+  const planoAtual = o.planoId ?? planos[0]?.id ?? "";
+  const [plano, setPlano] = useState(planoAtual);
   const [data, setData] = useState(o.situacao.vencimento ?? "");
   const [confirmarBloqueio, setConfirmarBloqueio] = useState(false);
   const [confirmarPago, setConfirmarPago] = useState(false);
@@ -821,6 +835,36 @@ function DetalhesOficina({
             Mudar data
           </button>
         </form>
+        {planos.length > 1 && (
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const nome = planos.find((p) => p.id === plano)?.nome ?? "";
+              rodar(() => mudarPlanoAdmin(o.id, plano), `Plano mudado para ${nome}`);
+            }}
+          >
+            <select
+              value={plano}
+              onChange={(e) => setPlano(e.target.value)}
+              aria-label="Plano da oficina"
+              className="min-h-toque min-w-0 flex-1 rounded-2xl bg-superficie px-3 text-lg font-semibold outline-none focus:ring-2 focus:ring-oficina"
+            >
+              {planos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome} · {formatarReais(p.preco)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={rodando || !plano || plano === planoAtual}
+              className="tocavel min-h-toque whitespace-nowrap rounded-2xl bg-oficina px-4 text-base font-bold text-oficina-texto disabled:opacity-60"
+            >
+              Mudar plano
+            </button>
+          </form>
+        )}
       </section>
 
       {comissaoAtiva && <QuemVendeu oficina={o} vendedores={vendedores} />}

@@ -175,6 +175,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
       situacao,
       teste: !a || a.status === "teste",
       planoNome: pl?.nome ?? "",
+      planoId: pl?.id ?? null,
       usuarios,
       cortesias,
       valor,
@@ -253,6 +254,7 @@ export default async function Admin({ searchParams }: PageProps<"/admin">) {
             site={site}
             vendedores={vendedores}
             comissaoAtiva={bancoComissoesPronto}
+            planos={(planos ?? []).map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco_mensal) }))}
           />
           {migracao && (migracao.prontas > 0 || migracao.semDocumento > 0) && (
             <MigrarAsaas prontas={migracao.prontas} semDocumento={migracao.semDocumento} />
