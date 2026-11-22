@@ -3,7 +3,7 @@ import { enderecoCompleto } from "@/lib/site";
 import { JsonLd } from "./blocos";
 
 /**
- * Sequência de vídeos de uso (página Como funciona). Cada aula pode ter uma versão por celular.
+ * Sequência de vídeos de uso (página /videos). Cada aula pode ter uma versão por celular.
  * Para incluir um vídeo novo: coloque o .mp4 (vertical, 720 x 1560) e a capa .jpg em public/videos
  * e acrescente a aula ou a opção abaixo. Opção sem vídeo mostra só os passos escritos.
  */
@@ -32,6 +32,7 @@ export const AULAS: Aula[] = [
       },
       {
         celular: "Android",
+        video: { arquivo: "/videos/instalar-android.mp4", capa: "/videos/instalar-android.jpg", duracao: "PT26S", publicado: "2026-11-22" },
         passos: [
           "Abra vistoriarapida.digital no Chrome",
           "Toque no botão verde Instalar, no alto da página",
