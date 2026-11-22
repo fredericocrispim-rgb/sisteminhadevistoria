@@ -46,7 +46,7 @@ import { cn } from "@/lib/utils";
 import { textos } from "@/lib/textos";
 import { placaValida, telefoneValido } from "@/lib/formatos";
 import { gerarPixCopiaECola } from "@/lib/pix";
-import { TelaAssina, TelaCarro, TelaConcluida, TelaRiscos } from "./telas-extras";
+import { TelaAssina, TelaCarro, TelaConcluida, TelaRiscos, TelaSaida } from "./telas-extras";
 
 const etapas = Object.values(textos.vistoria.etapas);
 
@@ -58,6 +58,9 @@ const telas = [
   { id: "pneus", nome: "Pneus" },
   { id: "assina", nome: "Assinatura" },
   { id: "concluida", nome: "Concluída" },
+  { id: "saida", nome: "Entregar" },
+  { id: "carro2", nome: "Carro (entrega)" },
+  { id: "assina2", nome: "Assinatura (entrega)" },
   { id: "pix", nome: "Pix" },
   { id: "pecas", nome: "Peças" },
 ] as const;
@@ -114,6 +117,9 @@ export function VitrineEstilo() {
       {tela === "riscos" && <TelaRiscos />}
       {tela === "carro" && <TelaCarro />}
       {tela === "assina" && <TelaAssina />}
+      {tela === "saida" && <TelaSaida />}
+      {tela === "carro2" && <TelaCarro entrega />}
+      {tela === "assina2" && <TelaAssina entrega />}
       {tela === "concluida" && <TelaConcluida />}
       {tela === "pecas" && <TelaPecas />}
     </div>

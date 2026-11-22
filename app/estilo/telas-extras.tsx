@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Eye, FileText, Hand, Home, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, FileText, Hand, History, Home, Keyboard, Send } from "lucide-react";
+import { ListaPatio } from "@/components/vf/lista-patio";
+import type { CarroNoPatio } from "@/lib/patio";
 import { AjudaRapida, BarraEtapas, BotaoPrincipal, BotaoSecundario, Campo, CampoPlaca, DesenhoCarro, SeletorGrande } from "@/components/vf";
 import { CORES_CARRO } from "@/lib/vistoria";
 import { VISTAS, corDoTipo, nomeDaVista, nomeDoTipo } from "@/lib/desenhos-carro";
@@ -87,14 +89,20 @@ export function TelaConcluida() {
 }
 
 /** Prévia: passo 1 – carro e cliente (já preenchido). */
-export function TelaCarro() {
+export function TelaCarro({ entrega = false }: { entrega?: boolean }) {
   const marcas = ["Fiat", "Volkswagen", "Chevrolet", "Toyota", "Hyundai", "Outra"];
   const cores = CORES_CARRO.slice(0, 4);
   return (
     <>
       <BarraEtapas etapas={etapas} atual={1} onVoltar={() => {}} ajuda={<AjudaRapida titulo={etapas[0]} dica="Digite a placa." />} />
       <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-1 pb-32">
-        <p className="-mt-1 text-base font-bold text-muted-foreground">Chegada · Carro</p>
+        <p className="-mt-1 text-base font-bold text-muted-foreground">{entrega ? "Entrega" : "Chegada"} · Carro</p>
+        {entrega && (
+          <div className="flex items-start gap-3 rounded-2xl bg-oficina-clara px-4 py-3 text-oficina">
+            <History aria-hidden className="mt-0.5 size-7 shrink-0" />
+            <p className="text-base font-bold">Chegou em 13/10/2026, 09:42 com 45.320 km e 1/2 de tanque.</p>
+          </div>
+        )}
         <CampoPlaca valor="ABC1D23" onValor={() => {}} />
         <SeletorGrande
           rotulo="Marca"
@@ -132,13 +140,13 @@ export function TelaCarro() {
 }
 
 /** Prévia: passo 6 – o cliente assina com o dedo. */
-export function TelaAssina() {
+export function TelaAssina({ entrega = false }: { entrega?: boolean }) {
   return (
     <>
       <BarraEtapas etapas={etapas} atual={6} onVoltar={() => {}} ajuda={<AjudaRapida titulo="Assinatura" dica="O cliente assina com o dedo." />} />
       <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-2 pb-32">
         <p className="rounded-2xl bg-superficie px-4 py-3 text-lg">
-          O cliente confirma que as fotos e as marcações mostram o estado do carro ao deixar na oficina.
+          O cliente confirma que as fotos e as marcações mostram o estado do carro ao {entrega ? "retirar da" : "deixar na"} oficina.
         </p>
         <h2 className="text-xl font-extrabold">Assinatura do cliente</h2>
         <Campo rotulo="Nome de quem assina" valor="João Pereira" onValor={() => {}} />
@@ -156,5 +164,25 @@ export function TelaAssina() {
         {textos.geral.proximo}
       </BotaoPrincipal>
     </>
+  );
+}
+
+const patio: CarroNoPatio[] = [
+  { entradaId: "1", placa: "ABC1D23", descricao: "Chevrolet Onix", cliente: "João Pereira", chegouEm: "", dias: 0 },
+  { entradaId: "2", placa: "QWE4R56", descricao: "Fiat Strada", cliente: "Marcos Lima", chegouEm: "", dias: 1 },
+  { entradaId: "3", placa: "RTY7U89", descricao: "Volkswagen Gol", cliente: "Ana Souza", chegouEm: "", dias: 3 },
+];
+
+/** Prévia: ENTREGAR CARRO – escolher o carro do pátio. */
+export function TelaSaida() {
+  return (
+    <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-4 pb-10">
+      <span className="inline-flex min-h-toque items-center gap-1.5 self-start rounded-2xl px-2 text-lg font-bold">
+        <ArrowLeft aria-hidden className="size-7" /> Voltar
+      </span>
+      <h1 className="text-[1.75rem] leading-tight font-extrabold">Qual carro vai sair?</h1>
+      <ListaPatio carros={patio} />
+      <BotaoSecundario icone={<Keyboard aria-hidden />}>O carro não está na lista</BotaoSecundario>
+    </main>
   );
 }
