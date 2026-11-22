@@ -62,6 +62,24 @@ export const AULAS: Aula[] = [
       },
     ],
   },
+  {
+    titulo: "Como entregar o carro",
+    resumo: "A vistoria de saída, quando o cliente vem buscar o carro.",
+    opcoes: [
+      {
+        video: { arquivo: "/videos/entregar-carro.mp4", capa: "/videos/entregar-carro.jpg", duracao: "PT42S", publicado: "2026-11-22" },
+        passos: [
+          "Toque em ENTREGAR CARRO",
+          "Escolha o carro na lista do pátio",
+          "Confira os dados, que já vêm prontos",
+          "Tire as fotos de novo",
+          "Confira os riscos e os pneus",
+          "O cliente assina com o dedo",
+          "Toque em Enviar para o cliente",
+        ],
+      },
+    ],
+  },
 ];
 
 export function VideosDeUso() {
