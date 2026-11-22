@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
         destination: "https://www.vistoriarapida.digital/:caminho*?novo=1",
         permanent: true,
       },
+      // Páginas que mudaram de endereço (22/11/2026): mantém os links antigos e o Google
+      { source: "/como-funciona", destination: "/videos", permanent: true },
+      { source: "/vistoria-digital-para-oficinas", destination: "/sistema-para-oficina", permanent: true },
     ];
   },
   // Cache Components desligado de propósito: quase todas as telas dependem do login,

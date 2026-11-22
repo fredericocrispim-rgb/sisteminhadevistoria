@@ -39,18 +39,26 @@ export const PERGUNTAS_INICIO: Pergunta[] = [
   {
     pergunta: "Como funciona o pagamento?",
     resposta:
-      "O pagamento é por Pix, sem cartão de crédito. A mensalidade é paga pelo QR Code ou pelo Pix copia e cola, que aparecem na tela Meu plano do sistema.",
+      "É uma mensalidade. Você escolhe pagar por Pix, cartão ou boleto. No cartão, paga sozinho todo mês.",
   },
 ];
 
 export const PERGUNTAS_PRECOS: Pergunta[] = [
   {
-    pergunta: "Preciso de cartão de crédito?",
-    resposta: "Não. O pagamento é só por Pix, pelo QR Code ou pelo Pix copia e cola que aparecem na tela Meu plano.",
+    pergunta: "Como posso pagar?",
+    resposta: "Por Pix, cartão ou boleto. No cartão, a mensalidade é paga sozinha todo mês. No Pix e no boleto, o sistema mostra a cobrança na tela Meu plano.",
+  },
+  {
+    pergunta: "Qual a diferença entre o Básico e o Pro?",
+    resposta: "Os dois fazem a vistoria completa. O Pro também grava um vídeo de até 1 minuto em volta do carro, em cada vistoria.",
+  },
+  {
+    pergunta: "Posso mudar de plano depois?",
+    resposta: "Pode. O novo valor só vale a partir da próxima mensalidade.",
   },
   {
     pergunta: "Quando pago a primeira mensalidade?",
-    resposta: "Depois de criar a conta, a oficina tem 1 dia para pagar a primeira mensalidade pelo Pix.",
+    resposta: "Depois de criar a conta, você tem 1 dia para fazer o primeiro pagamento.",
   },
   {
     pergunta: "E se eu atrasar uma mensalidade?",
@@ -59,6 +67,6 @@ export const PERGUNTAS_PRECOS: Pergunta[] = [
   },
   {
     pergunta: "Posso cadastrar a minha equipe?",
-    resposta: "Sim. O dono da oficina cadastra a equipe e escolhe o papel de cada pessoa: gerente ou vistoriador.",
+    resposta: "Sim. O plano já vem com você e mais 3 pessoas. Cada pessoa a mais custa R$ 19,90 por mês.",
   },
 ];

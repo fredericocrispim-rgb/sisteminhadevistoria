@@ -24,6 +24,24 @@ export const ARTIGOS: Artigo[] = [
     resumo: "O que conferir quando o carro chega, quais fotos tirar e como fazer a equipe seguir o checklist todos os dias.",
     Conteudo: ChecklistEntradaVeiculo,
   },
+  {
+    slug: "como-administrar-oficina-mecanica",
+    titulo: "Como administrar uma oficina mecânica: 6 hábitos simples",
+    descricao: "Administrando oficina: 6 hábitos simples para organizar o dinheiro, a equipe e o atendimento e ter mais lucro na oficina mecânica.",
+    publicadoEm: "2026-11-22",
+    atualizadoEm: "2026-11-22",
+    resumo: "Dinheiro, preço, equipe e cliente: o básico para a oficina dar lucro, sem complicação.",
+    Conteudo: AdministrarOficina,
+  },
+  {
+    slug: "como-evitar-prejuizo-na-oficina",
+    titulo: "Como evitar prejuízo na oficina: 5 erros que custam caro",
+    descricao: "Como evitar prejuízo na oficina mecânica: risco que você não fez, objeto sumido, quilometragem, serviço sem aprovação e preço errado.",
+    publicadoEm: "2026-11-22",
+    atualizadoEm: "2026-11-22",
+    resumo: "Os 5 erros pequenos que mais tiram dinheiro da oficina e como evitar cada um.",
+    Conteudo: EvitarPrejuizoOficina,
+  },
 ];
 
 export function artigoPorSlug(slug: string) {
@@ -187,13 +205,113 @@ function ChecklistEntradaVeiculo() {
       </p>
       <p>
         No fim, o termo de vistoria em PDF, com a logo da sua oficina, vai direto para o WhatsApp do cliente. E qualquer pessoa pode conferir se o documento é
-        verdadeiro na página <Link href="/verificar">Conferir uma vistoria</Link>. Veja <Link href="/como-funciona">como funciona o app de vistoria veicular</Link>.
+        verdadeiro na página <Link href="/verificar">Conferir uma vistoria</Link>. Veja <Link href="/videos">os vídeos de como usar o app</Link>.
       </p>
 
       <h2>Resumo</h2>
       <p>
         Um bom checklist de entrada de veículo confere lataria, vidros, luzes, pneus, painel, interior e itens; registra km e combustível; tem fotos com data e hora;
         e termina com a assinatura do cliente. Feito todos os dias, ele protege a oficina, organiza a equipe e passa confiança para quem deixa o carro com você.
+      </p>
+    </>
+  );
+}
+
+function AdministrarOficina() {
+  return (
+    <>
+      <p>
+        Administrar uma oficina mecânica é mais do que consertar carro. É cuidar do dinheiro, da equipe, do cliente e do tempo. A boa notícia: com poucos hábitos
+        simples, a oficina fica organizada e dá mais lucro.
+      </p>
+
+      <h2>1. Saiba quanto entra e quanto sai</h2>
+      <p>
+        Anote todo dia o que recebeu e o que pagou. Pode ser num caderno ou numa planilha. No fim do mês, você sabe se a oficina deu lucro ou só girou dinheiro.
+        Separe o dinheiro da oficina do seu dinheiro pessoal.
+      </p>
+
+      <h2>2. Cobre o preço certo</h2>
+      <p>
+        No preço do serviço entram a peça, a hora do mecânico, o aluguel, a luz e os impostos. Quem cobra só a peça e um pouco a mais quase sempre trabalha de
+        graça sem perceber.
+      </p>
+
+      <h2>3. Registre como o carro chegou</h2>
+      <p>
+        Esse é o hábito que mais evita prejuízo. Antes de mexer no carro, tire fotos de todos os lados, marque os riscos e peça a assinatura do cliente. Se ele
+        reclamar depois, você mostra a prova. Veja o <Link href="/checklist-de-entrada-de-veiculo">checklist de entrada de veículo</Link>.
+      </p>
+
+      <h2>4. Combine tudo por escrito</h2>
+      <p>
+        Orçamento aprovado, prazo e valor: tudo combinado por escrito ou pelo WhatsApp. Conversa de balcão se perde, mensagem fica.
+      </p>
+
+      <h2>5. Todo mundo faz do mesmo jeito</h2>
+      <p>
+        Quando cada mecânico trabalha de um jeito, alguma coisa sempre fica para trás. Um passo a passo igual para todos, na recepção e na entrega, deixa a
+        oficina mais profissional.
+      </p>
+
+      <h2>6. Entregue com capricho</h2>
+      <p>
+        Carro limpo, explicação simples do que foi feito e um termo de entrega. O cliente que se sente bem atendido volta e indica a oficina para os amigos.
+      </p>
+
+      <h2>Um sistema simples para começar</h2>
+      <p>
+        A <Link href="/sistema-para-oficina">Vistoria Rápida</Link> cuida do passo mais importante: a entrada e a saída do carro, com fotos, assinatura do
+        cliente e PDF no WhatsApp, em 3 minutos pelo celular.
+      </p>
+    </>
+  );
+}
+
+function EvitarPrejuizoOficina() {
+  return (
+    <>
+      <p>
+        Muita oficina trabalha bastante e mesmo assim sobra pouco no fim do mês. Quase sempre o dinheiro vai embora em coisas pequenas, que se repetem. Veja as
+        mais comuns e como evitar cada uma.
+      </p>
+
+      <h2>1. Risco ou amassado que você não fez</h2>
+      <p>
+        O cliente busca o carro e diz: &quot;esse risco não estava aqui&quot;. Sem foto, a oficina acaba pagando a funilaria para não perder o cliente. A solução é
+        simples: fotografar o carro na chegada e pedir a assinatura do cliente. Com a <Link href="/">Vistoria Rápida</Link> isso leva 3 minutos.
+      </p>
+
+      <h2>2. Objeto que &quot;sumiu&quot; do carro</h2>
+      <p>
+        Estepe, macaco, som, documento no porta-luvas. Anote na entrada o que ficou dentro do carro. Assim ninguém discute depois.
+      </p>
+
+      <h2>3. Quilometragem e combustível</h2>
+      <p>
+        Fotografe o painel na chegada. Se o cliente achar que rodaram com o carro ou que o tanque baixou, a foto com data e hora resolve.
+      </p>
+
+      <h2>4. Serviço feito sem aprovação</h2>
+      <p>
+        Nunca faça serviço extra sem o cliente aprovar. Mande o orçamento pelo WhatsApp e espere o &quot;pode fazer&quot;. Isso evita calote e briga.
+      </p>
+
+      <h2>5. Preço mal calculado</h2>
+      <p>
+        Coloque no preço a mão de obra, as contas fixas da oficina e os impostos. Serviço barato demais é prejuízo disfarçado.
+      </p>
+
+      <h2>Resumo</h2>
+      <ul>
+        <li>Fotografe o carro na chegada.</li>
+        <li>Peça a assinatura do cliente.</li>
+        <li>Anote os objetos e o painel.</li>
+        <li>Só faça serviço aprovado.</li>
+        <li>Calcule o preço com todos os custos.</li>
+      </ul>
+      <p>
+        Leia também <Link href="/blog/como-administrar-oficina-mecanica">como administrar uma oficina mecânica</Link>.
       </p>
     </>
   );

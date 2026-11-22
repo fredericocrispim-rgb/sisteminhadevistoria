@@ -99,7 +99,7 @@ export default function Pagina() {
         também pode ser baixado e enviado por outro meio, se preferir.
       </p>
       <p>
-        Quer entender todo o caminho até o termo? Veja <Link href="/como-funciona">como funciona o app de vistoria veicular</Link> ou a{" "}
+        Quer entender todo o caminho até o termo? Veja <Link href="/videos">os vídeos de como usar o app</Link> ou a{" "}
         <Link href="/vistoria-de-carro-pelo-celular">vistoria de carro pelo celular</Link>.
       </p>
     </PaginaConteudo>

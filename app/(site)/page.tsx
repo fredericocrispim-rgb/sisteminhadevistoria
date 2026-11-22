@@ -1,41 +1,44 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Camera, Check, FileText, MessageCircle, PenLine } from "lucide-react";
-import { SilhuetaCarro } from "@/components/vf";
+import { Car, Check, Droplets, FileText, PenLine, PlayCircle, ShieldCheck, Store, Truck, Wrench } from "lucide-react";
 import { BotaoCriarConta, JsonLd, Perguntas, schemaPerguntas } from "@/components/site/blocos";
-import { FOTOS_OBRIGATORIAS } from "@/lib/vistoria";
+import { CartoesPlanos, Celular } from "@/components/site/vitrine-site";
 import { obterContexto } from "@/lib/sessao";
 import { contatoSuporte, ENDERECO_SITE, metadadosPagina } from "@/lib/site";
 import { PERGUNTAS_INICIO } from "@/lib/conteudo/perguntas";
-import { INSTAGRAM } from "@/lib/site-paginas";
+import { planosDoSite } from "@/lib/planos-site";
+import { INSTAGRAM, SEGMENTOS_SITE } from "@/lib/site-paginas";
 import { textos } from "@/lib/textos";
 
 export const metadata: Metadata = metadadosPagina({
-  titulo: "Vistoria Rápida Digital para Oficinas | Laudo em 3 min",
-  // Sem teste grátis desde 30/10/2026 (a oficina tem 1 dia para pagar pelo Pix): por isso "Comece agora."
+  titulo: "Vistoria Rápida | Vistoria online de veículos pelo celular",
   descricao:
-    "Vistoria digital de carro pelo celular: fotos guiadas, assinatura do cliente e PDF no WhatsApp em 3 minutos. Feita para oficinas. Comece agora.",
+    "Vistoria digital de veículos pelo celular em 3 minutos: fotos, riscos, assinatura do cliente e PDF no WhatsApp. Para oficina, lava jato, loja de carros e frota.",
   caminho: "/",
 });
+
+const PASSOS = [
+  { tela: "fotos", titulo: "Tire as fotos", texto: "O app mostra o ângulo certo." },
+  { tela: "riscos", titulo: "Marque os riscos", texto: "Toque no desenho do carro." },
+  { tela: "pneus", titulo: "Confira os pneus", texto: "Um toque em cada um." },
+  { tela: "concluida", titulo: "Mande no WhatsApp", texto: "O cliente assina e recebe o PDF." },
+] as const;
+
+const ICONES_SEGMENTO = [Wrench, Store, Droplets, Truck];
 
 /** Página inicial (quem já está logado vai direto para o início do app). */
 export default async function Inicio() {
   if (await obterContexto()) redirect("/inicio");
-  const contato = await contatoSuporte();
+  const [contato, { basico, pro }] = await Promise.all([contatoSuporte(), planosDoSite()]);
 
-  const vantagens = [
-    { icone: <Camera aria-hidden />, titulo: "Fotos guiadas", texto: "O app mostra o ângulo certo" },
-    { icone: <PenLine aria-hidden />, titulo: "Assinatura no dedo", texto: "O cliente assina na hora" },
-    { icone: <MessageCircle aria-hidden />, titulo: "Direto no WhatsApp", texto: "PDF com a sua logo" },
-  ];
-
-  const descricao = "Vistoria digital de veículos pelo celular para oficinas mecânicas: fotos guiadas, avarias marcadas no desenho, assinatura do cliente e termo em PDF no WhatsApp.";
+  const descricao =
+    "Vistoria online de veículos pelo celular: fotos guiadas, riscos marcados no desenho, assinatura do cliente e termo em PDF no WhatsApp. Para oficinas, lava jatos, lojas de carros e frotas.";
   const organizacao = {
     "@type": "Organization",
     "@id": `${ENDERECO_SITE}/#organizacao`,
     name: textos.produto.nome,
-    alternateName: "Vistoria Rápida Digital",
+    alternateName: ["Vistoria Rápida Digital", "Vistoria Rapida"],
     url: ENDERECO_SITE,
     logo: `${ENDERECO_SITE}/app-512.png`,
     description: descricao,
@@ -45,214 +48,168 @@ export default async function Inicio() {
     }),
     sameAs: [INSTAGRAM.link],
   };
-  const servico = {
-    "@type": "Service",
-    name: "Vistoria digital de veículos",
-    serviceType: "Vistoria digital de veículos",
+  const app = {
+    "@type": "SoftwareApplication",
+    name: textos.produto.nome,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Android, iOS, navegador",
     description: descricao,
-    provider: { "@id": `${ENDERECO_SITE}/#organizacao` },
-    areaServed: { "@type": "Country", name: "Brasil" },
-    audience: { "@type": "BusinessAudience", audienceType: "Oficinas mecânicas" },
-    // TODO(Frederico): "offers" com o preço em BRL quando o preço puder aparecer no site.
+    url: ENDERECO_SITE,
+    publisher: { "@id": `${ENDERECO_SITE}/#organizacao` },
+    offers: [basico, pro].map((p) => ({ "@type": "Offer", name: `Plano ${p.nome}`, price: p.preco.toFixed(2), priceCurrency: "BRL", url: `${ENDERECO_SITE}/precos` })),
   };
 
   return (
     <>
-      <JsonLd dados={{ "@context": "https://schema.org", "@graph": [organizacao, servico] }} />
+      <JsonLd dados={{ "@context": "https://schema.org", "@graph": [organizacao, app] }} />
       <JsonLd dados={schemaPerguntas(PERGUNTAS_INICIO)} />
 
-      <main className="flex-1">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 py-10 lg:grid-cols-[1.1fr_1fr] lg:py-16">
-          {/* Texto */}
+      <main className="flex-1 overflow-x-clip">
+        {/* Abertura: frase curta, botão e o app de verdade */}
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-8 lg:grid-cols-[1.05fr_1fr] lg:py-14">
           <section className="flex flex-col gap-6">
             <span className="inline-flex w-fit items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-sm font-bold text-acao ring-1 ring-border">
-              <span className="size-2 rounded-full bg-marca-verde" /> Pagamento por Pix · sem cartão
+              <span className="size-2 rounded-full bg-marca-verde" /> Feito para quem não tem tempo a perder
             </span>
-            <h1 className="text-[2.6rem] leading-[1.05] font-extrabold tracking-tight sm:text-6xl">
-              Vistoria rápida e digital <span className="text-marca-azul">para oficinas</span>
+            <h1 className="text-[2.5rem] leading-[1.05] font-extrabold tracking-tight sm:text-6xl">
+              Vistoria do carro <span className="text-marca-azul">pelo celular</span> em 3 minutos
             </h1>
             <p className="max-w-xl text-xl text-muted-foreground">
-              Registre o estado do carro na chegada, colha a assinatura do cliente e mande o termo de vistoria no WhatsApp em 3 minutos. Tudo pelo celular, sem
-              papel e sem prancheta.
+              Fotos, riscos e a assinatura do cliente. O PDF vai direto para o WhatsApp. Se o cliente reclamar depois, você tem a prova.
             </p>
-
             <div className="flex flex-col gap-3 sm:flex-row">
               <BotaoCriarConta />
-              <a
-                href="#exemplo"
-                className="tocavel inline-flex min-h-toque-grande items-center justify-center rounded-2xl bg-background px-7 text-xl font-bold ring-1 ring-border hover:bg-superficie"
+              <Link
+                href="/videos"
+                className="tocavel inline-flex min-h-toque-grande items-center justify-center gap-2 rounded-2xl bg-background px-7 text-xl font-bold no-underline ring-1 ring-border hover:bg-superficie"
               >
-                Ver um exemplo de vistoria
-              </a>
+                <PlayCircle aria-hidden className="size-6" /> Ver o vídeo
+              </Link>
             </div>
-
-            <ul className="mt-4 grid gap-5 sm:grid-cols-3">
-              {vantagens.map((v) => (
-                <li key={v.titulo} className="flex items-start gap-3 sm:flex-col">
-                  <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-oficina-clara text-oficina [&_svg]:size-6">{v.icone}</span>
-                  <span>
-                    <span className="block text-lg font-extrabold">{v.titulo}</span>
-                    <span className="block text-base text-muted-foreground">{v.texto}</span>
-                  </span>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-base font-bold text-muted-foreground">
+              {["Não precisa baixar nada", "Android e iPhone", `A partir de R$ ${basico.preco.toFixed(2).replace(".", ",")}/mês`].map((t) => (
+                <li key={t} className="flex items-center gap-1.5">
+                  <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> {t}
                 </li>
               ))}
             </ul>
           </section>
 
-          {/* "Foto" do produto: uma vistoria pronta */}
-          <section id="exemplo" aria-label="Exemplo de vistoria digital de carro pelo celular" className="relative mx-auto w-full max-w-sm scroll-mt-6">
-            <div className="rotate-[-2deg] rounded-[2rem] bg-background p-5 shadow-2xl ring-1 ring-border">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-muted-foreground">Vistoria de chegada</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-acao-clara px-2.5 py-1 text-xs font-bold text-acao">
-                  <Check aria-hidden className="size-3.5" strokeWidth={3} /> Concluída
-                </span>
-              </div>
-              <p className="mt-3 font-mono text-4xl font-extrabold tracking-wider">ABC1D23</p>
-              <p className="text-base text-muted-foreground">Chevrolet Onix · Prata · 45.320 km</p>
-
-              <div className="mt-4 grid grid-cols-3 gap-1.5" role="img" aria-label="Fotos guiadas da vistoria: frente, traseira, laterais, painel e motor">
-                {FOTOS_OBRIGATORIAS.map((f, i) => (
-                  <div
-                    key={f.categoria}
-                    aria-hidden
-                    className="grid aspect-square place-items-center rounded-lg text-marca-azul/70"
-                    style={{
-                      background: `linear-gradient(160deg, color-mix(in oklch, var(--cor-marca-azul) ${10 + (i % 4) * 5}%, white), color-mix(in oklch, var(--cor-marca-verde) ${8 + (i % 3) * 5}%, white))`,
-                    }}
-                  >
-                    <SilhuetaCarro vista={f.vista} className="w-[85%]" />
-                  </div>
-                ))}
-              </div>
-
-              <ul className="mt-4 flex flex-col gap-2 text-base">
-                <li className="flex items-center gap-2">
-                  <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> 6 fotos com data e hora
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> 2 riscos marcados no desenho
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check aria-hidden className="size-5 text-acao" strokeWidth={3} /> Assinado pelo cliente
-                </li>
-              </ul>
-
-              <div className="mt-5 flex items-center gap-2 rounded-2xl bg-[#1f8f4e] px-4 py-3 text-base font-bold text-white">
-                <MessageCircle aria-hidden className="size-5" /> Enviado ao cliente
-              </div>
+          <section aria-label="Telas do app Vistoria Rápida" className="relative mx-auto h-[470px] w-full max-w-[420px] sm:h-[560px]">
+            <Celular tela="inicio" prioridade className="absolute top-0 left-0 w-[58%] -rotate-[5deg]" />
+            <Celular tela="concluida" prioridade className="absolute top-10 right-0 w-[58%] rotate-[4deg]" />
+            <div className="absolute bottom-10 left-[-4px] flex items-center gap-2 rounded-2xl bg-background px-4 py-3 shadow-xl ring-1 ring-border sm:bottom-16">
+              <PenLine aria-hidden className="size-6 text-oficina" />
+              <span className="text-sm font-bold">Assinado pelo cliente</span>
             </div>
-
-            <div className="absolute -right-2 -bottom-5 flex rotate-[3deg] items-center gap-2 rounded-2xl bg-background px-4 py-3 shadow-xl ring-1 ring-border">
-              <FileText aria-hidden className="size-6 text-perigo" />
-              <span className="text-sm font-bold">termo-vistoria.pdf</span>
+            <div className="absolute right-2 bottom-0 flex items-center gap-2 rounded-2xl bg-[#1f8f4e] px-4 py-3 text-white shadow-xl sm:bottom-4">
+              <FileText aria-hidden className="size-6" />
+              <span className="text-sm font-bold">PDF enviado no WhatsApp</span>
             </div>
           </section>
         </div>
 
+        {/* O problema que o produto resolve */}
+        <section className="bg-[#0f172a] text-white">
+          <div className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-12 md:grid-cols-[1.2fr_1fr] md:items-center">
+            <div>
+              <p className="text-3xl leading-tight font-extrabold sm:text-4xl">&quot;Esse risco não estava aqui.&quot;</p>
+              <p className="mt-3 text-xl text-white/80">
+                Toda oficina já ouviu isso. Sem foto e sem assinatura, é palavra contra palavra, e quem paga o conserto é você.
+              </p>
+            </div>
+            <ul className="flex flex-col gap-3 text-lg">
+              {["Foto com data e hora de cada lado do carro", "Riscos marcados antes do serviço", "Cliente assina na hora, com o dedo"].map((t) => (
+                <li key={t} className="flex items-start gap-3 rounded-2xl bg-white/10 px-4 py-3">
+                  <ShieldCheck aria-hidden className="mt-0.5 size-6 shrink-0 text-marca-verde" /> {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Como funciona: as telas de verdade, passo a passo */}
+        <section aria-labelledby="como" className="mx-auto w-full max-w-6xl px-5 py-14">
+          <h2 id="como" className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Simples assim
+          </h2>
+          <p className="mt-2 text-center text-xl text-muted-foreground">4 telas. Qualquer pessoa da equipe consegue.</p>
+          <ol className="-mx-5 mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-4 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
+            {PASSOS.map((p, i) => (
+              <li key={p.tela} className="flex w-[70%] shrink-0 snap-center flex-col items-center gap-4 sm:w-[44%] lg:w-auto">
+                <Celular tela={p.tela} className="w-full max-w-[250px]" />
+                <div className="text-center">
+                  <p className="flex items-center justify-center gap-2 text-xl font-extrabold">
+                    <span className="grid size-8 place-items-center rounded-full bg-oficina text-base text-oficina-texto">{i + 1}</span>
+                    {p.titulo}
+                  </p>
+                  <p className="text-lg text-muted-foreground">{p.texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-center">
+            <Link href="/videos" className="inline-flex min-h-11 items-center gap-2 text-lg font-bold text-oficina">
+              <PlayCircle aria-hidden className="size-5" /> Ver os vídeos de como usar
+            </Link>
+          </p>
+        </section>
+
+        {/* Para quem é */}
+        <section aria-labelledby="para-quem" className="bg-superficie">
+          <div className="mx-auto w-full max-w-6xl px-5 py-14">
+            <h2 id="para-quem" className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">
+              Para quem recebe carro de cliente
+            </h2>
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {SEGMENTOS_SITE.map((s, i) => {
+                const Icone = ICONES_SEGMENTO[i] ?? Car;
+                return (
+                  <li key={s.caminho}>
+                    <Link
+                      href={s.caminho}
+                      className="tocavel flex h-full items-center gap-4 rounded-3xl bg-background p-5 text-xl font-extrabold no-underline shadow-sm ring-1 ring-border hover:ring-oficina"
+                    >
+                      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-oficina-clara text-oficina">
+                        <Icone aria-hidden className="size-6" />
+                      </span>
+                      {s.nome.replace("Sistema para ", "")}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+
+        {/* Preços */}
+        <section aria-labelledby="planos" className="mx-auto w-full max-w-4xl px-5 py-14">
+          <h2 id="planos" className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Quanto custa
+          </h2>
+          <p className="mt-2 mb-8 text-center text-xl text-muted-foreground">Sem fidelidade. Pix, cartão ou boleto.</p>
+          <CartoesPlanos basico={basico} pro={pro} />
+        </section>
+
         <div className="texto-site mx-auto w-full max-w-3xl px-5">
-          <h2>Chega de ficha de papel na entrada do carro</h2>
+          <h2>Vistoria online, rápida e digital</h2>
           <p>
-            Toda oficina já passou por isso: o cliente volta para buscar o carro, olha a porta, aponta um risco e diz que ele não estava lá quando deixou o veículo.
-            Sem uma foto e sem a assinatura dele, a conversa vira palavra contra palavra. Quem perde é a oficina, que acaba pagando um conserto que não fez ou
-            perdendo o cliente.
+            A Vistoria Rápida é uma vistoria de veículos digital feita no celular. Você registra como o carro chegou, o cliente assina e recebe tudo no
+            WhatsApp. É o jeito mais simples de evitar prejuízo na oficina com riscos e amassados que não foram você que fez.
           </p>
           <p>
-            A ficha de papel não resolve. Ela molha no pátio, rasga, fica suja de graxa e some na gaveta justo no dia em que você precisa dela. Muitas vezes nem é
-            preenchida direito, porque o movimento está grande e o mecânico está com pressa.
-          </p>
-          <p>
-            A Vistoria Rápida troca a ficha por uma vistoria digital feita no celular: fotos com data e hora, riscos e amassados marcados no desenho do carro, a
-            quilometragem, os pneus, os itens do veículo e a assinatura do cliente. Tudo fica guardado e chega ao cliente em PDF, pelo WhatsApp.
-          </p>
-
-          <h2>Como funciona a vistoria digital</h2>
-          <p>
-            A ideia é simples: uma vistoria rápida, digital e feita por qualquer pessoa da equipe. Quem procura uma vistoria rápido digital, sem treinamento longo,
-            encontra aqui um passo a passo que o próprio app vai mostrando na tela.
-          </p>
-          <h3>1. Fotos guiadas pelo app</h3>
-          <p>
-            O app mostra um desenho de cada ângulo: frente, traseira, lado esquerdo, lado direito, painel e motor com o capô aberto. Você só aponta o celular e tira
-            a foto. Cada foto sai com a data, a hora e a placa gravadas na imagem.
-          </p>
-          <h3>2. Marque riscos e avarias no desenho</h3>
-          <p>
-            Encontrou um risco, um amassado ou um vidro trincado? Toque no ponto certo do desenho do carro (de frente, de trás, dos lados ou de cima) e escolha o
-            tipo de avaria. Fica claro onde está cada problema, sem precisar escrever.
-          </p>
-          <h3>3. O cliente assina com o dedo</h3>
-          <p>
-            O cliente confere a vistoria na tela do celular da oficina e assina com o dedo, ali mesmo no balcão ou no pátio. Ele não precisa criar conta nem baixar
-            nada. Depois, a oficina também assina e conclui.
-          </p>
-          <h3>4. PDF com a sua logo direto no WhatsApp</h3>
-          <p>
-            Ao concluir, o sistema monta o termo de vistoria em PDF com a logo da sua oficina e você envia para o WhatsApp do cliente com um toque. A vistoria
-            concluída fica travada: qualquer correção depois entra como observação extra, sem apagar o que foi registrado.
-          </p>
-          <p>
-            Quer ver cada passo em detalhe? Veja <Link href="/como-funciona">como funciona o app de vistoria veicular</Link>.
-          </p>
-
-          <h2>Por que sua oficina precisa de vistoria de entrada e saída</h2>
-          <ul>
-            <li>
-              <strong>Menos discussão no balcão.</strong> Quando o cliente reclama de um risco, você mostra a foto com data e a assinatura dele.
-            </li>
-            <li>
-              <strong>Mais confiança do cliente.</strong> Receber um termo organizado no WhatsApp mostra que a oficina é séria e cuida do carro dele.
-            </li>
-            <li>
-              <strong>Equipe padronizada no mesmo checklist.</strong> Todo mundo faz a vistoria do mesmo jeito, com as mesmas fotos e os mesmos itens.
-            </li>
-            <li>
-              <strong>Histórico de cada veículo pela placa.</strong> As vistorias ficam guardadas e você encontra qualquer uma buscando pela placa.
-            </li>
-            <li>
-              <strong>Fim do papel.</strong> Nada de ficha molhada, prancheta perdida ou gaveta cheia.
-            </li>
-          </ul>
-          <p>
-            Veja como a <Link href="/vistoria-digital-para-oficinas">vistoria digital para oficinas</Link> organiza a entrada e a saída dos carros, e use o nosso{" "}
-            <Link href="/checklist-de-entrada-de-veiculo">checklist de entrada de veículo</Link> como modelo.
-          </p>
-
-          <h2>Vistoria de carro pelo celular, sem complicação</h2>
-          <p>
-            Não precisa de equipamento especial. Basta um celular com câmera e internet, o mesmo que a equipe já usa todo dia. A tela tem botões grandes, letras
-            fáceis de ler e pouco texto, pensada para quem está no pátio, com pressa e às vezes com a mão suja.
-          </p>
-          <p>
-            A vistoria leva cerca de 3 minutos e funciona também para motos e caminhões. Saiba mais sobre a{" "}
-            <Link href="/vistoria-de-carro-pelo-celular">vistoria de carro pelo celular</Link>.
-          </p>
-
-          <h2>Laudo de vistoria digital que vale como prova</h2>
-          <p>
-            O termo em PDF reúne tudo o que foi registrado: as fotos com data e hora, os riscos e amassados marcados no desenho, a quilometragem, os pneus, os itens
-            do veículo, as observações e as assinaturas do cliente e da oficina.
-          </p>
-          <p>
-            Cada vistoria tem um código de autenticidade e um QR Code. Qualquer pessoa pode <Link href="/verificar">conferir uma vistoria</Link> no site e ver se o
-            documento é verdadeiro. Entenda o que vem no <Link href="/laudo-de-vistoria-digital">laudo de vistoria digital</Link>.
-          </p>
-
-          <h2>Quanto custa</h2>
-          <p>
-            A Vistoria Rápida é paga por mensalidade, só por Pix, sem cartão de crédito. Você paga pelo QR Code ou pelo Pix copia e cola, direto na tela do sistema.
-            {/* TODO(Frederico): colocar aqui o valor da mensalidade quando o preço puder aparecer no site. */}
-          </p>
-          <p>
-            Veja os detalhes na página de <Link href="/precos">preços</Link>.
+            Serve como <Link href="/sistema-para-oficina">sistema para oficina</Link>, <Link href="/sistema-para-loja-de-carros">sistema para loja de carros</Link>,{" "}
+            <Link href="/sistema-para-lava-jato">sistema para lava jato</Link> e <Link href="/sistema-para-frotista">sistema para frotista</Link>. Veja também o{" "}
+            <Link href="/checklist-de-entrada-de-veiculo">checklist de entrada de veículo</Link> e o que vem no{" "}
+            <Link href="/laudo-de-vistoria-digital">laudo de vistoria digital</Link>.
           </p>
 
           <h2>Perguntas frequentes</h2>
           <Perguntas itens={PERGUNTAS_INICIO} />
 
           <section className="mt-12 flex flex-col items-start gap-4 rounded-3xl bg-oficina-clara p-6">
-            <h2 className="mt-0">Comece hoje a fazer vistoria digital na sua oficina</h2>
-            <p className="mt-0">Crie a conta, coloque a logo da oficina e faça a primeira vistoria em poucos minutos.</p>
+            <h2 className="mt-0">Faça a primeira vistoria hoje</h2>
+            <p className="mt-0">Crie a conta, coloque a sua logo e comece. Leva poucos minutos.</p>
             <BotaoCriarConta />
           </section>
         </div>

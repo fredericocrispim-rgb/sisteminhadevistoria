@@ -1,106 +1,94 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check } from "lucide-react";
-import { JsonLd, PaginaConteudo, Perguntas, schemaPerguntas } from "@/components/site/blocos";
+import { Barcode, CreditCard, QrCode } from "lucide-react";
+import { JsonLd, Perguntas, schemaPerguntas } from "@/components/site/blocos";
+import { CartoesPlanos } from "@/components/site/vitrine-site";
 import { PERGUNTAS_PRECOS } from "@/lib/conteudo/perguntas";
-import { contatoSuporte, metadadosPagina } from "@/lib/site";
+import { centavos, planosDoSite } from "@/lib/planos-site";
+import { contatoSuporte, ENDERECO_SITE, metadadosPagina, schemaCaminho } from "@/lib/site";
 
 const caminho = "/precos";
 
-export const metadata: Metadata = metadadosPagina({
-  titulo: "Preço da Vistoria Digital | Pague por Pix",
-  descricao: "Preço da vistoria digital para oficinas: mensalidade paga só por Pix, sem cartão, com fotos, assinatura e PDF no WhatsApp. Comece agora.",
-  caminho,
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const { basico } = await planosDoSite();
+  return metadadosPagina({
+    titulo: `Preços da Vistoria Rápida | A partir de R$ ${centavos(basico.preco)} por mês`,
+    descricao: `Dois planos simples: Básico e Pro (com vídeo). A partir de R$ ${centavos(basico.preco)} por mês, sem fidelidade. Pague por Pix, cartão ou boleto.`,
+    caminho,
+  });
+}
 
-const incluido = [
-  "Vistorias de chegada e de entrega pelo celular",
-  "Fotos guiadas com data e hora",
-  "Riscos e amassados marcados no desenho do carro",
-  "Pneus, itens do veículo e observações",
-  "Assinatura do cliente com o dedo",
-  "Termo de vistoria em PDF com a logo da sua oficina",
-  "Envio para o WhatsApp do cliente",
-  "Código de autenticidade e página para conferir a vistoria",
-  "Carros, motos e caminhões",
-  "Equipe com papéis: dono, gerente e vistoriador",
-  "Histórico das vistorias e busca pela placa",
+const FORMAS = [
+  { icone: QrCode, nome: "Pix", texto: "Na hora, pelo app do banco" },
+  { icone: CreditCard, nome: "Cartão", texto: "Paga sozinho todo mês" },
+  { icone: Barcode, nome: "Boleto", texto: "Chega um novo todo mês" },
 ];
 
 export default async function Pagina() {
-  const contato = await contatoSuporte();
+  const [{ basico, pro }, contato] = await Promise.all([planosDoSite(), contatoSuporte()]);
+  const produto = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: "Vistoria Rápida",
+    description: "Sistema de vistoria de veículos digital pelo celular.",
+    brand: { "@type": "Brand", name: "Vistoria Rápida" },
+    offers: [basico, pro].map((p) => ({
+      "@type": "Offer",
+      name: `Plano ${p.nome}`,
+      price: p.preco.toFixed(2),
+      priceCurrency: "BRL",
+      availability: "https://schema.org/InStock",
+      url: `${ENDERECO_SITE}${caminho}`,
+    })),
+  };
+
   return (
-    <PaginaConteudo
-      caminho={[{ nome: "Preços", caminho }]}
-      titulo="Preços da Vistoria Rápida"
-      resumo="Uma mensalidade simples, paga por Pix, sem cartão de crédito."
-      chamada="Comece a fazer vistoria digital na sua oficina."
-    >
+    <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">
+      <JsonLd dados={schemaCaminho([{ nome: "Preços", caminho }])} />
+      <JsonLd dados={produto} />
       <JsonLd dados={schemaPerguntas(PERGUNTAS_PRECOS)} />
 
-      <h2>Planos e preço</h2>
-      {/* TODO(Frederico): colocar aqui os planos e o valor da mensalidade quando o preço puder aparecer no site
-          (no sistema hoje: tabela "planos"). Quando entrar, incluir também "offers" em BRL no Service da página inicial. */}
-      <p>
-        A Vistoria Rápida é cobrada por mensalidade. O valor aparece na tela <strong>Meu plano</strong> assim que a oficina cria a conta, junto com o QR Code do
-        Pix.
-      </p>
-      {contato ? (
+      <div className="text-center">
+        <h1 className="text-[2.3rem] leading-[1.08] font-extrabold tracking-tight sm:text-5xl">Escolha o seu plano</h1>
+        <p className="mt-3 text-xl text-muted-foreground">Mensal e sem fidelidade. Sem surpresa na cobrança.</p>
+      </div>
+
+      <div className="mt-10">
+        <CartoesPlanos basico={basico} pro={pro} />
+      </div>
+
+      <section aria-labelledby="pagar" className="mt-14">
+        <h2 id="pagar" className="text-center text-2xl font-extrabold sm:text-3xl">
+          Pague como preferir
+        </h2>
+        <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+          {FORMAS.map(({ icone: Icone, nome, texto }) => (
+            <li key={nome} className="flex items-center gap-4 rounded-3xl bg-superficie p-5">
+              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-background text-oficina">
+                <Icone aria-hidden className="size-6" />
+              </span>
+              <span>
+                <span className="block text-xl font-extrabold">{nome}</span>
+                <span className="block text-base text-muted-foreground">{texto}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-center text-lg text-muted-foreground">Depois de criar a conta, você tem 1 dia para fazer o primeiro pagamento.</p>
+      </section>
+
+      <section className="texto-site mx-auto mt-6 max-w-3xl">
+        <h2>Perguntas sobre o pagamento</h2>
+        <Perguntas itens={PERGUNTAS_PRECOS} />
         <p>
-          Quer saber o valor antes de criar a conta? <a href={contato.link}>Fale com a gente no WhatsApp</a>.
+          Ficou com dúvida? {contato ? <a href={contato.link}>Chame a gente no WhatsApp</a> : null}
+          {contato ? " ou veja " : "Veja "}
+          <Link href="/videos">os vídeos de como usar</Link>.
         </p>
-      ) : null}
-
-      <h2>O que está incluído</h2>
-      <ul className="!list-none !pl-0">
-        {incluido.map((i) => (
-          <li key={i} className="flex items-start gap-2">
-            <Check aria-hidden className="mt-1 size-5 shrink-0 text-acao" strokeWidth={3} /> {i}
-          </li>
-        ))}
-      </ul>
-
-      <h2>Como funciona o pagamento por Pix</h2>
-      <ol>
-        <li>Crie a conta da oficina com o seu nome, WhatsApp e o nome da oficina.</li>
-        <li>Na tela Meu plano aparecem o valor, o QR Code e o Pix copia e cola.</li>
-        <li>Pague pelo aplicativo do seu banco. Não precisa de cartão de crédito.</li>
-        <li>Depois de confirmado o pagamento, o acesso fica liberado por mais 30 dias.</li>
-      </ol>
-      <p>
-        Alguns dias antes do vencimento, o sistema mostra o Pix da próxima mensalidade para o dono da oficina. Só o dono vê as informações de cobrança; a equipe
-        continua trabalhando normalmente.
-      </p>
-
-      <h2>Por que vale a pena</h2>
-      <p>
-        Uma única reclamação de risco que a oficina não causou pode custar um reparo de funilaria ou um cliente perdido. Com a vistoria digital, a oficina tem foto
-        com data e a assinatura do cliente para mostrar. Além disso, o termo com a sua logo no WhatsApp passa uma imagem de oficina organizada e confiável. E a equipe ganha tempo, porque não precisa
-        preencher ficha à mão nem procurar papel na gaveta quando o cliente pergunta alguma coisa.
-      </p>
-      <p>
-        Veja <Link href="/como-funciona">como funciona o app</Link> ou leia sobre a <Link href="/vistoria-digital-para-oficinas">vistoria digital para oficinas</Link>.
-      </p>
-
-      <h2>Sem surpresa na cobrança</h2>
-      <p>
-        Não há cobrança automática no cartão nem débito em conta. A oficina paga cada mensalidade quando quiser, dentro do prazo, pelo Pix. O comprovante fica no
-        aplicativo do seu banco, e o sistema mostra na tela Meu plano até quando o acesso está pago.
-      </p>
-      <p>
-        Se a mensalidade atrasar, o sistema avisa antes de bloquear. Mesmo com o acesso bloqueado, nada é apagado: as vistorias que você já fez continuam
-        guardadas e voltam a ficar disponíveis assim que o pagamento é confirmado.
-      </p>
-
-      <h2>Para quem é</h2>
-      <p>
-        Para oficinas mecânicas, funilarias, autocentros, centros automotivos e guinchos que recebem veículos de clientes e querem parar de usar ficha de papel.
-        Serve para a oficina pequena, em que o próprio dono faz a vistoria, e para a oficina com equipe, em que recepcionista, mecânico e gerente dividem o
-        trabalho, cada um com o seu acesso.
-      </p>
-
-      <h2>Perguntas sobre a cobrança</h2>
-      <Perguntas itens={PERGUNTAS_PRECOS} />
-    </PaginaConteudo>
+      </section>
+    </main>
   );
 }
+
+/** Preços vêm da tabela planos: confere de novo a cada hora. */
+export const revalidate = 3600;

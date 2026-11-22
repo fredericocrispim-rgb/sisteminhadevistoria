@@ -17,7 +17,7 @@ export function CabecalhoSite() {
         </span>
       </Link>
 
-      <nav aria-label="Menu do site" className="hidden items-center gap-1 xl:flex">
+      <nav aria-label="Menu do site" className="hidden items-center gap-1 lg:flex">
         {MENU_SITE.map((item) => (
           <Link key={item.caminho} href={item.caminho} className="tocavel inline-flex min-h-11 items-center rounded-xl px-3 text-base font-bold text-muted-foreground hover:text-foreground">
             {item.nome}
@@ -29,7 +29,7 @@ export function CabecalhoSite() {
         <Link href="/entrar" className="tocavel hidden min-h-toque items-center rounded-2xl px-3 text-lg font-bold text-oficina sm:inline-flex">
           Entrar
         </Link>
-        <details className="group relative xl:hidden">
+        <details className="group relative lg:hidden">
           <summary className="tocavel flex min-h-toque cursor-pointer list-none items-center gap-2 rounded-2xl bg-background/80 px-3 text-lg font-bold ring-1 ring-border [&::-webkit-details-marker]:hidden">
             <Menu aria-hidden className="size-6" /> Menu
           </summary>

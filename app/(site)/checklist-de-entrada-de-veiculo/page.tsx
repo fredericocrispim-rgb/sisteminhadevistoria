@@ -134,7 +134,7 @@ export default function Pagina() {
         o dedo. O termo em PDF vai direto para o WhatsApp do cliente.
       </p>
       <p>
-        Veja <Link href="/como-funciona">como funciona o app de vistoria veicular</Link> e leia o artigo{" "}
+        Veja <Link href="/videos">os vídeos de como usar o app</Link> e leia o artigo{" "}
         <Link href="/blog/checklist-entrada-veiculo-oficina">Checklist de entrada de veículo: o modelo completo para sua oficina</Link>.
       </p>
     </PaginaConteudo>

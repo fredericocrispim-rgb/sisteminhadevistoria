@@ -69,7 +69,7 @@ export default function Pagina() {
         <li>Conclua e envie o PDF para o WhatsApp do cliente.</li>
       </ol>
       <p>
-        Veja cada tela em detalhe em <Link href="/como-funciona">como funciona o app de vistoria veicular</Link>.
+        Veja cada tela em detalhe em <Link href="/videos">os vídeos de como usar o app</Link>.
       </p>
 
       <h2>Dicas para boas fotos no pátio</h2>
